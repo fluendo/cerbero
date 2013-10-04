@@ -486,6 +486,8 @@ class App(PackageBase):
     @type strip: list
     @cvar strip_excludes: files that won't be stripped
     @type strip_excludes: list
+    @cvar resources_info_plist: Info.plist template file
+    @type resources_info_plist: string
     '''
 
     app_name = None
@@ -498,6 +500,7 @@ class App(PackageBase):
     strip = False
     strip_dirs = ['bin']
     strip_excludes = []
+    resources_info_plist = 'Info.plist'
 
     def __init__(self, config, store, cookbook):
         PackageBase.__init__(self, config, store)
