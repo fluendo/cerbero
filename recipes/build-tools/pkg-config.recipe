@@ -5,7 +5,7 @@ class Recipe(recipe.Recipe):
     name = 'pkg-config'
     version = '0.27'
     licenses = [License.GPLv2]
-    configure_options = '--with-internal-glib'
+    configure_options = '--with-internal-glib --program-prefix= '
 
     files_bins = ['pkg-config']
     files_share = ['share/aclocal/pkg.m4']
