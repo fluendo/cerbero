@@ -18,4 +18,4 @@ class Recipe(recipe.Recipe):
         elif self.config.target_platform == Platform.WINDOWS:
             self.configure_options = '--with-libiconv=gnu'
         elif self.config.target_platform in Platform.DARWIN:
-            self.config_sh = 'CFLAGS="$CFLAGS -DHAVE_STRNDUP" ./configure'
+            self.new_env['CFLAGS']= "-DHAVE_STRNDUP"
