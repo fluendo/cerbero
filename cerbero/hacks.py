@@ -137,6 +137,18 @@ if sys.platform.startswith('win'):
     os.path.realpath = realpath
     shutil.rmtree = rmtree
 
+# rmtree fails to often with access denied
+import shutil
+from cerbero.utils.shell import call
+
+
+def rmtree(path):
+    call('rm -rf %s' % path)
+
+
+shutil.rmtree = rmtree
+
+
 
 ### OS X Hacks ###
 
