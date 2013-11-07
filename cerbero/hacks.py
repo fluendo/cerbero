@@ -142,7 +142,7 @@ import shutil
 from cerbero.utils.shell import call
 
 
-def rmtree(path):
+def rmtree(path, onerror=None):
     call('rm -rf %s' % path)
 
 
