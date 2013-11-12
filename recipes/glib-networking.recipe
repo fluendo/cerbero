@@ -20,6 +20,7 @@ class Recipe(recipe.Recipe):
           # Only for the universal builds
           if os.path.exists(arch_path):
               querymodule_path = arch_path
+          self.append_env ['CFLAGS'] = '-Wno-error=format-nonliteral'
 
         if not self.config.prefix_is_executable():
           querymodule_path = 'true'

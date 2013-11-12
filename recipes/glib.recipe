@@ -96,7 +96,7 @@ class Recipe(recipe.Recipe):
                 extra_flags = '-DGST_SDK_IOS=1'
                 self.configure_options += ' --disable-carbon --enable-dtrace=no --disable-modular-tests --disable-cocoa'
 
-            self.config_sh = 'CFLAGS="$CFLAGS -DHAVE_STRNDUP %s" ./configure' % extra_flags
+            self.config_sh = 'CFLAGS="$CFLAGS -Wno-error=format-nonliteral -DHAVE_STRNDUP %s" ./configure' % extra_flags
         elif self.config.target_platform == Platform.LINUX:
             path1 = '/usr/lib/gio/modules'
             path2 = None
