@@ -6,7 +6,7 @@ from collections import defaultdict
 from cerbero.build import recipe
 from cerbero.build.cookbook import CookBook
 from cerbero.config import Platform
-from cerbero.utils import to_unixpath
+from cerbero.utils import to_unixpath, shell
 
 
 class GStreamerStatic(recipe.Recipe):
@@ -55,6 +55,10 @@ class GStreamerStatic(recipe.Recipe):
             f.extend(['%s/%s.la' % (plugin_path, x) for x in files])
             platform_files[self.config.target_platform] = f
             self._files_list.extend(f)
+        self.append_env ['CFLAGS'] = "%s %s" % (self.append_env.get('CFLAGS',
+            ''), '-fPIC -DPIC')
+        self.append_env ['CXXFLAGS'] = "%s %s" % (self.append_env.get('CXXFLAGS',
+            ''), '-fPIC -DPIC')
 
     def configure(self):
         if not os.path.exists(self.tmp_destdir):
@@ -66,6 +70,7 @@ class GStreamerStatic(recipe.Recipe):
             return
         plugins_dir = os.path.dirname(os.path.join(self.config.prefix,
                                                    self._files_list[0]))
+        libdir = os.path.dirname(plugins_dir)
         if not os.path.exists(plugins_dir):
             os.makedirs(plugins_dir)
         # Copy all files installed in the temporary build-static directory
@@ -74,9 +79,14 @@ class GStreamerStatic(recipe.Recipe):
         # generated with the shared build
         for f in self._files_list:
             f_no_static = f.replace('/static/', '/')
+            f_path = os.path.join(self.config.prefix, f)
             shutil.copyfile(os.path.join(self.tmp_destdir,
-                to_unixpath(self.config.prefix)[1:], f_no_static),
-                os.path.join(self.config.prefix, f))
+                to_unixpath(self.config.prefix)[1:], f_no_static),f_path)
+            # Fix libdir path in libtool libraries
+            if f.endswith('.la'):
+                shell.replace(f_path,
+                    {"libdir='%s'" % to_unixpath(libdir):
+                        "libdir='%s'" % to_unixpath(plugins_dir)})
 
 
 def list_gstreamer_plugins_by_category(config):
