@@ -21,16 +21,40 @@ from cerbero.config import Platform
 from cerbero.utils import shell
 
 
+class RecursiveLister():
+
+
+    def list_file_deps(self, prefix, path):
+        raise NotImplemented()
+
+    def find_deps(self, prefix, lib, state={}, ordered=[]):
+        if state.get(lib, 'clean') == 'processed':
+            return
+        if state.get(lib, 'clean') == 'in-progress':
+            return
+        state[lib] = 'in-progress'
+        lib_deps = self.list_file_deps(prefix, lib)
+        for libdep in lib_deps:
+            self.find_deps(prefix, libdep, state, ordered)
+        state[lib] = 'processed'
+        ordered.append(lib)
+        return ordered
+
+
 class ObjdumpLister():
 
     def list_deps():
         pass
 
 
-class OtoolLister():
+class OtoolLister(RecursiveLister):
 
-    def list_deps(path):
-        pass
+    def list_file_deps(self, prefix, path):
+        files = shell.check_call('otool -L %s' % path).split('\n')[1:]
+        return [x.split(' ')[0][1:] for x in files if prefix in x]
+
+    def list_deps(self, prefix, path):
+        return self.find_deps(prefix, os.path.realpath(path), {}, [])
 
 
 class LddLister():
