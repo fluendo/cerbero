@@ -90,6 +90,7 @@ class Recipe(recipe.Recipe):
         return flags
 
     def prepare(self):
+        self.configure_options += ' --disable-compile-warnings'
         if self.config.target_platform != Platform.WINDOWS:
             self.configure_options += ' --enable-static'
         if self.config.target_platform != Platform.LINUX:
