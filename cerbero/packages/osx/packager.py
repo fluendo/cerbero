@@ -363,7 +363,7 @@ class ApplicationPackage(PackagerBase):
         self._create_bundle()
         self._create_app_bundle()
         self._strip_binaries()
-    #    self._relocate_binaries()
+        self._relocate_binaries()
         pkg = self._create_product()
         self._add_applications_link()
         dmg = self._create_dmg()
