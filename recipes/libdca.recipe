@@ -11,6 +11,9 @@ class Recipe(recipe.Recipe):
                    'lib/pkgconfig/libdca.pc', 'lib/pkgconfig/libdts.pc']
 
     def prepare(self):
+        if self.config.target_platform == Platform.DARWIN:
+            self.append_env['CFLAGS'] = '-std=gnu89'
+
         if self.config.target_platform == Platform.ANDROID:
             self.autoreconf = True
             self.configure_options += ' --disable-oss'
