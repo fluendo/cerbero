@@ -3,7 +3,7 @@
 
 class Recipe(recipe.Recipe):
     name = 'gtk+'
-    version = '2.24.11'
+    version = '2.24.22'
     # TODO: check license - some source files are LGPLv2, others LGPLv2+,
     #       others LGPLv2.1+, COPYING is LGPLv2 and the webpage states LGPLv2.1
     licenses = [License.LGPLv2_1Plus]
@@ -78,6 +78,7 @@ class Recipe(recipe.Recipe):
             self.configure_options += '--disable-papi --disable-cups '
         elif self.config.target_platform == Platform.DARWIN:
             self.configure_options += '--with-gdktarget=quartz '
+            self.append_env['AM_CPPFLAGS'] = ' -xobjective-c '
         elif self.config.target_platform == Platform.LINUX:
             # Can't change CFLAGS and use configure cache
             self.can_use_configure_cache = False
