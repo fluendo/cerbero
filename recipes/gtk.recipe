@@ -123,3 +123,9 @@ class Recipe(recipe.Recipe):
             else:
                 raise FatalError(_("Add specific for other Linux distributions here"))
             self._set_flags(mod_path1, mod_path2, themes_path)
+
+    def install(self):
+        p = os.path.join(self.config.prefix, 'lib', 'gtk-2.0', '2.10.0')
+        if not os.path.exists(p):
+            os.makedirs(p)
+        super(Recipe, self).install()
