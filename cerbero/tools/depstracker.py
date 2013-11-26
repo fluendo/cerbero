@@ -40,11 +40,18 @@ class RecursiveLister():
         ordered.append(lib)
         return ordered
 
+    def list_deps(self, prefix, path):
+        return self.find_deps(prefix, os.path.realpath(path), {}, [])
 
-class ObjdumpLister():
 
-    def list_deps():
-        pass
+class ObjdumpLister(RecursiveLister):
+
+    def list_file_deps(self, prefix, path):
+        files = shell.check_call('objdump -x %s' % path).split('\n')
+        files = [x.split(' ')[2][:-1] for x in files if 'DLL ' in x]
+        files = [os.path.join(prefix, 'bin', x) for x in files if \
+                 x.lower().endswith('dll')]
+        return [os.path.realpath(x) for x in files if os.path.exists(x)]
 
 
 class OtoolLister(RecursiveLister):
@@ -52,9 +59,6 @@ class OtoolLister(RecursiveLister):
     def list_file_deps(self, prefix, path):
         files = shell.check_call('otool -L %s' % path).split('\n')[1:]
         return [x.split(' ')[0][1:] for x in files if prefix in x]
-
-    def list_deps(self, prefix, path):
-        return self.find_deps(prefix, os.path.realpath(path), {}, [])
 
 
 class LddLister():
