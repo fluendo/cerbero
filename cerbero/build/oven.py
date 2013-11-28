@@ -107,7 +107,7 @@ class Oven (object):
                 self._handle_build_step_error(recipe, step)
             except Exception:
                 raise BuildStepError(recipe, step, traceback.format_exc())
-        self.cookbook.update_build_status(recipe.name, False)
+        self.cookbook.update_build_status(recipe.name, recipe.built_version())
 
         if self.missing_files:
             self._print_missing_files(recipe, tmp)
