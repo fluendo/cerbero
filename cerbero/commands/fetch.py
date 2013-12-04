@@ -100,7 +100,7 @@ class FetchPackage(Fetch):
         store = PackagesStore(config)
         package = store.get_package(args.package[0])
         return self.fetch(store.cookbook, package.recipes_dependencies(),
-                True, args.reset_rdeps)
+                False, args.reset_rdeps)
 
 
 register_command(FetchRecipes)
