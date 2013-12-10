@@ -62,7 +62,5 @@ def revision(repo):
     @param repo: the path to the repository
     @type  repo: str
     '''
-    rev = shell.check_call('svnversion', repo).split('\n')[0]
-    if rev[-1] == 'M':
-        rev = rev[:-1]
-    return rev
+    rev = shell.check_call('svn log', repo).split('\n')[1]
+    return rev.split(' ')[0]
