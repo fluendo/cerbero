@@ -302,7 +302,7 @@ class ProductPackage(PackagerBase):
         output_file = os.path.join(self.output_dir, self._package_name('.pkg'))
         output_file = os.path.abspath(output_file)
         pb = ProductBuild()
-        pb.create_package(distro_path, output_file)
+        pb.create_package(distro_path, output_file, [self.package.relative_path('.')])
         return output_file
 
     def _create_packages(self):
@@ -437,7 +437,8 @@ class ApplicationPackage(PackagerBase):
         output_file = os.path.join(self.output_dir, self._package_name('.pkg'))
         output_file = os.path.abspath(output_file)
         pb = ProductBuild()
-        pb.create_package(distro_path, output_file, self.tmp)
+        pb.create_package(distro_path, output_file,
+            [self.package.relative_path('.'), self.tmp])
         return output_file
 
     def _create_dmg(self):
