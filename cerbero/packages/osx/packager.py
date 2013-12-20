@@ -420,13 +420,26 @@ class ApplicationPackage(PackagerBase):
         return '%s-%s-%s%s' % (self.package.name, self.package.version,
                 self.config.target_arch, suffix)
 
+    def _copy_scripts(self):
+        resources = os.path.join(self.tmp, 'Resources')
+        # Copy scripts to the Resources directory
+        os.makedirs(resources)
+        if os.path.exists(self.package.resources_preinstall):
+            shutil.copy(os.path.join(self.package.resources_preinstall),
+                        os.path.join(resources, 'preinstall'))
+        if os.path.exists(self.package.resources_postinstall):
+            shutil.copy(os.path.join(self.package.resources_postinstall),
+                        os.path.join(resources, 'postinstall'))
+        return resources
+
     def _create_product(self):
         packagebuild = PackageBuild()
+        resources = self._copy_scripts()
         app_pkg_name = self._package_name('.pkg')
         app_pkg = os.path.join(self.tmp, app_pkg_name)
         packagebuild.create_package(self.approot, self.package.identifier(),
             self.package.version, self.package.shortdesc, app_pkg,
-            '/Applications') #, scripts_path=resources)
+            '/Applications', scripts_path=resources)
         self.package.packages = [(self.package.name, True, True)]
         m.action(_("Creating Distribution.xml for package %s " % self.package))
         distro = DistributionXML(self.package, self.store, self.tmp,
