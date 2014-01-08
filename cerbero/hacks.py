@@ -119,12 +119,23 @@ def abspath(path):
 def realpath(path):
     return oldrealpath(path).replace('\\', '/')
 
+
+# rmtree fails too often with access denied
+import shutil
+from cerbero.utils.shell import call
+
+
+def rmtree(path, onerror=None):
+    call('rm -rf %s' % path)
+
+
 if sys.platform.startswith('win'):
     os.environ = _Environ(os.environ)
     os.path.join = join
     os.path.expanduser = expanduser
     os.path.abspath = abspath
     os.path.realpath = realpath
+    shutil.rmtree = rmtree
 
 
 ### OS X Hacks ###
