@@ -46,7 +46,7 @@ class Recipe(recipe.Recipe):
         Platform.WINDOWS: [
             'share/themes/MS-Windows/gtk-2.0/gtkrc',
             'lib/gtk-2.0/2.10.0/engines/libwimp.dll',],
-        Platform.LINUX: [
+        Platform.DARWIN: [
             'share/themes/Mac/gtk-2.0-key/gtkrc'],
         }
     platform_files_modules = {
