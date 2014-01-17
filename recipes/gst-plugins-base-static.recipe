@@ -8,7 +8,7 @@ class Recipe(custom.GStreamerStatic):
     extra_configure_options = "--disable-gst_v4l --disable-gnome_vfs"
     deps = ['glib', 'gstreamer', 'libogg', 'pango', 'libtheora', 'libvisual',
             'libvorbis', 'zlib', 'orc']
-    platform_deps = { Platform.LINUX: [ 'cdparanoia' ], Platform.ANDROID: [ 'tremor' ], Platform.IOS: [ 'tremor' ] }
+    platform_deps = { Platform.ANDROID: [ 'tremor' ], Platform.IOS: [ 'tremor' ] }
     use_system_libs = True
 
     files_plugins_core_devel = [
@@ -49,21 +49,14 @@ class Recipe(custom.GStreamerStatic):
              'libgstlibvisual',
             ]
 
+    files_plugins_sys_devel = []
+
     platform_files_plugins_codecs_devel = {
         Platform.ANDROID: [
              'libgstivorbisdec',
             ],
         Platform.IOS: [
              'libgstivorbisdec',
-            ]
-    }
-
-    platform_files_plugins_sys_devel = {
-        Platform.LINUX: [
-             'libgstalsa',
-             'libgstximagesink',
-             'libgstxvimagesink',
-             'libgstcdparanoia',
             ]
     }
 
@@ -84,8 +77,25 @@ class Recipe(custom.GStreamerStatic):
 
 
     def prepare(self):
-        if self.config.target_platform in [Platform.ANDROID, Platform.IOS]:
-            self.configure_options += ' --disable-alsa --disable-x'
+        if self.config.variants.cdparanoia:
+            self.deps.append('cdparanoia')
+            self.files_plugins_sys_devel += ['libgstcdparanoia']
+        else:
+            self.configure_options += ' --disable-cdparanoia'
+
+        if self.config.variants.x11:
+            self.files_plugins_sys_devel += [
+                 'libgstximagesink',
+                 'libgstxvimagesink',
+                ]
+        else:
+            self.configure_options += ' --disable-x'
+
+        if self.config.variants.alsa:
+            self.files_plugins_sys_devel += ['libgstalsa']
+        else:
+            self.configure_options += ' --disable-alsa'
+
         if self.config.variants.nodebug:
             self.configure_options += ' --disable-gst-debug'
         custom.GStreamerStatic.prepare(self)

@@ -1,5 +1,4 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'gst-rtsp-server'
@@ -8,9 +7,13 @@ class Recipe(recipe.Recipe):
     config_sh = 'sh ./autogen.sh --noconfigure && ./configure'
     configure_options = "--disable-examples --with-package-origin='http://www.gstreamer.com' --with-package-name='GStreamer RTSP Server (GStreamer SDK)' "
     remotes = {'upstream': 'git://anongit.freedesktop.org/gstreamer/gst-rtsp-server'}
-    deps = ['gstreamer', 'gst-plugins-base', 'pygobject', 'gst-python' ]
+    deps = ['gstreamer', 'gst-plugins-base']
 
     files_devel = ['include/gstreamer-0.10/gst/rtsp-server', 'lib/pkgconfig/gst-rtsp-server-0.10.pc']
     files_libs = ['libgstrtspserver-0.10']
-#    files_python = ['site-packages/gst-0.10/gst/rtspserver%(pext)s']
+    files_python = []
 
+    def prepare(self):
+        if self.config.variants.python:
+            self.deps += ['pygobject', 'gst-python']
+            self.files_python += ['site-packages/gst-0.10/gst/rtspserver%(pext)s']

@@ -24,18 +24,12 @@ class SDKPackage(package.SDKPackage):
                ('gstreamer-codecs', False, True),
                ('gstreamer-effects', False, True),
                ('gstreamer-networking', False, True),
-               ('gstreamer-clutter', False, True),
                ('gstreamer-visualizers', False, True),
-               ('gstreamer-python', False, True),
-               ('gtk+-2.0', False, True),
-               ('gtk+-2.0-python', False, True),
-               ('snappy', False, True),
                ('gstreamer-codecs-gpl', False, False),
                ('gstreamer-codecs-restricted', False, False),
                ('gstreamer-networking-restricted', False, False),
                ('gstreamer-dvd', False, False),
                ('gstreamer-libav', False, False),
-               ('gstreamer-tests', False, False),
                ('gstreamer-editing', False, False),
                ('gstreamer-capture', False, False),
                ('gstreamer-tutorials', False, True),
@@ -68,10 +62,20 @@ class SDKPackage(package.SDKPackage):
 
 
     def prepare(self):
+        if self.config.variants.gtk:
+            self.packages += [('gtk+-2.0', False, True),
+                              ('gtk+-2.0-python', False, True)]
+        if self.config.variants.clutter:
+            self.packages += [('gstreamer-clutter', False, True),
+                              ('snappy', False, True)]
+        if self.config.variants.clutter:
+            self.packages += [('gstreamer-python', False, True)]
+
+        if self.config.variants.testspackage:
+            self.packages += [('gstreamer-tests', False, True)]
+
         if self.config.target_platform in [Platform.ANDROID, Platform.IOS]:
-            p = ['gstreamer-clutter', 'gstreamer-python', 'gtk+-2.0',
-                 'gtk+-2.0-python', 'snappy', 'gstreamer-dvd',
-                 'gstreamer-tests']
+            p = ['gstreamer-dvd']
             self.packages = [ x for x in self.packages if x[0] not in p]
         if self.config.target_platform == Platform.IOS:
             self.resources_postinstall = 'post_install_ios'
