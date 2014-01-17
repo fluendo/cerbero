@@ -415,7 +415,7 @@ class ApplicationPackage(PackagerBase):
 
     def _add_applications_link(self):
         # Create link to /Applications
-        applications_link = os.path.join(self.tmp, 'Applications')
+        applications_link = os.path.join(self.approot, 'Applications')
         shell.call('ln -s /Applications %s' % applications_link)
 
     def _package_name(self, suffix):
@@ -445,7 +445,9 @@ class ApplicationPackage(PackagerBase):
         self.package.packages = [(self.package.name, True, True)]
         m.action(_("Creating Distribution.xml for package %s " % self.package))
         distro = DistributionXML(self.package, self.store, self.tmp,
-            {self.package: app_pkg_name}, [], PackageType.RUNTIME,
+            {self.package: app_pkg_name},
+            self.store.get_package_deps(self.package),
+            PackageType.RUNTIME,
             self.config.target_arch, home_folder=False)
         distro_path = tempfile.NamedTemporaryFile().name
         distro.write(distro_path)
@@ -461,7 +463,7 @@ class ApplicationPackage(PackagerBase):
             self.package.app_name, self.package.version, self.config.target_arch))
         # Create Disk Image
         cmd = 'hdiutil create %s -volname %s -ov -srcfolder %s' % \
-                (dmg_file, self.package.app_name, self.tmp)
+                (dmg_file, self.package.app_name, self.approot)
         shell.call(cmd)
         return dmg_file
 
