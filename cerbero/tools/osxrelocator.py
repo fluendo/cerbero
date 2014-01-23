@@ -55,7 +55,7 @@ class OSXRelocator(object):
         if not (filename.endswith('so') or filename.endswith('dylib')):
             return
         cmd = '%s -id %s %s' % (INT_CMD, id, object_file)
-        shell.call(cmd)
+        shell.call(cmd, fail=False)
 
     def change_libs_path(self, object_file):
         for lib in self.list_shared_libraries(object_file):
