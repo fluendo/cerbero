@@ -52,7 +52,7 @@ class Recipe(recipe.Recipe):
             self.new_env['CC'] += ' -no-integrated-as '
             self.new_env = {'CCAS': os.environ['CC']}
             self.new_env['CCAS'] += ' -no-integrated-as '
-            self.patches += ['libffi/01-arm-ios-alignment.patch']
+            self.patches = ['libffi/01-arm-ios-alignment.patch']
 
     def post_install(self):
         if self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
