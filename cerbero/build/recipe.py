@@ -331,7 +331,7 @@ class UniversalFlatRecipe(UniversalRecipe):
     '''
 
     def __init__(self, config):
-        UniversalRecipe.__init__(config)
+        UniversalRecipe.__init__(self, config)
 
     @property
     def steps(self):
