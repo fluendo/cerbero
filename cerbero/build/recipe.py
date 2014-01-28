@@ -317,7 +317,6 @@ class UniversalRecipe(object):
     def _do_step(self, step):
         for arch, recipe in self._recipes.iteritems():
             config = self._config.arch_config[arch]
-            config.prefix = os.path.join(self._config.prefix, arch)
             config.do_setup_env()
             stepfunc = getattr(recipe, step)
 

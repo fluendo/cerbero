@@ -399,7 +399,11 @@ class CookBook (object):
                      'FatalError': FatalError,
                      'custom': custom, '_': _, 'shell': shell}
                 parse_file(filepath, d)
-                r = d['Recipe'](self._config.arch_config[c])
+                conf = self._config.arch_config[c]
+                if self._config.target_platform not in [Platform.IOS,
+                        Platform.DARWIN]:
+                    conf.prefix = os.path.join(self._config.prefix, c)
+                r = d['Recipe'](conf)
                 r.__file__ = os.path.abspath(filepath)
                 self._config.arch_config[c].do_setup_env()
                 r.prepare()
