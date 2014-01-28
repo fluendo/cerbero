@@ -50,7 +50,7 @@ class Recipe(custom.GStreamerStatic):
              'libgsthdvparse',
              'libgstid3tag',
              'libgstivfparse',
-             #'libgstjp2k',
+             'libgstjp2k',
              'libgstkate',
              'libgstmve',
              'libgstmxf',
