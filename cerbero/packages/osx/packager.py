@@ -165,11 +165,12 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         files = self.files_list(package_type, force)
         output_file = os.path.join(output_dir, '%s-%s-%s.pkg' %
                 (self.package.name, self.version, self.config.target_arch))
-        root, resources = self._create_bundle(files, package_type)
+        tmp, root, resources = self._create_bundle(files, package_type)
         packagebuild = PackageBuild()
         packagebuild.create_package(root, self.package.identifier(),
             self.package.version, self.package.shortdesc, output_file,
             self._get_install_dir(), scripts_path=resources)
+        shutil.rmtree(tmp)
         return output_file
 
     def _create_bundle(self, files, package_type):
@@ -202,8 +203,7 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         if os.path.exists(self.package.resources_postinstall):
             shutil.copy(os.path.join(self.package.resources_postinstall),
                         os.path.join(resources, 'postinstall'))
-        shutil.rmtree(tmp)
-        return root, resources
+        return tmp, root, resources
 
 
 
