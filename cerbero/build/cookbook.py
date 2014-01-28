@@ -384,7 +384,10 @@ class CookBook (object):
     def _load_recipe_from_file(self, filepath, custom=None):
         mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
         if self._config.target_arch == Architecture.UNIVERSAL:
-            recipe = crecipe.UniversalRecipe(self._config)
+            if self._config.target_platform in [Platform.IOS, Platform.DARWIN]:
+                recipe = crecipe.UniversalFlatRecipe(self._config)
+            else:
+                recipe = crecipe.UniversalRecipe(self._config)
         for c in self._config.arch_config.keys():
             try:
                 d = {'Platform': Platform, 'Architecture': Architecture,
