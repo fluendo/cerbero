@@ -14,7 +14,7 @@ class Recipe(recipe.Recipe):
         if self.config.variants.nox11:
             self.configure_options += ' --disable-xv --without-x'
         if self.config.target_platform == Platform.WINDOWS:
-            self.configure_options = ' --disable-asm'
+            self.configure_options += ' --disable-asm'
             self.append_env = {'LDFLAGS': '-lpthread'}
         elif self.config.target_platform == Platform.DARWIN:
             self.configure_options += ' --disable-asm'
