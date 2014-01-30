@@ -59,7 +59,9 @@ class DistributionXML(object):
         self.enable_user_home = self._boolstr(home_folder)
         self.enable_local_system = self._boolstr(not home_folder)
         if os.path.exists(package.resources_distribution):
-        	self.template = open(package.resources_distribution).read()
+            self.template = open(package.resources_distribution).read()
+        else:
+            self.template = DISTRO_XML_TPL
         self._add_choices()
 
     def write(self, path):
