@@ -88,7 +88,7 @@ class Config (object):
                    'universal_archs', 'osx_target_sdk_version', 'variants',
                    'build_tools_prefix', 'build_tools_sources',
                    'build_tools_cache', 'home_dir', 'recipes_commits',
-                   'ios_platform', 'extra_build_tools']
+                   'ios_platform', 'extra_build_tools', 'target_arch_flags']
 
     def __init__(self):
         self._check_uninstalled()
