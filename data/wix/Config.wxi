@@ -13,5 +13,6 @@
 <?define PlatformProgramFilesFolder = "@ProgramFilesFolder@" ?>
 <?define Platform = "@Platform@" ?>
 <?define UIType = "@UIType@" ?>
+<?define CerberoPackageDir = "@CerberoPackageDir@" ?>
 
 </Include>

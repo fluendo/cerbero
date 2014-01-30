@@ -278,7 +278,8 @@ class WixConfig(WixBase):
             "@ProductName@": self._product_name(),
             "@ProgramFilesFolder@": self._program_folder(),
             "@Platform@": self._platform(),
-            "@UIType@": self.ui_type
+            "@UIType@": self.ui_type,
+            "@CerberoPackageDir@": self.package.package_dir(),
             }
         shell.replace(config_out_path, replacements)
         return config_out_path
