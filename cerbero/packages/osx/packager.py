@@ -166,7 +166,6 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         output_file = os.path.join(output_dir, '%s-%s-%s.pkg' %
                 (self.package.name, self.version, self.config.target_arch))
         tmp, root, resources = self._create_bundle(files, package_type)
-        shell.call('chmod -R go+r %s' % root, fail=False)
         packagebuild = PackageBuild()
         packagebuild.create_package(root, self.package.identifier(),
             self.package.version, self.package.shortdesc, output_file,
@@ -442,8 +441,6 @@ class ApplicationPackage(PackagerBase):
         resources = self._copy_scripts()
         app_pkg_name = self._package_name('.pkg')
         app_pkg = os.path.join(self.tmp, app_pkg_name)
-        shell.call('chmod -R go+r %s' % resources, fail=False)
-        shell.call('chmod -R go+r %s' % self.approot, fail=False)
         packagebuild.create_package(self.approot, self.package.identifier(),
             self.package.version, self.package.shortdesc, app_pkg,
             '/Applications', scripts_path=resources)
