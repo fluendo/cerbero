@@ -104,7 +104,10 @@ class Tarball (Source):
                  (self.url, self.download_path))
         if not os.path.exists(self.repo_dir):
             os.makedirs(self.repo_dir)
-        shell.download(self.url, self.download_path, check_cert=False)
+        if self.url.startswith('file://'):
+            shutil.copy(self.url[7:], self.download_path)
+        else:
+            shell.download(self.url, self.download_path, check_cert=False)
 
     def extract(self):
         m.action(_('Extracting tarball to %s') % self.build_dir)
