@@ -13,6 +13,7 @@ class Recipe(recipe.Recipe):
                'gettext/0002-intl-fix-build-targetting-10.6-with-the-10.7-or-10.8.patch']
     platform_deps = {
         Platform.DARWIN:  ['libiconv'],
+        Platform.IOS:  ['libiconv'],
         Platform.WINDOWS:  ['mingw-runtime'],
             }
 
