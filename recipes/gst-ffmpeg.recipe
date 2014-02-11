@@ -35,12 +35,13 @@ class Recipe(recipe.Recipe):
             if self.config.target_arch == Architecture.X86:
                 opts = '--extra-cflags=-mincoming-stack-boundary=4'
         if self.config.target_platform == Platform.IOS:
+            cflags = os.environ.get('CFLAGS', '').replace(' -g ', ' ')
             opts = "--enable-cross-compile --target-os=darwin --cross-prefix='' --arch=%s "\
-                   "--cc='$CC' --ar='$AR' --nm='$NM' --extra-cflags='$CFLAGS'" % self.config.target_arch
+                   "--cc='$CC -no-integrated-as' --ar='$AR' --nm='$NM' --extra-cflags='%s'" % (self.config.target_arch, cflags)
             if self.config.target_arch == Architecture.X86:
                 opts += ' --as=$AS'
             else:
-                opts += " --as='$GAS'"
+                opts += " --as='$GAS -no-integrated-as'"
         if opts:
             opts_file = os.path.join(self.build_dir, 'ffmpeg_extra_configure_options')
             with open(opts_file, 'w+') as f:

@@ -12,7 +12,8 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.IOS:
             self.autoreconf = True
             self.configure_options += ' --enable-fpm=default '
-            self.new_env = {'CCAS': os.environ['GAS']}
+            self.new_env['CCAS'] = os.environ['GAS']
+            self.new_env['CCASFLAGS'] = '-no-integrated-as'
         if self.config.target_platform == Platform.LINUX:
             if self.config.target_arch in [Architecture.ARM, Architecture.ARMv7]:
             	self.configure_options += ' --enable-fpm=default '
