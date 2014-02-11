@@ -23,6 +23,8 @@ class Recipe(recipe.Recipe):
           # For the universal build we need to use the right gio-querymodules
           arch = self.config.target_arch
           querymodule_path = os.path.join(self.config.prefix, arch, 'bin', 'gio-querymodules')
+          self.append_env['CFLAGS'] = '-Wno-error=format-nonliteral'
+          self.configure_options += ' --disable-more-warnings'
         else:
           querymodule_path = os.path.join(self.config.prefix, 'bin', 'gio-querymodules')
 
