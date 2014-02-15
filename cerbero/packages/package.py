@@ -365,7 +365,7 @@ class MetaPackage(PackageBase):
     platform_packages = {}
     sdk_version = '1.0'
     resources_wix_installer = None
-    resources_distribution = None
+    resources_distribution = 'Distribution.xml'
     user_resources = []
 
     def __init__(self, config, store):
