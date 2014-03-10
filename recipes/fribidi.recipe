@@ -8,6 +8,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2_1Plus]
     autoreconf = True
     deps = ['glib']
+    patches = ['fribidi-win32-missing-symbols.patch']
 
     files_libs = ['libfribidi']
     files_bins = ['fribidi']

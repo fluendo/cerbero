@@ -1,0 +1,14 @@
+--- fribidi/lib/Makefile.am	2014-03-10 18:17:13 +0100
++++ fribidi/lib/Makefile.am	2014-03-10 18:17:20 +0100
+@@ -8,11 +8,7 @@
+ libfribidi_la_LIBADD = $(MISC_LIBS)
+ libfribidi_la_DEPENDENCIES =
+ 
+-if OS_WIN32
+-libfribidi_la_LDFLAGS += -export-symbols $(srcdir)/fribidi.def
+-else
+ libfribidi_la_LDFLAGS += -export-symbols-regex "^fribidi_.*"
+-endif # OS_WIN32
+ 
+ if FRIBIDI_CHARSETS
+ 
