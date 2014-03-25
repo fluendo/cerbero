@@ -41,6 +41,12 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.LINUX:
                 self.new_env = {'AS': os.environ['CC']}
 
+    def configure(self):
+        super(recipe.Recipe, self).configure()
+        if self.config.target_platform == Platform.DARWIN:
+            shell.replace(os.path.join(self.build_dir, 'config.h'),
+                          {'define HAVE_LOG2F 0': 'define HAVE_LOG2F 1'})
+
     def post_install(self):
         libtool_la = LibtoolLibrary('x264', 125, None, None, self.config.libdir,
                 self.config.target_platform)
