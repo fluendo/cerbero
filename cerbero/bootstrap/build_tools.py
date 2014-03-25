@@ -41,8 +41,10 @@ class BuildTools (BootstraperBase):
             self.BUILD_TOOLS.append('gperf')
         if self.config.platform == Platform.DARWIN:
             self.BUILD_TOOLS.append('gperf')
-            self.BUILD_TOOLS.insert(0, 'tar')
-            self.BUILD_TOOLS.insert(0, 'xz')
+            if self.config.distro_version in [DistroVersion.OS_X_MOUNTAIN_LION,
+                                              DistroVersion.OS_X_LION]:
+                self.BUILD_TOOLS.insert(0, 'tar')
+                self.BUILD_TOOLS.insert(0, 'xz')
         if self.config.platform == Platform.LINUX:
             if self.config.distro_version == DistroVersion.UBUNTU_LUCID or \
                 self.config.distro_version == DistroVersion.DEBIAN_SQUEEZE:
