@@ -6,7 +6,6 @@ class Recipe(recipe.Recipe):
     name = 'zlib'
     version = '1.2.7'
     licenses = [License.BSD_like]
-    force_configure = True
     add_host_build_target = False
     can_use_configure_cache = False
 

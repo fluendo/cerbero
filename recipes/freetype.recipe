@@ -6,7 +6,6 @@ class Recipe(recipe.Recipe):
     version = '2.4.10'
     licenses = [License.FreeType]
     configure_tpl = "%(config-sh)s --prefix=%(prefix)s --libdir=%(libdir)s"
-    force_configure = True
 
     files_libs = ['libfreetype']
     files_devel = ['bin/freetype-config',
