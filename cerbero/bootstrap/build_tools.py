@@ -54,7 +54,8 @@ class BuildTools (BootstraperBase):
                 self.BUILD_TOOLS.append('cmake')
         if self.config.target_platform == Platform.IOS:
             self.BUILD_TOOLS.append('gas-preprocessor')
-        if self.config.distro_version == DistroVersion.UBUNTU_LUCID:
+        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID,
+                                          DistroVersion.UBUNTU_NATTY]:
             self.BUILD_TOOLS.append('glib-tools')
         if self.config.platform != Platform.LINUX and\
                 not self.config.prefix_is_executable():
