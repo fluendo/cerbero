@@ -99,10 +99,10 @@ class WindowsBootstraper(BootstraperBase):
 
     def install_python_sdk(self):
         m.action(_("Installing Python headers"))
-        temp = tempfile.mkdtemp()
+        tmp_dir = tempfile.mkdtemp()
         shell.call("git clone %s" % os.path.join(self.config.git_root,
                                                  'windows-external-sdk.git'),
-                   temp)
+                   tmp_dir)
 
         python_headers = os.path.join(self.prefix, 'include', 'Python2.7')
         python_headers = to_unixpath(os.path.abspath(python_headers))
@@ -111,7 +111,7 @@ class WindowsBootstraper(BootstraperBase):
         python_libs = os.path.join(self.prefix, 'lib')
         python_libs = to_unixpath(python_libs)
 
-        temp = to_unixpath(os.path.abspath(temp))
+        temp = to_unixpath(os.path.abspath(tmp_dir))
         shell.call('cp -f %s/windows-external-sdk/python27/%s/include/* %s' %
                   (temp, self.version, python_headers))
         shell.call('cp -f %s/windows-external-sdk/python27/%s/lib/* %s' %
@@ -122,6 +122,7 @@ class WindowsBootstraper(BootstraperBase):
         except:
             pass
         shell.call('ln -s python27.dll %s' % (pydll))
+        shutil.rmtree(tmp_dir)
 
     def install_mingwget_deps(self):
         for dep in MINGWGET_DEPS:
