@@ -20,6 +20,7 @@ class Recipe(recipe.Recipe):
 
     # No rule check
     make_check = None
+    autoreconf = True
 
     def post_install(self):
         if self.config.target_platform == Platform.LINUX:
