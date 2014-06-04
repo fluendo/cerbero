@@ -1,0 +1,32 @@
+From 384475604a6c3a52c2b79e95a0fda9ad36c76020 Mon Sep 17 00:00:00 2001
+From: Josep Torra <n770galaxy@gmail.com>
+Date: Tue, 6 May 2014 10:08:12 +0200
+Subject: [PATCH] gst/parse: switch to %lex-param
+
+Follow deprecation of YYLEX_PARAM, switching to equivalent %lex-param.
+Cherrypicked from Ubuntu 14.04 package.
+---
+ gst/parse/grammar.y | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/gst/parse/grammar.y b/gst/parse/grammar.y
+index 24fc87b..3a2ce49 100644
+--- a/gst/parse/grammar.y
++++ b/gst/parse/grammar.y
+@@ -1,3 +1,5 @@
++%lex-param {yyscan_t scanner}
++
+ %{
+ #include "../gst_private.h"
+ 
+@@ -26,7 +28,6 @@
+  */
+ 
+ #define YYERROR_VERBOSE 1
+-#define YYLEX_PARAM scanner
+ 
+ #define YYENABLE_NLS 0
+ 
+-- 
+1.9.1
+
