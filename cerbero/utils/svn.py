@@ -64,3 +64,13 @@ def revision(repo):
     '''
     rev = shell.check_call('svn log', repo).split('\n')[1]
     return rev.split(' ')[0]
+
+
+def revert_all(repo):
+    '''
+    Reverts all changes in a repository
+
+    @param repo: the path to the repository
+    @type  repo: str
+    '''
+    shell.call('svn revert -R .', repo)

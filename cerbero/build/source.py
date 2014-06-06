@@ -293,10 +293,13 @@ class Svn(Source):
         self.revision = self.config.recipe_commit(self.name) or self.revision
 
     def fetch(self):
-        if os.path.exists(self.repo_dir):
-            shutil.rmtree(self.repo_dir)
-        os.makedirs(self.repo_dir)
-        svn.checkout(self.url, self.repo_dir)
+        if os.path.exists(os.path.join(self.repo_dir, '.svn')):
+            svn.revert_all(self.repo_dir)
+        else:
+            if os.path.exists(self.repo_dir):
+                shutil.rmtree(self.repo_dir)
+            os.makedirs(self.repo_dir)
+            svn.checkout(self.url, self.repo_dir)
         svn.update(self.repo_dir, self.revision)
 
     def extract(self):
