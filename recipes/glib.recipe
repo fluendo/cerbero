@@ -22,7 +22,7 @@ class Recipe(recipe.Recipe):
     url = 'http://ftp.acc.umu.se/pub/GNOME/sources/glib/2.38/glib-2.38.0.tar.xz'
     licenses = [License.LGPLv2Plus]
     config_sh = 'sh autogen.sh'
-    deps = ['libffi', 'zlib']
+    deps = ['libffi', 'zlib', 'gtk-doc-lite']
     can_use_configure_cache = False
     patches = ['glib/0002-gio-add-support-for-satic-modules.patch',
                'glib/0005-Let-user-disable-Cocoa-and-Carbon-support-on-demand.patch',
