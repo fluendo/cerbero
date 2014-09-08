@@ -86,10 +86,11 @@ class WindowsBootstraper(BootstraperBase):
         tarfile = os.path.join(self.prefix, tarball)
         tarfile = os.path.abspath(tarfile)
         shell.download("%s/%s" % (MINGW_DOWNLOAD_SOURCE, tarball), tarfile)
-        try:
-            shell.unpack(tarfile, self.prefix)
-        except Exception:
-            pass
+        if not os.path.exists(os.path.join(self.prefix, 'bin')):
+            try:
+                shell.unpack(tarfile, self.prefix)
+            except Exception:
+                pass
         self.fix_lib_paths()
         if self.arch == Architecture.X86:
             try:
