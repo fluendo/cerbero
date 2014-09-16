@@ -13,8 +13,10 @@ class Recipe(recipe.Recipe):
                         '--without-sigaltstack --disable-dtrace ' \
                         '--with-libgdiplus=$CERBERO_PREFIX ' \
                         '--with-mcs-docs=no '
-    files_libs = ['libmono-3.0']
+    files_bins = ['mono-sgen']
+    files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
+    files_config = ['etc/mono/config']
 
     def prepare(self):
         if self.config.target_platform == Platform.DARWIN:
