@@ -3,15 +3,18 @@ from cerbero.tools.libtool import LibtoolLibrary
 
 
 class Recipe(recipe.Recipe):
-    version = '20120827-2245'
+    version = '20140212-2245'
     name = 'x264'
     licenses = [License.GPL]
     stype = SourceType.TARBALL
     configure_tpl = "%(config-sh)s --prefix=%(prefix)s "\
                     "--libdir=%(libdir)s %(options)s"
-    configure_options = '--enable-shared --enable-static --enable-pic --disable-strip'
-    url = 'ftp://ftp.videolan.org/pub/x264/snapshots/x264-snapshot-20120827-2245-stable.tar.bz2'
-    tarball_dirname= 'x264-snapshot-20120827-2245-stable'
+    configure_options = '--enable-shared --enable-static --enable-pic ' \
+                        '--disable-strip --disable-lavf'
+    url = 'http://download.videolan.org/pub/x264/snapshots/x264-snapshot-20140212-2245-stable.tar.bz2'
+    tarball_dirname= 'x264-snapshot-20140212-2245-stable'
+    new_env = {'AS': 'yasm'}
+    patches = ['x264/0001-Don-t-use-falign-loops-with-clang-it-does-not-exist.patch']
 
     files_libs = ['libx264']
     files_bins = ['x264']
@@ -19,32 +22,35 @@ class Recipe(recipe.Recipe):
                    'include/x264_config.h']
 
     def prepare(self):
+        # clang x86-32 fails at generating proper asm PIC code
+        # See bug https://bugzilla.gnome.org/show_bug.cgi?id=727079
+        enable_asm = True
+
         arch = self.config.target_arch
         if self.config.target_arch == Architecture.X86:
             arch = 'i686'
         if self.config.target_platform == Platform.DARWIN:
             if self.config.target_arch == Architecture.X86:
                 self.new_env = {'AS': 'yasm -O2 -f macho -DPREFIX'}
+                enable_asm = False
         if self.config.target_platform == Platform.WINDOWS:
             self.configure_options += ' --enable-win32thread'
         self.configure_options += ' --host=%s-pc-%s' % (arch, self.config.target_platform)
         if self.config.target_platform == Platform.ANDROID:
             if self.config.target_arch == Architecture.ARM:
-                self.configure_options += ' --disable-asm'
-            elif self.config.target_arch == Architecture.ARMv7:
-                self.new_env = {'AS': os.environ['CC']}
+                # FIXME : Is disabling asm on ARM (< v7) still needed ?
+                enable_asm = False
+            if self.config.target_arch == Architecture.ARMv7:
+                self.new_env = {'AS': os.environ.get('CC', '')}
         if self.config.target_platform == Platform.IOS:
-            if self.config.target_arch in [Architecture.ARM, Architecture.ARMv7]:
+            if Architecture.is_arm(self.config.target_arch):
                 self.new_env = {'AS': os.environ.get('GAS', '')}
-                self.new_env['ASFLAGS'] = '-no-integrated-as'
-        if self.config.target_platform == Platform.LINUX:
-                self.new_env = {'AS': os.environ['CC']}
+                self.new_env['AS'] += ' -no-integrated-as '
+            elif self.config.target_arch == Architecture.X86:
+                enable_asm = False
 
-    def configure(self):
-        super(recipe.Recipe, self).configure()
-        if self.config.target_platform == Platform.DARWIN:
-            shell.replace(os.path.join(self.build_dir, 'config.h'),
-                          {'define HAVE_LOG2F 0': 'define HAVE_LOG2F 1'})
+        if enable_asm is False:
+            self.configure_options += ' --disable-asm '
 
     def post_install(self):
         libtool_la = LibtoolLibrary('x264', 125, None, None, self.config.libdir,
