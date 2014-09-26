@@ -17,6 +17,7 @@ class Recipe(recipe.Recipe):
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config']
+    patches = ['mono/0001-Fix-build-in-OS-X.patch']
 
     def prepare(self):
         if self.config.target_platform == Platform.DARWIN:
