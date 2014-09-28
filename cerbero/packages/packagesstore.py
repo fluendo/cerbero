@@ -198,6 +198,8 @@ class PackagesStore (object):
                 p = d['InstallerPackage'](self._config, self)
             elif 'App' in d:
                 p = d['App'](self._config, self, self.cookbook)
+            elif 'AppExtensionPackage' in d:
+                p = d['AppExtensionPackage'](self._config, self, self.cookbook)
             else:
                 raise Exception('Package, SDKPackage, InstallerPackage or App '
                                 'class not found')

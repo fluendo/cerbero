@@ -23,10 +23,11 @@ import shutil
 from cerbero.config import Architecture, Platform
 from cerbero.ide.pkgconfig import PkgConfig
 from cerbero.ide.xcode.fwlib import StaticFrameworkLibrary
-from cerbero.errors import EmptyPackageError, FatalError
+from cerbero.errors import EmptyPackageError, FatalError, \
+    MissingPackageFilesError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.packages.package import Package, MetaPackage, App,\
-        PackageBase, SDKPackage
+        PackageBase, SDKPackage, AppExtensionPackage
 from cerbero.packages.osx.distribution import DistributionXML
 from cerbero.packages.osx.bundles import FrameworkBundlePackager,\
     ApplicationBundlePackager
@@ -482,6 +483,24 @@ class ApplicationPackage(PackagerBase, PostProcessingMixin):
         return dmg_file
 
 
+class ApplicationExtensionPackage(OSXPackage):
+    '''
+    Creates an osx package from a
+    L{cerbero.packages.package.ApplicationExtensionPackage}
+
+    '''
+
+    def __init__(self, config, package, store):
+        OSXPackage.__init__(self, config, package, store)
+
+    def _get_install_dir(self):
+        return self.package.get_install_dir()
+
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
+        return OSXPackage.pack(self, output_dir, devel=False, force=force,
+             keep_temp=keep_temp, include_dirs=[])
+
+
 class IOSPackage(ProductPackage, FrameworkHeadersMixin):
     '''
     Creates an ios Framework package from a
@@ -613,7 +632,9 @@ class Packager(object):
                 raise FatalError ("iOS platform only support packages",
                                   "for MetaPackage")
             return IOSPackage(config, package, store)
-        if isinstance(package, Package):
+        if isinstance(package, AppExtensionPackage):
+            return ApplicationExtensionPackage(config, package, store)
+        elif isinstance(package, Package):
             return OSXPackage(config, package, store)
         elif isinstance(package, MetaPackage):
             return ProductPackage(config, package, store)

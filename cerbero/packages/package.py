@@ -475,6 +475,25 @@ class InstallerPackage(MetaPackage):
         MetaPackage.__init__(self, config, store)
 
 
+class AppExtensionPackage(Package):
+    '''
+    Creates an installer to extend an application.
+
+    @cvar app_package: application package name
+    @type app_package: str
+    '''
+
+    app_package = None
+    windows_sdk_reg = None
+
+    def __init__(self, config, store, cookbook):
+        Package.__init__(self, config, store, cookbook)
+        self.deps.append(self.app_package)
+
+    def recipes_dependencies(self):
+        return [x.split(':')[0] for x in self.files]
+
+
 class App(PackageBase):
     '''
     Create packages for applications.
