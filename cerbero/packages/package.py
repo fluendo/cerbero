@@ -56,6 +56,12 @@ class PackageBase(object):
     @type ignore_package_prefix: bool
     @cvar relocate_osx_binaries: relocate osx binaries
     @type relocate_osx_binaries: bool
+    @cvar strip_excludes: files that won't be stripped
+    @type strip_excludes: list
+    @cvar strip: strip binaries for this package
+    @type strip: bool
+    @cvar strip_dirs: directories to strip
+    @type strip_dirs: list
     @cvar resources_license: filename of the .txt license file
     @type resources_license: str
     @cvar resources_license_unwrapped: filename of the .txt license file
@@ -90,6 +96,9 @@ class PackageBase(object):
     sys_deps = {}
     sys_deps_devel = {}
     relocate_osx_binaries = True
+    strip = False
+    strip_dirs = ['bin', 'lib']
+    strip_excludes = []
     resources_license = 'license.txt'
     resources_license_unwrapped = 'license_unwrapped.txt'
     resources_license_rtf = 'license.txt'
@@ -492,12 +501,6 @@ class App(PackageBase):
     @type command: list
     @cvar wrapper: suffix filename for the main executable wrapper
     @type wrapper: str
-    @cvar strip: strip binaries for this package
-    @type strip: bool
-    @cvar strip_dirs: directories to strip
-    @type strip: list
-    @cvar strip_excludes: files that won't be stripped
-    @type strip_excludes: list
     @cvar external_pkgs: external packages (.msm or .pkg) to include in the installer
     @type external_pkgs: list
     @cvar resources_info_plist: Info.plist template file
@@ -517,9 +520,6 @@ class App(PackageBase):
     commands = []  # list of tuples ('CommandName', path/to/binary')
     wrapper = 'app_wrapper.tpl'
     resources_wix_installer = None
-    strip = False
-    strip_dirs = ['bin']
-    strip_excludes = []
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
     osx_create_dmg = True

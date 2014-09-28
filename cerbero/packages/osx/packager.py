@@ -37,6 +37,28 @@ from cerbero.tools import strip
 from cerbero.utils import messages as m
 
 
+class PostProcessingMixin():
+
+    def _strip_binaries(self, tmp_dir):
+        if not self.package.strip:
+            return
+        for f in self.package.strip_dirs:
+            s_dir = os.path.join(tmp_dir, f)
+            s = strip.Strip(self.config, self.package.strip_excludes)
+            s.strip_dir(s_dir)
+
+    def _relocate_binaries(self, tmp_dir):
+        if not self.package.relocate_osx_binaries:
+            return
+        prefix = self.config.prefix
+        if prefix[-1] == '/':
+            prefix = prefix[:-1]
+        for path in ['bin', 'lib', 'libexec']:
+            relocator = OSXRelocator(os.path.join(tmp_dir, path),
+                    self.config.prefix, '@executable_path/../', True)
+            relocator.relocate()
+
+
 class FrameworkHeadersMixin(object):
 
     def _create_framework_headers(self, prefix, include_dirs, tmp):
@@ -108,7 +130,7 @@ class FrameworkHeadersMixin(object):
                         headers, include_dirs)
 
 
-class OSXPackage(PackagerBase, FrameworkHeadersMixin):
+class OSXPackage(PackagerBase, FrameworkHeadersMixin, PostProcessingMixin):
     '''
     Creates an osx package from a L{cerbero.packages.package.Package}
 
@@ -166,6 +188,8 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         output_file = os.path.join(output_dir, '%s-%s-%s.pkg' %
                 (self.package.name, self.version, self.config.target_arch))
         tmp, root, resources = self._create_bundle(files, package_type)
+        self._relocate_binaries(root)
+        self._strip_binaries(root)
         packagebuild = PackageBuild()
         packagebuild.create_package(root, self.package.identifier(),
             self.package.version, self.package.shortdesc, output_file,
@@ -342,7 +366,7 @@ class ProductPackage(PackagerBase):
         shell.call(cmd)
 
 
-class ApplicationPackage(PackagerBase):
+class ApplicationPackage(PackagerBase, PostProcessingMixin):
     '''
     Creates an osx package from a L{cerbero.packages.package.Package}
 
@@ -364,8 +388,9 @@ class ApplicationPackage(PackagerBase):
         # bundle will try to create links for the main executable
         self._create_bundle()
         self._create_app_bundle()
-        self._strip_binaries()
-        self._relocate_binaries()
+        homedir = os.path.join(self.appdir, 'Contents', 'Home')
+        self._strip_binaries(homedir)
+        self._relocate_binaries(homedir)
         if self.package.osx_create_pkg:
             pkg = self._create_product()
             self._add_applications_link()
@@ -401,25 +426,6 @@ class ApplicationPackage(PackagerBase):
         ''' Creates the OS X Application bundle in temporary directory '''
         packager = ApplicationBundlePackager(self.package)
         return packager.create_bundle(self.appdir)
-
-    def _strip_binaries(self):
-        if self.package.strip:
-            for f in self.package.strip_dirs:
-                s_dir = os.path.join(self.appdir, 'Contents', 'Home', f)
-                s = strip.Strip(self.config, self.package.strip_excludes)
-                s.strip_dir(s_dir)
-
-    def _relocate_binaries(self):
-        if not self.package.relocate_osx_binaries:
-            return
-        prefix = self.config.prefix
-        if prefix[-1] == '/':
-            prefix = prefix[:-1]
-        for path in ['bin', 'lib', 'libexec']:
-            relocator = OSXRelocator(
-                    os.path.join(self.appdir, 'Contents', 'Home', path),
-                    self.config.prefix, '@executable_path/../', True)
-            relocator.relocate()
 
     def _add_applications_link(self):
         # Create link to /Applications
