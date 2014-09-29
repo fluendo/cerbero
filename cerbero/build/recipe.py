@@ -112,20 +112,27 @@ class Recipe(FilesProvider):
     __metaclass__ = MetaRecipe
 
     name = None
-    licenses = []
+    licenses = None
     version = None
     package_name = None
     sources = None
     stype = source.SourceType.GIT_TARBALL
     btype = build.BuildType.AUTOTOOLS
-    deps = list()
-    platform_deps = {}
+    deps = None
+    platform_deps = None
     force = False
     runtime_dep = False
     _default_steps = BuildSteps()
 
     def __init__(self, config):
         self.config = config
+        if self.licenses is None:
+            self.licenses = []
+        if self.deps is None:
+            self.deps = []
+        if self.platform_deps is None:
+            self.platform_deps = {}
+
         if self.package_name is None:
             self.package_name = "%s-%s" % (self.name, self.version)
         if not hasattr(self, 'repo_dir'):

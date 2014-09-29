@@ -93,8 +93,8 @@ class PackageBase(object):
     vendor = 'default'
     url = 'default'
     ignore_package_prefix = False
-    sys_deps = {}
-    sys_deps_devel = {}
+    sys_deps = None
+    sys_deps_devel = None
     relocate_osx_binaries = True
     strip = False
     strip_dirs = ['bin', 'lib']
@@ -110,6 +110,10 @@ class PackageBase(object):
     resources_postremove = 'postremove'
 
     def __init__(self, config, store):
+        if self.sys_deps is None:
+            self.sys_deps = {}
+        if self.sys_deps_devel is None:
+            self.sys_deps_devel = {}
         self.config = config
         self.store = store
         self.package_mode = PackageType.RUNTIME
@@ -237,14 +241,24 @@ class Package(PackageBase):
     @type osx_framework_library: tuple
     '''
 
-    deps = list()
-    files = list()
-    platform_files = dict()
-    files_devel = list()
-    platform_files_devel = dict()
+    deps = None
+    files = None
+    platform_files = None
+    files_devel = None
+    platform_files_devel = None
     osx_framework_library = None
 
     def __init__(self, config, store, cookbook):
+        if self.deps is None:
+            self.deps = []
+        if self.files is None:
+            self.files = []
+        if self.files_devel is None:
+            self.files_devel = []
+        if self.platform_files is None:
+            self.platform_files = {}
+        if self.platform_files_devel is None:
+            self.platform_files_devel = {}
         PackageBase.__init__(self, config, store)
         self.cookbook = cookbook
 
@@ -369,16 +383,20 @@ class MetaPackage(PackageBase):
     @type user_resources: list
     '''
 
-    packages = []
+    packages = None
     root_env_var = 'CERBERO_SDK_ROOT'
     platform_packages = {}
     sdk_version = '1.0'
     resources_wix_installer = None
     resources_distribution = 'Distribution.xml'
-    user_resources = []
+    user_resources = None
 
     def __init__(self, config, store):
         PackageBase.__init__(self, config, store)
+        if self.packages is None:
+            self.packages = []
+        if self.user_resources is None:
+            self.user_resources = []
 
     def list_packages(self):
         return [p[0] for p in self.packages]
@@ -535,7 +553,7 @@ class App(PackageBase):
     app_name = None
     app_recipe = None
     embed_deps = True
-    deps = []
+    deps = None
     commands = []  # list of tuples ('CommandName', path/to/binary')
     wrapper = 'app_wrapper.tpl'
     resources_wix_installer = None
@@ -546,6 +564,10 @@ class App(PackageBase):
 
     def __init__(self, config, store, cookbook):
         PackageBase.__init__(self, config, store)
+        if self.deps is None:
+            self.deps = []
+        if self.commands is None:
+            self.commands = []
         self.cookbook = cookbook
         self._app_recipe = self.cookbook.get_recipe(self.app_recipe)
         self.title = self.name
@@ -626,6 +648,8 @@ class App(PackageBase):
     def __getattribute__(self, name):
         if name == 'deps':
             attr = PackageBase.__getattribute__(self, name)
+            if attr is None:
+                return attr
             ret = attr[:]
             platform_attr_name = 'platform_%s' % name
             if hasattr(self, platform_attr_name):
