@@ -342,20 +342,17 @@ class CookBook (object):
             # filepath attribute was added afterwards
             if not hasattr(st, 'filepath') or not getattr(st, 'filepath'):
                 st.filepath = recipe.__file__
-            if recipe.__file__ != st.filepath:
-                self.reset_recipe_status(recipe.name)
-            else:
-                rmtime = os.path.getmtime(recipe.__file__)
-                if rmtime > st.mtime:
-                    # The mtime is different, check the file hash now
-                    # Use getattr as file_hash we added later
-                    saved_hash = getattr(st, 'file_hash', 0)
-                    current_hash = shell.file_hash(st.filepath)
-                    if saved_hash == current_hash:
-                        # Update the status with the mtime
-                        st.touch()
-                    else:
-                        self.reset_recipe_status(recipe.name)
+            rmtime = os.path.getmtime(recipe.__file__)
+            if rmtime > st.mtime:
+                # The mtime is different, check the file hash now
+                # Use getattr as file_hash we added later
+                saved_hash = getattr(st, 'file_hash', 0)
+                current_hash = shell.file_hash(st.filepath)
+                if saved_hash == current_hash:
+                    # Update the status with the mtime
+                    st.touch()
+                else:
+                    self.reset_recipe_status(recipe.name)
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}
