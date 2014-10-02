@@ -91,16 +91,18 @@ class FetchPackage(Fetch):
 
     def __init__(self):
         args = [
-                ArgparseArgument('package', nargs=1,
-                    help=_('package to fetch')),
+                ArgparseArgument('packages', nargs='*',
+                    help=_('packages to fetch')),
                 ]
         Fetch.__init__(self, args)
 
     def run(self, config, args):
         store = PackagesStore(config)
-        package = store.get_package(args.package[0])
-        return self.fetch(store.cookbook, package.recipes_dependencies(),
-                False, args.reset_rdeps)
+        recipes = []
+        for package_name in args.packages:
+            package = store.get_package(package_name)
+            recipes += package.recipes_dependencies()
+        return self.fetch(store.cookbook, recipes, False, args.reset_rdeps)
 
 
 register_command(FetchRecipes)
