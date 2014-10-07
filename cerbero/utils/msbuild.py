@@ -21,6 +21,7 @@ import os
 
 from cerbero.config import Architecture
 from cerbero.utils import fix_winpath, shell
+from cerbero.errors import FatalError
 
 
 class MSBuild(object):
@@ -34,6 +35,8 @@ class MSBuild(object):
             self.properties['Platform'] = 'x64'
         self.properties['Configuration'] = config
         self.properties['PlatformToolset'] = sdk
+        self.properties['WindowsSdkDir'] = self.get_sdk_path().replace(' ', '%20')
+        self.properties['WindowsDriverKit'] = self.get_winddk_path().replace(' ', '%20')
         self.properties.update(properties)
         self.solution = solution
 
@@ -41,11 +44,34 @@ class MSBuild(object):
         self._call('build')
 
     @staticmethod
+    def get_winddk_path():
+        path = None
+        if 'WINDOWS_DRIVER_KIT' in os.environ:
+            path = os.environ['WINDOWS_DRIVER_KIT']
+        else:
+            path = "C:/WinDDK/7600.16385.1"
+        if not os.path.exists(path):
+            raise FatalError("Windows driver kit not found")
+        return fix_winpath(path)
+
+    @staticmethod
+    def get_sdk_path():
+        reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+        key = winreg.OpenKey(reg,
+                r"SOFTWARE\Microsoft\Microsoft SDKs\Windows\v7.1")
+        path = winreg.QueryValueEx(key, 'InstallationFolder')[0]
+        if not os.path.exists(path):
+            raise FatalError("Windows SDK not found")
+        return fix_winpath(path)
+
+    @staticmethod
     def get_msbuild_tools_path():
         reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
         key = winreg.OpenKey(reg,
                 r"SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0")
         path = winreg.QueryValueEx(key, 'MSBuildToolsPath')[0]
+        if not os.path.exists(path):
+            raise FatalError("MSBuild tools not found")
         return fix_winpath(path)
 
     @staticmethod
@@ -56,6 +82,8 @@ class MSBuild(object):
         path = winreg.QueryValueEx(key, '10.0')[0]
         path = str(path)
         path = path.replace('\\VC', '\\Common7\\IDE')
+        if not os.path.exists(path):
+            raise FatalError("Visual Studio not found")
         return path
 
     def _call(self, command):
