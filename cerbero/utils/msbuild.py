@@ -36,7 +36,7 @@ class MSBuild(object):
         self.properties['Configuration'] = config
         self.properties['PlatformToolset'] = sdk
         self.properties['WindowsSdkDir'] = self.get_sdk_path().replace(' ', '%20')
-        self.properties['WindowsDriverKit'] = self.get_winddk_path().replace(' ', '%20')
+        self.properties['WINDOWS_DRIVER_KIT'] = self.get_winddk_path().replace(' ', '%20')
         self.properties.update(properties)
         self.solution = solution
 
