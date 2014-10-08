@@ -24,7 +24,8 @@ from cerbero.utils import etree, to_winepath, shell
 from cerbero.errors import FatalError
 from cerbero.config import Platform, Architecture
 from cerbero.packages import PackageType
-from cerbero.packages.package import Package, SDKPackage, App, InstallerPackage
+from cerbero.packages.package import Package, SDKPackage, App,\
+        InstallerPackage, AppExtensionPackage
 
 WIX_SCHEMA = "http://schemas.microsoft.com/wix/2006/wi"
 
@@ -79,6 +80,10 @@ class WixBase():
         self.fill()
         tree = etree.ElementTree(self.root)
         tree.write(filepath, encoding='utf-8', pretty_print=True)
+
+    def _is_app(self):
+        return isinstance(self.package, App) or \
+            isinstance(self.package, AppExtensionPackage)
 
     def _format_level(self, selected):
         return selected and '1' or '4'
@@ -258,6 +263,8 @@ class WixConfig(WixBase):
         self.package = package
         if isinstance(self.package, App):
             self.ui_type = 'WixUI_InstallDir'
+        elif isinstance(self.package, AppExtensionPackage):
+            self.ui_type = 'WixUI_Minimal'
         else:
             self.ui_type = 'WixUI_Mondo'
 
@@ -342,7 +349,7 @@ class MSI(WixBase):
 
     def _fill(self):
         self._add_install_dir()
-        if isinstance(self.package, App):
+        if self._is_app():
             self._add_application_merge_module ()
         else:
             self._add_merge_modules()
@@ -407,11 +414,11 @@ class MSI(WixBase):
     def _add_install_dir(self):
         self.target_dir = self._add_dir(self.product, 'TARGETDIR', 'SourceDir')
         # FIXME: Add a way to install to ProgramFilesFolder
-        if isinstance(self.package, App):
+        if self._is_app():
             installdir = self._add_dir(self.target_dir,
                     '$(var.PlatformProgramFilesFolder)', 'ProgramFilesFolder')
             self.installdir = self._add_dir(installdir, 'INSTALLDIR',
-                    '$(var.ProductName)')
+                    self.package.get_install_dir() or '$(ProductName)')
             self.bindir = self._add_dir(self.installdir, 'INSTALLBINDIR', 'bin')
         else:
             installdir = self._add_dir(self.target_dir, 'INSTALLDIR',

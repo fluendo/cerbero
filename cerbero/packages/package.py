@@ -427,7 +427,7 @@ class MetaPackage(PackageBase):
         self.set_mode(PackageType.RUNTIME)
         name = self.shortdesc.replace(' ', '')
         self.set_mode(package_type)
-        return 'Software\\%s\\%s' % (name, self.config.target_arch)
+        return 'Software\\%s\\%s' % (self.name, self.config.target_arch)
 
     def _list_files(self, func):
         # for each package, call the function that list files
@@ -516,12 +516,21 @@ class AppExtensionPackage(Package):
     '''
 
     app_package = None
+    resources_wix_installer = None
+    resources_info_plist = 'Info.plist'
+    resources_distribution = 'distribution.xml'
 
     def __init__(self, config, store, cookbook):
         Package.__init__(self, config, store, cookbook)
+        self.title = self.name
         self.deps.append(self.app_package)
 
-    def get_wix_registry_key():
+    def get_wix_upgrade_code(self):
+        m = self.package_mode
+        p = self.config.target_arch
+        return self.wix_upgrade_code[m][p]
+
+    def get_wix_registry_key(self):
         if self.app_package is None:
             raise FatalException("app_package not set for package " + self.name)
         app_package = self.store.get_package(self.app_package)
@@ -548,6 +557,8 @@ class App(PackageBase):
     @type app_name: str
     @cvar app_recipe: recipe that builds the application project
     @type app_recipe: str
+    @cvar app_version: major version for the application
+    @type app_version: str
     @cvar deps: list of packages dependencies
     @type deps: list
     @cvar embed_deps: include dependencies in the final package
@@ -571,6 +582,7 @@ class App(PackageBase):
 
     app_name = None
     app_recipe = None
+    app_version = None
     embed_deps = True
     deps = None
     commands = []  # list of tuples ('CommandName', path/to/binary')
@@ -585,6 +597,8 @@ class App(PackageBase):
         PackageBase.__init__(self, config, store)
         if self.deps is None:
             self.deps = []
+        if self.app_version is None:
+            self.app_version = self.version
         if self.commands is None:
             self.commands = []
         self.cookbook = cookbook
@@ -637,6 +651,9 @@ class App(PackageBase):
         m = self.package_mode
         p = self.config.target_arch
         return self.wix_upgrade_code[m][p]
+
+    def get_wix_registry_key(self):
+        return 'Software\\%s\\%s\\%s' % (self.name, self.app_version, self.config.target_arch)
 
     def get_commands(self):
         return self.commands.get(self.config.target_platform, [])

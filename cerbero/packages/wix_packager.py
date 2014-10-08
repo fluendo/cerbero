@@ -23,7 +23,7 @@ from zipfile import ZipFile
 
 from cerbero.errors import EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
-from cerbero.packages.package import Package, App
+from cerbero.packages.package import Package, App, AppExtensionPackage
 from cerbero.utils import messages as m
 from cerbero.utils import shell, to_winepath, get_wix_prefix
 from cerbero.tools import strip
@@ -146,17 +146,18 @@ class MSIPackager(PackagerBase):
         paths.append(p)
 
         # create devel package
-        if devel and not isinstance(self.package, App):
+        if devel and not self._is_app():
             p = self._create_msi_installer(PackageType.DEVEL)
             paths.append(p)
 
         # create zip with merge modules
-        self.package.set_mode(PackageType.RUNTIME)
-        zipf = ZipFile(os.path.join(self.output_dir, '%s-merge-modules.zip' %
-                                    self._package_name()), 'w')
-        for p in self.merge_modules[PackageType.RUNTIME]:
-            zipf.write(p)
-        zipf.close()
+        if not self._is_app():
+            self.package.set_mode(PackageType.RUNTIME)
+            zipf = ZipFile(os.path.join(self.output_dir, '%s-merge-modules.zip' %
+                                        self._package_name()), 'w')
+            for p in self.merge_modules[PackageType.RUNTIME]:
+                zipf.write(p)
+            zipf.close()
 
         if not keep_temp:
             for msms in self.merge_modules.values():
@@ -165,15 +166,20 @@ class MSIPackager(PackagerBase):
 
         return paths
 
+    def _is_app(self):
+        return isinstance(self.package, App) or \
+            isinstance(self.package, AppExtensionPackage)
+
     def _package_name(self):
         return "%s-%s-%s" % (self.package.name, self.config.target_arch,
                              self.package.version)
 
     def _create_msi_installer(self, package_type):
         self.package.set_mode(package_type)
-        self.packagedeps = self.store.get_package_deps(self.package, True)
-        if isinstance(self.package, App):
+        if self._is_app():
             self.packagedeps = [self.package]
+        else:
+            self.packagedeps = self.store.get_package_deps(self.package, True)
         self._create_merge_modules(package_type)
         config_path = self._create_config()
         return self._create_msi(config_path)
@@ -240,7 +246,8 @@ class MSIPackager(PackagerBase):
 class Packager(object):
 
     def __new__(klass, config, package, store):
-        if isinstance(package, Package):
+        if isinstance(package, Package) and not \
+                isinstance(package, AppExtensionPackage):
             return MergeModulePackager(config, package, store)
         else:
             return MSIPackager(config, package, store)
