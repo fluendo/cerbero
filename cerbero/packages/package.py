@@ -422,6 +422,13 @@ class MetaPackage(PackageBase):
         p = self.config.target_arch
         return self.wix_upgrade_code[m][p]
 
+    def get_wix_registry_key(self):
+        package_type = self.package_mode
+        self.set_mode(PackageType.RUNTIME)
+        name = self.shortdesc.replace(' ', '')
+        self.set_mode(package_type)
+        return 'Software\\%s\\%s' % (name, self.config.target_arch)
+
     def _list_files(self, func):
         # for each package, call the function that list files
         files = []
@@ -479,18 +486,25 @@ class SDKPackage(MetaPackage):
         return (self.root_env_var % {'arch': self.config.target_arch}).upper()
 
 
+
 class InstallerPackage(MetaPackage):
     '''
     Creates an installer for a target SDK to extend it.
 
-    @cvar windows_sdk_reg: name of the required SDK
-    @type windows_sdk_reg: str
+    @cvar sdk_package: name of the required SDK
+    @type sdk_package: str
     '''
 
-    windows_sdk_reg = None
+    sdk_package = None
 
     def __init__(self, config, store):
         MetaPackage.__init__(self, config, store)
+
+    def get_wix_registry_key():
+        if self.sdk_package is None:
+            raise FatalException("sdk_package not set for package " + self.name)
+        sdk_package = self.store.get_package(self.sdk_package)
+        return sdk_package.get_wix_registry_key()
 
 
 class AppExtensionPackage(Package):
@@ -502,11 +516,16 @@ class AppExtensionPackage(Package):
     '''
 
     app_package = None
-    windows_sdk_reg = None
 
     def __init__(self, config, store, cookbook):
         Package.__init__(self, config, store, cookbook)
         self.deps.append(self.app_package)
+
+    def get_wix_registry_key():
+        if self.app_package is None:
+            raise FatalException("app_package not set for package " + self.name)
+        app_package = self.store.get_package(self.app_package)
+        return app_package.get_wix_registry_key()
 
     def recipes_dependencies(self):
         return [x.split(':')[0] for x in self.files]
@@ -525,8 +544,8 @@ class App(PackageBase):
     itself, creating an Application bundle on OS X and main menu shortcuts on
     Windows, relocating the binaries properly.
 
-    @cvar app_recipe: Name used for the application
-    @type app_recipe: str
+    @cvar app_name: Name used for the application
+    @type app_name: str
     @cvar app_recipe: recipe that builds the application project
     @type app_recipe: str
     @cvar deps: list of packages dependencies
