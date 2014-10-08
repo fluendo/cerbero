@@ -24,20 +24,6 @@ from cerbero.packages import PackageType
 from cerbero.utils import remove_list_duplicates
 
 
-class WixRegistryKeyMixin(object):
-
-    def get_wix_registry_key(self):
-        package_type = self.package_mode
-        self.set_mode(PackageType.RUNTIME)
-        name = self.shortdesc.replace(' ', '')
-        self.set_mode(package_type)
-        if isinstance(self, InstallerPackage):
-            name = self.windows_sdk_reg or name
-        elif isinstance(self, AppExtensionPackage):
-            name = self.windows_app_reg or name
-        return 'Software\\%s\\%s' % (name, self.config.target_arch)
-
-
 class PackageBase(object):
     '''
     Base class for packages with the common field to describe a package
@@ -366,7 +352,7 @@ class Package(PackageBase):
         return licenses
 
 
-class MetaPackage(PackageBase, WixRegistryKeyMixin):
+class MetaPackage(PackageBase):
     '''
     Group of L{cerbero.packages.package.Package} used to build a a modular
     installer package.
@@ -493,24 +479,21 @@ class SDKPackage(MetaPackage):
         return (self.root_env_var % {'arch': self.config.target_arch}).upper()
 
 
-
 class InstallerPackage(MetaPackage):
     '''
     Creates an installer for a target SDK to extend it.
 
-    @cvar sdk_package: name of the required SDK
-    @type sdk_package: str
+    @cvar windows_sdk_reg: name of the required SDK
+    @type windows_sdk_reg: str
     '''
 
-    sdk_package = None
+    windows_sdk_reg = None
 
     def __init__(self, config, store):
         MetaPackage.__init__(self, config, store)
-        sdk_package = self.store.get_package(self.sdk_package)
-        self.windows_app_reg = sdk_package.get_wix_registry_key()
 
 
-class AppExtensionPackage(Package, WixRegistryKeyMixin):
+class AppExtensionPackage(Package):
     '''
     Creates an installer to extend an application.
 
@@ -519,18 +502,17 @@ class AppExtensionPackage(Package, WixRegistryKeyMixin):
     '''
 
     app_package = None
+    windows_sdk_reg = None
 
     def __init__(self, config, store, cookbook):
         Package.__init__(self, config, store, cookbook)
         self.deps.append(self.app_package)
-        app_package = self.store.get_package(self.app_package)
-        self.windows_app_reg = app_package.get_wix_registry_key()
 
     def recipes_dependencies(self):
         return [x.split(':')[0] for x in self.files]
 
 
-class App(PackageBase, WixRegistryKeyMixin):
+class App(PackageBase):
     '''
     Create packages for applications.
     An App package will not include development files and binaries could
@@ -543,12 +525,10 @@ class App(PackageBase, WixRegistryKeyMixin):
     itself, creating an Application bundle on OS X and main menu shortcuts on
     Windows, relocating the binaries properly.
 
-    @cvar app_name: Name used for the application
-    @type app_name: str
+    @cvar app_recipe: Name used for the application
+    @type app_recipe: str
     @cvar app_recipe: recipe that builds the application project
     @type app_recipe: str
-    @cvar version_mayor: mayor version used for compatiblity
-    @type version_mayor: str
     @cvar deps: list of packages dependencies
     @type deps: list
     @cvar embed_deps: include dependencies in the final package
@@ -572,7 +552,6 @@ class App(PackageBase, WixRegistryKeyMixin):
 
     app_name = None
     app_recipe = None
-    version_mayor = None
     embed_deps = True
     deps = None
     commands = []  # list of tuples ('CommandName', path/to/binary')
@@ -589,8 +568,6 @@ class App(PackageBase, WixRegistryKeyMixin):
             self.deps = []
         if self.commands is None:
             self.commands = []
-        if self.version_mayor == None:
-            self.version_mayor = self.version
         self.cookbook = cookbook
         self._app_recipe = self.cookbook.get_recipe(self.app_recipe)
         self.title = self.name

@@ -424,6 +424,16 @@ class MSI(WixBase):
     def _package_id(self, package_name):
         return self._format_id(package_name)
 
+    def _package_var(self):
+        package_type = self.package.package_mode
+        self.package.set_mode(PackageType.RUNTIME)
+        name = self.package.shortdesc
+        self.package.set_mode(package_type)
+        return name
+
+    def _registry_key(self, name):
+        return 'Software\\%s\\%s' % (name, self.config.target_arch)
+
     def _customize_ui(self):
         # Banner Dialog and License
         for path, var in [(self.BANNER_BMP, 'BannerBmp'),
@@ -455,7 +465,7 @@ class MSI(WixBase):
     def _add_registry_install_dir(self):
         # Get the package name. Both devel and runtime will share the same
         # installation folder
-        key = self.package.get_wix_registry_key()
+        name = self._package_var().replace(' ', '')
 
         # Add INSTALLDIR in the registry only for the runtime package
         if self.package.package_mode == PackageType.RUNTIME:
@@ -464,7 +474,7 @@ class MSI(WixBase):
             regkey = etree.SubElement(regcomponent, 'RegistryKey',
                     Id='RegistryInstallDirRoot',
                     Action='createAndRemoveOnUninstall',
-                    Key=key,
+                    Key=self._registry_key(name),
                     Root=self.REG_ROOT)
             etree.SubElement(regkey, 'RegistryValue',
                     Id='RegistryInstallDirValue',
@@ -481,15 +491,17 @@ class MSI(WixBase):
                     Id='RegistryInstallDir')
 
     def _add_get_install_dir_from_registry(self):
-        key = self.package.get_wix_registry_key()
+        name = self._package_var().replace(' ', '')
+        if isinstance(self.package, InstallerPackage):
+            name = self.package.windows_sdk_reg or name
+
+        key = self._registry_key(name)
 
         # Get INSTALLDIR from the registry key
         installdir_prop = etree.SubElement(self.product, 'Property',
                 Id='INSTALLDIR')
-        etree.SubElement(installdir_prop, 'RegistrySearch',
-                Id="InstallDirRegistrySearc",
-                Type="raw", Root=self.REG_ROOT, Key=key,
-                Name='InstallDir')
+        etree.SubElement(installdir_prop, 'RegistrySearch', Id=name,
+                Type="raw", Root=self.REG_ROOT, Key=key, Name='InstallDir')
 
     def _add_merge_module(self, package, required, selected,
                           required_packages):
@@ -520,8 +532,6 @@ class MSI(WixBase):
             c.text = "NOT VS2010DEVENV AND NOT VC2010EXPRESS_IDE"
 
     def _add_start_menu_shortcuts(self):
-        key = self.package.get_wix_registry_key()
-
         # Create a folder with the application name in the Start Menu folder
         programs = etree.SubElement(self.target_dir, 'Directory',
                 Id='ProgramMenuFolder')
@@ -540,8 +550,9 @@ class MSI(WixBase):
                     Icon='MainIcon')
         etree.SubElement(apps, 'RemoveFolder', Id='ApplicationProgramsFolder',
                 On='uninstall')
-        etree.SubElement(apps, 'RegistryValue', Root='HKLM',
-                Key=key, Name='InstallDir', Type='string', Value='[INSTALLDIR]')
+        etree.SubElement(apps, 'RegistryValue', Root='HKCU',
+                Key='Software\Microsoft\%s' % self.package.name,
+                Name='installed', Type='integer', Value='1', KeyPath='yes')
         # Ref it in the main feature
         etree.SubElement(self.main_feature, 'ComponentRef',
                 Id='ApplicationShortcut')
