@@ -347,7 +347,10 @@ class CookBook (object):
                 # The mtime is different, check the file hash now
                 # Use getattr as file_hash we added later
                 saved_hash = getattr(st, 'file_hash', 0)
-                current_hash = shell.file_hash(st.filepath)
+                if os.path.exists (st.filepath):
+                    current_hash = shell.file_hash(st.filepath)
+                else:
+                    current_hash = None
                 if saved_hash == current_hash:
                     # Update the status with the mtime
                     st.touch()
