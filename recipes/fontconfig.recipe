@@ -4,10 +4,18 @@ import os
 
 class Recipe(recipe.Recipe):
     name = 'fontconfig'
-    version = '2.10.1'
+    version = '2.11.1'
+    stype = SourceType.TARBALL
+    url = 'http://www.freedesktop.org/software/fontconfig/release/fontconfig-%(version)s.tar.gz'
     licenses = [License.MIT]
     configure_options = '--disable-docs'
     deps = ['expat', 'freetype', 'zlib', 'bzip2']
+    autoreconf = True
+    patches = ['fontconfig/0001-Ensure-we-use-our-installed-headers-instead-of-syste.patch',
+               'fontconfig/0002-Port-to-Android.patch',
+               'fontconfig/0003-configure-Allow-static-build.patch',
+               'fontconfig/0001-Do-not-build-tests-on-windows.patch',
+               ]
 
     files_libs = ['libfontconfig']
     files_etc = [
@@ -17,12 +25,14 @@ class Recipe(recipe.Recipe):
         ]
     files_devel = ['lib/pkgconfig/fontconfig.pc', 'include/fontconfig']
 
+    autoreconf = True
+
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
             if self.config.target_arch == Architecture.X86_64:
-                self.configure_options = '--with-arch=x86_64'
+                self.configure_options += ' --with-arch=x86_64 '
             else:
-                self.configure_options = '--with-arch=i686'
+                self.configure_options += ' --with-arch=i686 '
 
     def post_install(self):
         # Create relative symlinks to prevent breakage during packaging
