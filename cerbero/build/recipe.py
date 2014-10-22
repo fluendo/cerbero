@@ -179,7 +179,10 @@ class Recipe(FilesProvider):
         master: eg (1.2.0~git+2345435)
         '''
         if hasattr(self.stype, 'built_version'):
-            return self.stype.built_version(self)
+            try:
+                return self.stype.built_version(self)
+            except:
+                pass
         return None
 
     def list_deps(self):
