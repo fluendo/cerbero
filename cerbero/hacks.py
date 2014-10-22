@@ -126,7 +126,7 @@ from cerbero.utils.shell import call
 
 
 def rmtree(path, onerror=None):
-    call('rm -rf %s' % path)
+    call('rm -rf %s' % path, fail=False)
 
 
 if sys.platform.startswith('win'):
@@ -136,19 +136,6 @@ if sys.platform.startswith('win'):
     os.path.abspath = abspath
     os.path.realpath = realpath
     shutil.rmtree = rmtree
-
-# rmtree fails to often with access denied
-import shutil
-from cerbero.utils.shell import call
-
-
-def rmtree(path, onerror=None):
-    call('rm -rf %s' % path)
-
-
-shutil.rmtree = rmtree
-
-
 
 ### OS X Hacks ###
 
