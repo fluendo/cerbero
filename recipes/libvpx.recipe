@@ -6,15 +6,27 @@ import shutil
 
 class Recipe(recipe.Recipe):
     name = 'libvpx'
-    version = 'v1.1.0'
+    version = 'v1.3.0'
     licenses = [License.BSD]
-    configure_tpl = "%(config-sh)s --prefix=%(prefix)s "\
+    stype = SourceType.TARBALL
+    btype = BuildType.MAKEFILE
+    url = 'http://webm.googlecode.com/files/libvpx-v1.3.0.tar.bz2'
+    configure_tpl = "./configure --prefix=%(prefix)s "\
                     "--libdir=%(libdir)s %(options)s"
-    configure_options = "--enable-pic --as=yasm "
+    configure_options = "--enable-pic --as=yasm --disable-unit-tests "
     add_host_build_target = False
     supports_cache_variables = False
     can_use_configure_cache = False
     make = 'make HAVE_GNU_STRIP=no'
+
+    patches = ['libvpx/0001-darwin-add-support-for-newer-sdk-s.patch',
+               'libvpx/0002-Include-Android-cpu-features.c-instead-of-.h.patch',
+               'libvpx/0004-configure-add-support-for-iOS-6.patch',
+               'libvpx/0005-Add-support-for-iOS-7.0-toolchain.patch',
+               'libvpx/0006-Add-armv7s-ios-support.patch',
+               'libvpx/0007-configure-quote-local-variables-correctly.patch',
+               'libvpx/0008-Add-support-for-iOS-simulator-on-x86-64.patch',
+               ]
 
     files_libs = ['libvpx']
     files_bins = ['vpxenc', 'vpxdec']
@@ -35,6 +47,8 @@ class Recipe(recipe.Recipe):
             arch = 'arm'
         elif self.config.target_arch == Architecture.ARMv7:
             arch = 'armv7'
+        elif self.config.target_arch == Architecture.ARMv7S:
+            arch = 'armv7s'
 
         self.new_env['LD'] = os.environ.get('CC', 'gcc')
         if self.config.target_platform == Platform.DARWIN:
@@ -47,10 +61,15 @@ class Recipe(recipe.Recipe):
             if self.config.target_arch == Architecture.PPC:
                 platform = 'darwin9'
         elif self.config.target_platform == Platform.IOS:
-            platform = 'ios7'
+            if self.config.target_distro_version in [DistroVersion.IOS_7_0, DistroVersion.IOS_7_1, DistroVersion.IOS_8_0]:
+                platform = 'ios7'
+            else:
+                platform = 'ios6'
             if self.config.target_arch == Architecture.ARM:
                 arch = 'armv6'
+            self.config_sh = './configure'
         elif self.config.target_platform == Platform.WINDOWS:
+            self.config_sh = './configure'
             if self.config.target_arch == Architecture.X86_64:
                 platform = 'win64'
             else:
@@ -60,7 +79,13 @@ class Recipe(recipe.Recipe):
             platform = 'android'
             self.append_env['CFLAGS'] = " -Dandroid_getCpuFamily=vpx_android_getCpuFamily "\
                 "-Dandroid_getCpuFeatures=vpx_android_getCpuFeatures "\
-                "-Dandroid_getCpuCount=vpx_android_getCpuCount "
+                "-Dandroid_getCpuCount=vpx_android_getCpuCount " \
+                "-Dandroid_cpuInit=vpx_android_cpuInit " \
+                "-Dandroid_cpuInitDummy=vpx_android_cpuInitDummy " \
+                "-Dandroid_getCpuIdArm=vpx_android_getCpuIdArm " \
+                "-Dandroid_setCpu=vpx_android_setCpu " \
+                "-Dandroid_setCpuArm=vpx_android_setCpuArm "
+
             if self.config.target_arch == Architecture.ARM:
                 arch = 'armv5te'
                 # Fix compiler error with -mthumb
@@ -71,6 +96,7 @@ class Recipe(recipe.Recipe):
                 pass
             else:
                 raise FatalError("Unsupported Android architecture %s" % self.config.target_arch)
+            self.config_sh = 'LD=$CC ./configure'
             self.configure_options.replace('--as=yasm', '')
             self.configure_options += ' --sdk-path=%s ' % self.config.toolchain_prefix
         else:
@@ -84,6 +110,9 @@ class Recipe(recipe.Recipe):
             cpufeatures_path = os.path.join(self.config.toolchain_prefix, 'sources', 'android', 'cpufeatures')
             o = os.path.join(cpufeatures_path, 'cpu-features.h')
             f = os.path.join(self.make_dir, 'vpx_ports')
+            m.action("copying %s to %s" % (o, f))
+            shutil.copy(o, f)
+            f = self.make_dir
             m.action("copying %s to %s" % (o, f))
             shutil.copy(o, f)
             o = os.path.join(cpufeatures_path, 'cpu-features.c')
