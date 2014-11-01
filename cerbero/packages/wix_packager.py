@@ -67,7 +67,7 @@ class MergeModulePackager(PackagerBase):
         tmpdir = None
         # For application packages that requires stripping object files, we need
         # to copy all the files to a new tree and strip them there:
-        if isinstance(self.package, App) and self.package.strip:
+        if self._is_app() and self.package.strip:
             tmpdir = tempfile.mkdtemp()
             for f in files_list:
                 src = os.path.join(self.config.prefix, f)
@@ -115,6 +115,10 @@ class MergeModulePackager(PackagerBase):
             shutil.rmtree(tmpdir)
 
         return path
+
+    def _is_app(self):
+        return isinstance(self.package, App) or \
+            isinstance(self.package, AppExtensionPackage)
 
     def _package_name(self, version):
         return "%s-%s-%s" % (self.package.name, version,
