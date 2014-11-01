@@ -258,6 +258,7 @@ class WixConfig(WixBase):
     wix_config = 'wix/Config.wxi'
 
     def __init__(self, config, package):
+        WixBase.__init__(self, config, package)
         self.config_path = os.path.join(config.data_dir, self.wix_config)
         self.arch = config.target_arch
         self.package = package
@@ -287,6 +288,7 @@ class WixConfig(WixBase):
             "@Platform@": self._platform(),
             "@UIType@": self.ui_type,
             "@CerberoPackageDir@": self.package.package_dir(),
+            "@CerberoPrefixDir@": self.prefix,
             }
         shell.replace(config_out_path, replacements)
         return config_out_path

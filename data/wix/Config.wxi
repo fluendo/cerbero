@@ -14,5 +14,6 @@
 <?define Platform = "@Platform@" ?>
 <?define UIType = "@UIType@" ?>
 <?define CerberoPackageDir = "@CerberoPackageDir@" ?>
+<?define CerberoPrefixDir = "@CerberoPrefixDir@" ?>
 
 </Include>
