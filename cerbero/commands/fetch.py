@@ -51,7 +51,7 @@ class Fetch(Command):
             recipe.fetch()
             bv = cookbook.recipe_built_version(recipe.name)
             cv = recipe.built_version()
-            if not cookbook.recipe_needs_build(recipe.name) and bv != cv:
+            if bv != cv:
                 to_rebuild.append(recipe)
                 cookbook.reset_recipe_status(recipe.name)
                 if reset_rdeps:
