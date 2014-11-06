@@ -211,7 +211,7 @@ class ApplicationBundlePackager(object):
                     continue
                 with open(filename, 'w') as f:
                     f.write(wrapper)
-                shell.call('chmod +x %s' % filename)
+                shell.call('chmod +x "%s"' % filename)
             else:
                 # FIXME: We need to copy the binary instead of linking, because
                 # beeing a different path, @executable_path will be different

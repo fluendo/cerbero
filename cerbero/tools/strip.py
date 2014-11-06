@@ -37,9 +37,9 @@ class Strip(object):
                 return
         try:
             if self.config.target_platform == Platform.DARWIN:
-                shell.call("%s -x %s" % (self.STRIP_CMD, path))
+                shell.call("%s -x \"%s\"" % (self.STRIP_CMD, path))
             else:
-                shell.call("%s %s --strip-unneeded %s" % (self.STRIP_CMD,
+                shell.call("%s %s --strip-unneeded \"%s\"" % (self.STRIP_CMD,
                     ' '.join(['-K %s' % x for x in self.keep_symbols]), path))
         except:
             pass
