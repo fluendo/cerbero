@@ -1,4 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell, git
 
 class Recipe(custom.GStreamerStatic):
     name = 'gstreamer-static'
@@ -22,6 +23,7 @@ class Recipe(custom.GStreamerStatic):
 
     def extract(self):
         self.stype.extract(self)
+        git.checkout(self.build_dir, 'HEAD')
         if self.config.target_platform == Platform.LINUX and \
                 self.config.target_distro_version in [DistroVersion.UBUNTU_TRUSTY]:
             _patch = self.relative_path('gstreamer/0001-gst-parse-switch-to-lex-param.patch')
