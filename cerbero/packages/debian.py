@@ -60,6 +60,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Conflicts: %(conflicts)s
 Description: %(shortdesc)s
  %(longdesc)s
 
@@ -82,6 +83,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Conflicts: %(conflicts)s
 Description: %(shortdesc)s
  %(longdesc)s
 '''
@@ -365,12 +367,14 @@ class DebianPackager(LinuxPackager):
             args['requires'] = ', ' + requires if requires else ''
             args['recommends'] = recommends
             args['suggests'] = suggests
+            args['conflicts'] = self.package.conflicts
             return (CONTROL_TPL + CONTROL_RUNTIME_PACKAGE_TPL) % args, runtime_files
 
         requires = self._get_requires(PackageType.RUNTIME)
         args['requires'] = ', ' + requires if requires else ''
         args['recommends'] = ''
         args['suggests'] = ''
+        args['conflicts'] = self.package.conflicts
         if runtime_files:
             return (CONTROL_TPL + CONTROL_RUNTIME_PACKAGE_TPL + CONTROL_DBG_PACKAGE_TPL) % \
                     args, runtime_files
@@ -398,6 +402,7 @@ class DebianPackager(LinuxPackager):
             args['requires'] = ', ' + requires if requires else ''
             args['recommends'] = recommends
             args['suggests'] = suggests
+            args['conflicts'] = self.package.conflicts
             return CONTROL_DEVEL_PACKAGE_TPL % args, devel_files
 
         requires = self._get_requires(PackageType.DEVEL)
@@ -406,6 +411,7 @@ class DebianPackager(LinuxPackager):
             args['requires'] += (', %(p_prefix)s%(name)s (= ${binary:Version})' % args)
         args['recommends'] = ''
         args['suggests'] = ''
+        args['conflicts'] = self.package.conflicts
         if devel_files:
             return CONTROL_DEVEL_PACKAGE_TPL % args, devel_files
         return '', ''

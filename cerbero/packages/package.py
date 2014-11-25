@@ -108,6 +108,7 @@ class PackageBase(object):
     resources_preinstall = 'preinstall'
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
+    conflicts = ''
 
     def __init__(self, config, store):
         if self.sys_deps is None:
