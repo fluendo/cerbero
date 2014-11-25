@@ -76,12 +76,12 @@ class Package(Command):
         else:
             pkg = Packager(config, p, self.store)
         m.action(_("Creating package for %s") % p.name)
-        p.pre_install()
+        p.pre_package()
         paths = pkg.pack(os.path.abspath(args.output_dir), args.no_devel,
                          args.force, args.keep_temp)
         if None in paths:
             paths.remove(None)
-        p.post_install(paths)
+        p.post_package(paths)
         m.action(_("Package successfully created in %s") %
                  ' '.join([os.path.abspath(x) for x in paths]))
 
