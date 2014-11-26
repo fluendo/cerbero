@@ -143,6 +143,9 @@ class LinuxPackager(PackagerBase):
         return (requires, recommends, suggests)
 
     def get_requires(self, package_type, devel_suffix):
+        if isinstance(self.package, App) and self.package.embed_deps:
+            return self.package.get_sys_deps(package_type)
+
         deps = self.store.get_package_deps(self.package.name)
         deps = list(set(deps) - set(self._empty_packages))
 
