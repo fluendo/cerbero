@@ -40,6 +40,7 @@ Source:         %(source)s
 Group:          Applications/Internet
 License:        %(licenses)s
 Prefix:         %(prefix)s
+Conflicts:      %(conflicts)s
 Packager:       %(packager)s
 Vendor:         %(vendor)s
 %(url)s
@@ -220,7 +221,8 @@ class RPMPackager(LinuxPackager):
                 'devel_files': devel_files,
                 'files': runtime_files,
                 'sources_dir': self.config.sources,
-                'scripts': scripts}
+                'scripts': scripts,
+                'conflicts': self.package.conflicts}
 
         self.spec_path = os.path.join(tmpdir, '%s.spec' % self.package.name)
         with open(self.spec_path, 'w') as f:
