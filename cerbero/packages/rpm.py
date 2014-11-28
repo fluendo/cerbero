@@ -40,7 +40,7 @@ Source:         %(source)s
 Group:          Applications/Internet
 License:        %(licenses)s
 Prefix:         %(prefix)s
-Conflicts:      %(conflicts)s
+%(ConflictTag)s
 Packager:       %(packager)s
 Vendor:         %(vendor)s
 %(url)s
@@ -222,7 +222,8 @@ class RPMPackager(LinuxPackager):
                 'files': runtime_files,
                 'sources_dir': self.config.sources,
                 'scripts': scripts,
-                'conflicts': self.package.conflicts}
+                'ConflictTag':  'Conflicts:      %s' % self.package.conflicts if \
+                        self.package.conflicts else ' '}
 
         self.spec_path = os.path.join(tmpdir, '%s.spec' % self.package.name)
         with open(self.spec_path, 'w') as f:
