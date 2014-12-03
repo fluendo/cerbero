@@ -227,7 +227,6 @@ class MSIPackager(PackagerBase):
             wixobjs = [to_winepath(x) for x in wixobjs]
             sources = [to_winepath(x) for x in sources]
 
-        import pdb; pdb.set_trace()
         candle = Candle(self.wix_prefix, self._with_wine,
                       "%s %s" % (self.UI_EXT, self.UTIL_EXT))
         candle.compile(' '.join(sources), self.output_dir)
