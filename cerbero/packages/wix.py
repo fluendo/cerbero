@@ -28,6 +28,7 @@ from cerbero.packages.package import Package, SDKPackage, App,\
         InstallerPackage, AppExtensionPackage
 
 WIX_SCHEMA = "http://schemas.microsoft.com/wix/2006/wi"
+UTIL_SCHEMA = "http://schemas.microsoft.com/wix/UtilExtension"
 
 
 class VSTemplatePackage(Package):
@@ -93,6 +94,7 @@ class WixBase():
 
     def _add_root(self):
         self.root = etree.Element("Wix", xmlns=WIX_SCHEMA)
+        self.root.set('xmlns:util', UTIL_SCHEMA)
 
     def _format_id(self, string, replace_dots=False):
         ret = string
@@ -339,8 +341,12 @@ class MSI(WixBase):
         with open(sources_path, 'r') as f:
             self.root = etree.fromstring(f.read())
         for element in self.root.iter():
-            element.tag = element.tag[len(WIX_SCHEMA) + 2:]
+            tag = element.tag[element.tag.index('}') + 1:]
+            if UTIL_SCHEMA in element.tag:
+                tag = 'util:' + tag
+            element.tag = tag
         self.root.set('xmlns', WIX_SCHEMA)
+        self.root.set('xmlns:util', UTIL_SCHEMA)
         self.product = self.root.find('Product')
 
     def _add_include(self):

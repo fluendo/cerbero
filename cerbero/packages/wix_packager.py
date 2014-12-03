@@ -227,7 +227,9 @@ class MSIPackager(PackagerBase):
             wixobjs = [to_winepath(x) for x in wixobjs]
             sources = [to_winepath(x) for x in sources]
 
-        candle = Candle(self.wix_prefix, self._with_wine)
+        import pdb; pdb.set_trace()
+        candle = Candle(self.wix_prefix, self._with_wine,
+                      "%s %s" % (self.UI_EXT, self.UTIL_EXT))
         candle.compile(' '.join(sources), self.output_dir)
         light = Light(self.wix_prefix, self._with_wine,
                       "%s %s" % (self.UI_EXT, self.UTIL_EXT))
@@ -260,11 +262,12 @@ class Packager(object):
 class Candle(object):
     ''' Compile WiX objects with candle '''
 
-    cmd = '%(wine)s %(q)s%(prefix)s/candle.exe%(q)s %(source)s'
+    cmd = '%(wine)s %(q)s%(prefix)s/candle.exe%(q)s %(source)s %(extra)s'
 
-    def __init__(self, wix_prefix, with_wine):
+    def __init__(self, wix_prefix, with_wine, extra=''):
         self.options = {}
         self.options['prefix'] = wix_prefix
+        self.options['extra'] = extra
         if with_wine:
             self.options['wine'] = 'wine'
             self.options['q'] = '"'
