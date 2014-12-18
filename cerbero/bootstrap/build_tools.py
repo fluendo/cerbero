@@ -47,6 +47,7 @@ class BuildTools (BootstraperBase):
                 self.BUILD_TOOLS.insert(0, 'xz')
         if self.config.platform == Platform.LINUX:
             if self.config.distro_version == DistroVersion.UBUNTU_LUCID or \
+                self.config.distro_version == DistroVersion.UBUNTU_PRECISE or \
                 self.config.distro_version == DistroVersion.DEBIAN_SQUEEZE:
                 # x264 requires yasm >= 1.0
                 self.BUILD_TOOLS.append('yasm')
