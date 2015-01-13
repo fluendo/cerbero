@@ -88,23 +88,29 @@ class Recipe(recipe.Recipe):
             mod_path2 = None
             themes_path = '/usr/share/themes'
             # Old Debian/Ubuntu
-            if self.config.target_distro == Distro.DEBIAN:
-                if self.config.target_distro_version in [DistroVersion.DEBIAN_SQUEEZE,
-                                                         DistroVersion.UBUNTU_LUCID,
-                                                         DistroVersion.UBUNTU_MAVERICK]:
-                    pass
-                # Ubuntu
-                elif self.config.target_distro_version.startswith('ubuntu'):
-                    if self.config.target_arch == Architecture.X86:
-                        mod_path2 = '/usr/lib/i386-linux-gnu/gtk-2.0'
-                    elif self.config.target_arch == Architecture.X86_64:
-                        mod_path2 = '/usr/lib/x86_64-linux-gnu/gtk-2.0'
-                # Debian
-                else:
-                    if self.config.target_arch == Architecture.X86:
-                        mod_path1 = '/usr/lib/i386-linux-gnu/gtk-2.0'
-                    elif self.config.target_arch == Architecture.X86_64:
-                        mod_path1 = '/usr/lib/x86_64-linux-gnu/gtk-2.0'
+            if self.config.target_distro_version in [DistroVersion.DEBIAN_SQUEEZE,
+                                                     DistroVersion.UBUNTU_LUCID,
+                                                     DistroVersion.UBUNTU_MAVERICK]:
+                pass
+            # Ubuntu
+            elif self.config.target_distro_version in [DistroVersion.UBUNTU_NATTY,
+                                                       DistroVersion.UBUNTU_ONEIRIC,
+                                                       DistroVersion.UBUNTU_PRECISE,
+                                                       DistroVersion.UBUNTU_QUANTAL,
+                                                       DistroVersion.UBUNTU_RARING,
+                                                       DistroVersion.UBUNTU_SAUCY,
+                                                       DistroVersion.UBUNTU_TRUSTY]:
+                if self.config.target_arch == Architecture.X86:
+                    mod_path2 = '/usr/lib/i386-linux-gnu/gtk-2.0'
+                elif self.config.target_arch == Architecture.X86_64:
+                    mod_path2 = '/usr/lib/x86_64-linux-gnu/gtk-2.0'
+            # Debian 
+            elif self.config.target_distro_version in [DistroVersion.DEBIAN_WHEEZY,
+                                                       DistroVersion.DEBIAN_JESSIE]:
+                if self.config.target_arch == Architecture.X86:
+                    mod_path1 = '/usr/lib/i386-linux-gnu/gtk-2.0'
+                elif self.config.target_arch == Architecture.X86_64:
+                    mod_path1 = '/usr/lib/x86_64-linux-gnu/gtk-2.0'
             # RedHat
             elif self.config.target_distro_version in [DistroVersion.FEDORA_16,
                                                        DistroVersion.FEDORA_17,
