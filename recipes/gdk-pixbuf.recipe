@@ -1,5 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-from cerbero.utils import shell
+from cerbero.utils import shell, git
 
 
 class Recipe(recipe.Recipe):
@@ -8,6 +8,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2Plus]
     configure_options = '--with-included-loaders --enable-static '
     deps = ['jpeg', 'glib', 'libpng', 'tiff', 'zlib' ]
+    patches = ['gdk-pixbuf-strncasecmp-prefix.diff']
     autoreconf = True
 
     files_libs = ['libgdk_pixbuf-2.0']
@@ -27,3 +28,11 @@ class Recipe(recipe.Recipe):
             cache = os.path.join(self.config.prefix, 'lib', 'gdk-pixbuf-2.0',
                 '2.10.0', 'loaders.cache')
             shell.replace(cache, {self.config.prefix: '../'})
+
+    def configure(self):
+        git.checkout(self.build_dir, 'HEAD')
+        for patch in self.patches:
+            if not os.path.isabs(patch):
+                patch = self.relative_path(patch)
+            shell.apply_patch(patch, self.build_dir, 1)
+        super(recipe.Recipe, self).configure()
