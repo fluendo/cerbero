@@ -48,12 +48,13 @@ class OSXBootstraper (BootstraperBase):
 
     def _install_perl_deps(self):
         # Install cpan-minus, a zero-conf CPAN wrapper
-        cpanm_installer = tempfile.NamedTemporaryFile().name
+        tmp = tempfile.NamedTemporaryFile()
+        cpanm_installer = tmp.name
         shell.download(self.CPANM_URL, cpanm_installer)
         shell.call('chmod +x %s' % cpanm_installer)
         # Install XML::Parser, required for intltool
         shell.call("sudo %s XML::Parser" % cpanm_installer)
-        cpanm_installer.close()
+        tmp.close()
 
 
 
