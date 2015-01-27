@@ -30,7 +30,7 @@ class BuildTools (BootstraperBase):
                    'orc-tool', 'gettext-m4', 'gettext-tools']
     PLAT_BUILD_TOOLS = {
         Platform.DARWIN: ['intltool', 'yasm', 'cmake'],
-        Platform.WINDOWS: ['intltool', 'yasm', 'cmake'],
+        Platform.WINDOWS: ['intltool', 'yasm'],
         Platform.LINUX: ['intltool-m4'],
     }
 
