@@ -523,6 +523,7 @@ class AppExtensionPackage(Package):
     resources_wix_installer = None
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
+    _app = None
 
     def __init__(self, config, store, cookbook):
         Package.__init__(self, config, store, cookbook)
@@ -537,11 +538,19 @@ class AppExtensionPackage(Package):
     def get_wix_registry_key(self):
         if self.app_package is None:
             raise FatalException("app_package not set for package " + self.name)
-        app_package = self.store.get_package(self.app_package)
-        return app_package.get_wix_registry_key()
+        self._fetch_app()
+        return self._app.get_wix_registry_key()
 
     def recipes_dependencies(self):
         return [x.split(':')[0] for x in self.files]
+
+    def get_app_dep(self):
+        self._fetch_app()
+        return self._app
+
+    def _fetch_app(self):
+        if not self._app:
+            self._app = self.store.get_package(self.app_package)
 
 
 class App(PackageBase):

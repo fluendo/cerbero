@@ -368,6 +368,9 @@ class MSI(WixBase):
         if isinstance(self.package, App):
             self._add_start_menu_shortcuts()
         self._add_get_install_dir_from_registry()
+        if isinstance(self.package, AppExtensionPackage):
+            self._add_installdir_check ("%s is not installed." %
+                    self.package.get_app_dep().shortdesc)
 
     def _add_application_merge_module(self):
         self.main_feature = etree.SubElement(self.product, "Feature",
@@ -505,6 +508,10 @@ class MSI(WixBase):
                 Id="InstallDirRegistrySearc",
                 Type="raw", Root=self.REG_ROOT, Key=key,
                 Name='InstallDir')
+
+    def _add_installdir_check (self, message):
+        cond = etree.SubElement(self.product, 'Condition', Message=message)
+        cond.text = 'Installed OR INSTALLDIR'
 
     def _add_merge_module(self, package, required, selected,
                           required_packages):
