@@ -150,7 +150,7 @@ def unpack(filepath, output_dir):
     @type output_dir: str
     '''
     logging.info("Unpacking %s in %s" % (filepath, output_dir))
-    if filepath.endswith('tar.gz') or filepath.endswith('tar.bz2'):
+    if filepath.endswith('tar.gz') or filepath.endswith('tar.bz2') or filepath.endswith('tgz'):
         tf = tarfile.open(filepath, mode='r:*')
         tf.extractall(path=output_dir)
     if filepath.endswith('tar.xz'):
