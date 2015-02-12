@@ -1,0 +1,10 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell
+
+class Recipe(recipe.Recipe):
+    name = 'bison'
+    version = '3.0.4'
+    licenses = [License.GPLv3]
+    stype = SourceType.TARBALL
+    tarball_dirname = 'bison-%(version)s'
+    url = 'http://ftp.gnu.org/gnu/bison/bison-3.0.4.tar.gz'
