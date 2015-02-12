@@ -23,6 +23,11 @@ class Recipe(recipe.Recipe):
             self.append_env = {'LDFLAGS': ' -lcharset -lintl'}
             self.configure_options += ' --without-x'
 
+    def extract(self):
+        super(recipe.Recipe, self).extract()
+        shell.replace(os.path.join (self.build_dir, 'data', 'config.in'),
+                {'@prefix@/@reloc_libdir@/':''})
+
     def post_install(self):
         config = os.path.join(self.config.prefix, 'etc', 'mono', 'config')
         shell.replace(config, {'libintl.dylib': 'libintl.8.dylib'})
