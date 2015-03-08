@@ -30,5 +30,9 @@ class Recipe(recipe.Recipe):
 
     def post_install(self):
         config = os.path.join(self.config.prefix, 'etc', 'mono', 'config')
+        prefix = self.config.libdir
+        if prefix[-1] != '/':
+            prefix += '/'
+        shell.replace(config, {prefix: ''})
         shell.replace(config, {'libintl.dylib': 'libintl.8.dylib'})
         shell.replace(config, {'libintl.so': 'libintl.8.so'})
