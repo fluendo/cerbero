@@ -48,7 +48,12 @@ class Fetch(Command):
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
             m.build_step(i + 1, len(fetch_recipes), recipe, 'Fetch')
-            recipe.fetch()
+            for i in range(3):
+                try:
+                    recipe.fetch()
+                    break
+                except:
+                    continue
             bv = cookbook.recipe_built_version(recipe.name)
             cv = recipe.built_version()
             if bv != cv:
