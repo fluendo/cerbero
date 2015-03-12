@@ -36,3 +36,5 @@ class Recipe(recipe.Recipe):
         shell.replace(config, {prefix: ''})
         shell.replace(config, {'libintl.dylib': 'libintl.8.dylib'})
         shell.replace(config, {'libintl.so': 'libintl.8.so'})
+        shell.call ('rm -rf lib/mono/gac/*/2.4.8.0__96d09a1eb7f44a77',
+                self.config.prefix)
