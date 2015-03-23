@@ -16,7 +16,7 @@ class Recipe(recipe.Recipe):
     files_bins = ['mono-sgen']
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
-    files_config = ['etc/mono/config']
+    files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
 
     def prepare(self):
         if self.config.target_platform == Platform.DARWIN:
@@ -36,5 +36,7 @@ class Recipe(recipe.Recipe):
         shell.replace(config, {prefix: ''})
         shell.replace(config, {'libintl.dylib': 'libintl.8.dylib'})
         shell.replace(config, {'libintl.so': 'libintl.8.so'})
+        shell.call ('rm -rf lib/mono/2.0/nunit*', self.config.prefix)
+        shell.call ('rm -rf lib/mono/4.5/nunit*', self.config.prefix)
         shell.call ('rm -rf lib/mono/gac/*/2.4.8.0__96d09a1eb7f44a77',
                 self.config.prefix)
