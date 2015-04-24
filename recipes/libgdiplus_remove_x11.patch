@@ -7,11 +7,11 @@ index 772d5fc..6b1e023 100644
  dnl Produce a diagnostic, to reduce support time
  dnl
 -AC_TRY_COMPILE([#include <X11/Xlib.h>],
--                        [],[x11_failed=false],[x11_failed=true])
+-			 [],[x11_failed=false],[x11_failed=true])
 -if $x11_failed; then
 -   AC_ERROR("Failed to compile with X11/Xlib.h include.  You must fix your compiler paths")
 -fi
-
+ 
  GDIPLUS_PKG_LIBS="$GDIPLUS_LIBS"
  GDIPLUS_PKG_CFLAGS="$GDIPLUS_CFLAGS"
 diff --git a/src/gdiplus-private.h b/src/gdiplus-private.h
@@ -19,11 +19,11 @@ index dfccc02..2202b4d 100644
 --- a/src/gdiplus-private.h
 +++ b/src/gdiplus-private.h
 @@ -64,7 +64,6 @@
-        #endif
+ 	#endif
  #endif
-
+ 
 -#include <X11/Xlib.h>
-
+ 
  #include "win32structs.h"
  #include "gdipenums.h"
 diff --git a/src/general.c b/src/general.c
@@ -33,109 +33,109 @@ index 8a170ce..efe9095 100644
 @@ -123,7 +123,6 @@ float
  gdip_get_display_dpi ()
  {
-        static float dpis = 0;
--       Display* display;
-
-        if (dpis == 0) {
+ 	static float dpis = 0;
+-	Display* display;
+ 
+ 	if (dpis == 0) {
  #if __APPLE__
 @@ -133,6 +132,7 @@ gdip_get_display_dpi ()
-                dpis = h_dpi;
-                return dpis;
+ 		dpis = h_dpi;
+ 		return dpis;
  #else
-+               Display* display;
-                char *val;
-
-                display = XOpenDisplay (0);
++	        Display* display;
+ 		char *val;
+ 
+ 		display = XOpenDisplay (0);
 diff --git a/src/graphics-private.h b/src/graphics-private.h
 index 25660c6..9826de2 100644
 --- a/src/graphics-private.h
 +++ b/src/graphics-private.h
 @@ -69,7 +69,6 @@ typedef enum {
-
+ 
  typedef enum {
-        gtUndefined,
--       gtX11Drawable,
-        gtMemoryBitmap,
-        gtOSXDrawable,
-        gtPostScript
+ 	gtUndefined,
+-	gtX11Drawable,
+ 	gtMemoryBitmap,
+ 	gtOSXDrawable,
+ 	gtPostScript
 @@ -105,8 +104,8 @@ typedef struct _Graphics {
-        cairo_t                 *ct;
-        GpMatrix                *copy_of_ctm;
-        cairo_matrix_t          previous_matrix;
--       Display                 *display;
--       Drawable                drawable;
-+//     Display                 *display;
-+//     Drawable                drawable;
-        void                    *image;
-        int                     type;
-        GpPen*                  last_pen;       /* caching pen and brush to avoid unnecessary sets */
+ 	cairo_t			*ct;
+ 	GpMatrix		*copy_of_ctm;
+ 	cairo_matrix_t		previous_matrix;
+-	Display			*display;
+-	Drawable		drawable;
++//	Display			*display;
++//	Drawable		drawable;
+ 	void			*image;
+ 	int			type; 
+ 	GpPen*			last_pen;	/* caching pen and brush to avoid unnecessary sets */
 diff --git a/src/graphics.c b/src/graphics.c
 index 16a29ea..daf0766 100644
 --- a/src/graphics.c
 +++ b/src/graphics.c
 @@ -151,8 +151,8 @@ gdip_graphics_common_init (GpGraphics *graphics)
-        graphics->render_origin_y = 0;
-        graphics->dpi_x = graphics->dpi_y = 0;
-
--       graphics->display = NULL;
--       graphics->drawable = NULL;
-+//     graphics->display = NULL;
-+//     graphics->drawable = NULL;
-
-        gdip_graphics_reset (graphics);
+ 	graphics->render_origin_y = 0;
+ 	graphics->dpi_x = graphics->dpi_y = 0;
+ 
+-	graphics->display = NULL;
+-	graphics->drawable = NULL;
++//	graphics->display = NULL;
++//	graphics->drawable = NULL;
+ 
+ 	gdip_graphics_reset (graphics);
  }
 @@ -216,7 +216,6 @@ GdipCreateFromHDC (void *hDC, GpGraphics **graphics)
-        cairo_surface_t *surface;
-        int x, y;
-        unsigned int w, h, border_w, depth;
--       Window root;
-
-        if (!hDC)
-                return OutOfMemory;
+ 	cairo_surface_t *surface;
+ 	int x, y;
+ 	unsigned int w, h, border_w, depth;
+-	Window root;
+ 
+ 	if (!hDC)
+ 		return OutOfMemory;
 @@ -233,8 +232,11 @@ GdipCreateFromHDC (void *hDC, GpGraphics **graphics)
-                return GdipGetImageGraphicsContext (clone->image, graphics);
-
+ 		return GdipGetImageGraphicsContext (clone->image, graphics);
+ 
  #ifdef CAIRO_HAS_XLIB_SURFACE
--       XGetGeometry (clone->display, clone->drawable, &root,
--                     &x, &y, &w, &h, &border_w, &depth);
-+       {
-+       Window root;
-+           XGetGeometry (clone->display, clone->drawable, &root,
-+                     &x, &y, &w, &h, &border_w, &depth);
+-	XGetGeometry (clone->display, clone->drawable, &root,
+-		      &x, &y, &w, &h, &border_w, &depth);
++	{
++	Window root;
++	    XGetGeometry (clone->display, clone->drawable, &root,
++	  	      &x, &y, &w, &h, &border_w, &depth);
 +        }
-
-        surface = cairo_xlib_surface_create(clone->display, clone->drawable,
-            DefaultVisual(clone->display, DefaultScreen(clone->display)),
+ 	
+ 	surface = cairo_xlib_surface_create(clone->display, clone->drawable,
+ 	    DefaultVisual(clone->display, DefaultScreen(clone->display)),
 @@ -319,7 +321,7 @@ GdipCreateFromXDrawable_linux(Drawable d, Display *dpy, GpGraphics **graphics)
-        (*graphics)->dpi_x = (*graphics)->dpi_y = gdip_get_display_dpi ();
-        cairo_surface_destroy (surface);
-
--       (*graphics)->type = gtX11Drawable;
-+//     (*graphics)->type = gtX11Drawable;
-        (*graphics)->display = dpy;
-        (*graphics)->drawable = d;
-
+ 	(*graphics)->dpi_x = (*graphics)->dpi_y = gdip_get_display_dpi ();
+ 	cairo_surface_destroy (surface);
+ 
+-	(*graphics)->type = gtX11Drawable;
++//	(*graphics)->type = gtX11Drawable;
+ 	(*graphics)->display = dpy;
+ 	(*graphics)->drawable = d;
+ 
 @@ -362,16 +364,16 @@ GdipDeleteGraphics (GpGraphics *graphics)
-        if (graphics->ct) {
+ 	if (graphics->ct) {
  #ifdef CAIRO_HAS_XLIB_SURFACE
-                int (*old_error_handler)(Display *dpy, XErrorEvent *ev) = NULL;
--               if (graphics->type == gtX11Drawable)
--                       old_error_handler = XSetErrorHandler (ignore_error_handler);
-+//             if (graphics->type == gtX11Drawable)
-+//                     old_error_handler = XSetErrorHandler (ignore_error_handler);
+ 		int (*old_error_handler)(Display *dpy, XErrorEvent *ev) = NULL;
+-		if (graphics->type == gtX11Drawable)
+-			old_error_handler = XSetErrorHandler (ignore_error_handler);
++//		if (graphics->type == gtX11Drawable)
++//			old_error_handler = XSetErrorHandler (ignore_error_handler);
  #endif
-
-                cairo_destroy (graphics->ct);
-                graphics->ct = NULL;
-
+ 
+ 		cairo_destroy (graphics->ct);
+ 		graphics->ct = NULL;
+ 
  #ifdef CAIRO_HAS_XLIB_SURFACE
--               if (graphics->type == gtX11Drawable)
--                       XSetErrorHandler (old_error_handler);
-+//             if (graphics->type == gtX11Drawable)
-+//                     XSetErrorHandler (old_error_handler);
+-		if (graphics->type == gtX11Drawable)
+-			XSetErrorHandler (old_error_handler);
++//		if (graphics->type == gtX11Drawable)
++//			XSetErrorHandler (old_error_handler);
  #endif
-        }
-
+ 	}
+ 
 diff --git a/tests/testgdi.c b/tests/testgdi.c
 index 636074c..8d38eb1 100644
 --- a/tests/testgdi.c
@@ -143,16 +143,15 @@ index 636074c..8d38eb1 100644
 @@ -15,6 +15,8 @@
  #include <unistd.h>
  #include <math.h>
-
+ 
 +#if 0
 +
  #include "GdiPlusFlat.h"
  #include <X11/Xlib.h>
-
+ 
 @@ -223,3 +225,5 @@ static void
-                }
-        }
+ 		}
+ 	}
  }
 +
 +#endif
-
