@@ -1,0 +1,74 @@
+diff --git a/configure.ac b/configure.ac
+index 772d5fc..6b1e023 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -366,11 +366,6 @@ AM_CONDITIONAL(HAVE_LIBEXIF, test x$libexif_pkgconfig = xyes)
+ dnl
+ dnl Produce a diagnostic, to reduce support time
+ dnl
+-AC_TRY_COMPILE([#include <X11/Xlib.h>],
+-			 [],[x11_failed=false],[x11_failed=true])
+-if $x11_failed; then
+-   AC_ERROR("Failed to compile with X11/Xlib.h include.  You must fix your compiler paths")
+-fi
+ 
+ GDIPLUS_PKG_LIBS="$GDIPLUS_LIBS"
+ GDIPLUS_PKG_CFLAGS="$GDIPLUS_CFLAGS"
+diff --git a/src/gdiplus-private.h b/src/gdiplus-private.h
+index dfccc02..2202b4d 100644
+--- a/src/gdiplus-private.h
++++ b/src/gdiplus-private.h
+@@ -64,7 +64,6 @@
+ 	#endif
+ #endif
+ 
+-#include <X11/Xlib.h>
+ 
+ #include "win32structs.h"
+ #include "gdipenums.h"
+diff --git a/src/graphics-private.h b/src/graphics-private.h
+index 25660c6..9dee48c 100644
+--- a/src/graphics-private.h
++++ b/src/graphics-private.h
+@@ -69,7 +69,6 @@ typedef enum {
+ 
+ typedef enum {
+ 	gtUndefined,
+-	gtX11Drawable,
+ 	gtMemoryBitmap,
+ 	gtOSXDrawable,
+ 	gtPostScript
+diff --git a/src/graphics.c b/src/graphics.c
+index 16a29ea..7e7ec3e 100644
+--- a/src/graphics.c
++++ b/src/graphics.c
+@@ -319,7 +319,7 @@ GdipCreateFromXDrawable_linux(Drawable d, Display *dpy, GpGraphics **graphics)
+ 	(*graphics)->dpi_x = (*graphics)->dpi_y = gdip_get_display_dpi ();
+ 	cairo_surface_destroy (surface);
+ 
+-	(*graphics)->type = gtX11Drawable;
++//	(*graphics)->type = gtX11Drawable;
+ 	(*graphics)->display = dpy;
+ 	(*graphics)->drawable = d;
+ 
+@@ -362,16 +362,16 @@ GdipDeleteGraphics (GpGraphics *graphics)
+ 	if (graphics->ct) {
+ #ifdef CAIRO_HAS_XLIB_SURFACE
+ 		int (*old_error_handler)(Display *dpy, XErrorEvent *ev) = NULL;
+-		if (graphics->type == gtX11Drawable)
+-			old_error_handler = XSetErrorHandler (ignore_error_handler);
++//		if (graphics->type == gtX11Drawable)
++//			old_error_handler = XSetErrorHandler (ignore_error_handler);
+ #endif
+ 
+ 		cairo_destroy (graphics->ct);
+ 		graphics->ct = NULL;
+ 
+ #ifdef CAIRO_HAS_XLIB_SURFACE
+-		if (graphics->type == gtX11Drawable)
+-			XSetErrorHandler (old_error_handler);
++//		if (graphics->type == gtX11Drawable)
++//			XSetErrorHandler (old_error_handler);
+ #endif
+ 	}
+ 

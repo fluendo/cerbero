@@ -9,6 +9,7 @@ class Recipe(recipe.Recipe):
     commit = 'f18514c8babf20301f8bbd1f0cfd587ed48a480b'
     deps = ['cairo', 'fontconfig', 'freetype', 'libpng']
     autoreconf = True
+    patches = ['libgdiplus_remove_x11.patch']
 
     files_libs = ['libgdiplus']
 
