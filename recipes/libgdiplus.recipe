@@ -1,0 +1,14 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    name = 'libgdiplus'
+    version = '3.12'
+    stype = SourceType.GIT
+    remotes = {'origin': 'https://github.com/mono/libgdiplus.git'}
+    commit = 'f18514c8babf20301f8bbd1f0cfd587ed48a480b'
+    deps = ['cairo', 'fontconfig', 'freetype', 'libpng']
+    autoreconf = True
+
+    files_libs = ['libgdiplus']
+
