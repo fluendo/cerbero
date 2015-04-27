@@ -11,7 +11,6 @@ class Recipe(recipe.Recipe):
                         ' --with-profile4=yes --with-profile4_5=yes' \
                         ' --with-preview=yes' \
                         '--without-sigaltstack --disable-dtrace ' \
-                        '--with-libgdiplus=$CERBERO_PREFIX ' \
                         '--with-mcs-docs=no '
     files_bins = ['mono-sgen']
     files_libs = ['libmonosgen-2.0']
