@@ -36,9 +36,12 @@ class Recipe(recipe.Recipe):
                 self.configure_options += ' --with-arch=i686 '
 
     def post_install(self):
-        # Create relative symlinks to prevent breakage during packaging
+        # OSX-specific config file to use System fonts
         if self.config.target_platform == Platform.DARWIN:
             conffile = os.path.join(self.config.prefix, 'etc', 'fonts', 'conf.d', '00-osx.conf')
+            with open(conffile, 'w') as f:
+                f.write("placeholder")
+            conffile = os.path.join(self.config.prefix, 'share', 'fontconfig', 'conf.avail', '00-osx.conf')
             with open(conffile, 'w') as f:
                 f.write("<?xml version='1.0'?>\n")
                 f.write("<!DOCTYPE fontconfig SYSTEM \"fonts.dtd\">\n")
@@ -48,6 +51,7 @@ class Recipe(recipe.Recipe):
                 f.write("  <dir>~/Library/Fonts</dir>\n")
                 f.write("</fontconfig>\n")
 
+        # Create relative symlinks to prevent breakage during packaging
         if self.config.target_platform != Platform.WINDOWS:
             confddir = os.path.join(self.config.prefix, 'etc', 'fonts', 'conf.d')
             linksrc = os.path.join('..', '..', '..', 'share', 'fontconfig', 'conf.avail')
