@@ -37,6 +37,17 @@ class Recipe(recipe.Recipe):
 
     def post_install(self):
         # Create relative symlinks to prevent breakage during packaging
+        if self.config.target_platform == Platform.DARWIN:
+            conffile = os.path.join(self.config.prefix, 'etc', 'fonts', 'conf.d', '00-osx.conf')
+            with open(conffile, 'w') as f:
+                f.write("<?xml version='1.0'?>\n")
+                f.write("<!DOCTYPE fontconfig SYSTEM \"fonts.dtd\">\n")
+                f.write("<fontconfig>\n")
+                f.write("  <dir>/System/Library/Fonts</dir>\n")
+                f.write("  <dir>/Library/Fonts</dir>\n")
+                f.write("  <dir>~/Library/Fonts</dir>\n")
+                f.write("</fontconfig>\n")
+
         if self.config.target_platform != Platform.WINDOWS:
             confddir = os.path.join(self.config.prefix, 'etc', 'fonts', 'conf.d')
             linksrc = os.path.join('..', '..', '..', 'share', 'fontconfig', 'conf.avail')
