@@ -73,4 +73,5 @@ def revert_all(repo):
     @param repo: the path to the repository
     @type  repo: str
     '''
+    shell.call('svn cleanup', repo)
     shell.call('svn revert -R .', repo)
