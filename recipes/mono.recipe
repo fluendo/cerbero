@@ -6,7 +6,7 @@ class Recipe(recipe.Recipe):
     version = '3.12.0'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
-    url = 'http://download.mono-project.com/sources/mono/mono-3.12.0.tar.bz2'
+    url = 'http://download.mono-project.com/sources/mono/mono-%(version)s.tar.bz2'
     configure_options = ' --with-gc=included --with-sgen=yes '\
                         ' --with-profile4=yes --with-profile4_5=yes' \
                         ' --with-preview=yes' \
