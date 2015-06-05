@@ -228,6 +228,8 @@ class Config (object):
                 os.path.join(self.toolchain_prefix, 'lib'))
             includedir = self._join_path(includedir,
                 os.path.join(self.toolchain_prefix, 'include'))
+        monopath = self._join_path (os.path.join(libdir, 'mono', '4.5'),
+            os.path.join(libdir, 'mono', '4.5', 'Facades'))
 
 
         # Most of these variables are extracted from jhbuild
@@ -254,7 +256,7 @@ class Config (object):
                'GST_REGISTRY': gstregistry,
                'GST_REGISTRY_1_0': gstregistry10,
                'PYTHONPATH': pythonpath,
-               'MONO_PATH': os.path.join(libdir, 'mono', '4.5'),
+               'MONO_PATH': monopath,
                'MONO_GAC_PREFIX': prefix,
                'GSTREAMER_SDK_ROOT': prefix
                }
