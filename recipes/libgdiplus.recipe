@@ -7,7 +7,8 @@ class Recipe(recipe.Recipe):
     stype = SourceType.GIT
     remotes = {'origin': 'https://github.com/mono/libgdiplus.git'}
     commit = 'f18514c8babf20301f8bbd1f0cfd587ed48a480b'
-    deps = ['cairo', 'fontconfig', 'freetype', 'libpng']
+    deps = ['cairo', 'fontconfig', 'freetype', 'libpng', 'jpeg']
+    configure_options = '--without-libgif'
     autoreconf = True
 
     files_libs = ['libgdiplus']
