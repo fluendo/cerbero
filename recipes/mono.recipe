@@ -33,10 +33,12 @@ class Recipe(recipe.Recipe):
         prefix = self.config.libdir
         if prefix[-1] != '/':
             prefix += '/'
-        shell.replace(config, {prefix: ''})
-        shell.replace(config, {'libintl.dylib': 'libintl.8.dylib'})
-        shell.replace(config, {'libintl.so': 'libintl.8.so'})
-        shell.replace(config, {'libgdiplus.dylib': 'libgdiplus.0.dylib'})
+        shell.replace(config, {prefix: '',
+            'libintl.dylib': 'libintl.8.dylib',
+            'libintl.so': 'libintl.8.so',
+            'libgdiplus.dylib': 'libgdiplus.0.dylib',
+            'libgdiplus.so': 'libgdiplus.so.0',
+            })
         shell.call ('rm -rf lib/mono/2.0/nunit*', self.config.prefix)
         shell.call ('rm -rf lib/mono/4.5/nunit*', self.config.prefix)
         shell.call ('rm -rf lib/mono/gac/*/2.4.8.0__96d09a1eb7f44a77',
