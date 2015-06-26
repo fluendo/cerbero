@@ -67,6 +67,8 @@ class Recipe(recipe.Recipe):
                 arch = 'i386'
             self.files_devel.append(
                 os.path.join('lib', 'dbus-1.0', 'include', 'dbus', arch, 'dbus-arch-deps.h'))
+        if self.config.target_platform == Platform.ANDROID:
+            self.patches = ['dbus/0001-fnctl-bionic.patch']
 
     def post_install(self):
         if self.config.target_platform == Platform.DARWIN:

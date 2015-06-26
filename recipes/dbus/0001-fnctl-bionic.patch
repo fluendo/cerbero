@@ -1,0 +1,16 @@
+diff --git a/dbus/sd-daemon.c b/dbus/sd-daemon.c
+index 9c23b91..7f72974 100644
+--- a/dbus/sd-daemon.c
++++ b/dbus/sd-daemon.c
+@@ -32,7 +32,11 @@
+ #include <sys/stat.h>
+ #include <sys/socket.h>
+ #include <sys/un.h>
++#ifdef __BIONIC__
++#include <fcntl.h>
++#else
+ #include <sys/fcntl.h>
++#endif
+ #include <netinet/in.h>
+ #include <stdlib.h>
+ #include <errno.h>
