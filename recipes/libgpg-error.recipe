@@ -10,3 +10,11 @@ class Recipe(recipe.Recipe):
     files_bins = ['gpg-error']
     files_devel = ['include/gpg-error.h', 'bin/gpg-error-config']
     files_lang = ['libgpg-error']
+    autoreconf = True
+
+    patches = ['libgpg-error/0001-gettext-0.18.patch']
+
+    def prepare(self):
+        if self.config.target_platform == Platform.ANDROID:
+            self.new_env['CPP'] = os.environ['CPP']
+            self.new_env['CPP'] += ' %s' % (os.environ['CFLAGS'])

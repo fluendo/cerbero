@@ -1,0 +1,13 @@
+diff --git a/configure.ac b/configure.ac
+index e4315c8..aa9a7e3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -112,7 +112,7 @@ AH_BOTTOM([
+ 
+ 
+ # Note, that autogen.sh greps for the next line.
+-AM_GNU_GETTEXT_VERSION([0.17])
++AM_GNU_GETTEXT_VERSION([0.18])
+ AM_GNU_GETTEXT([external])
+ 
+ # Checks for header files.
