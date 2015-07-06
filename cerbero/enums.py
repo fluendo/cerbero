@@ -53,6 +53,7 @@ class DistroVersion:
     DEBIAN_WHEEZY = 'debian_wheezy'
     DEBIAN_JESSIE = 'debian_jessy'
     UBUNTU_MAVERICK = 'ubuntu_maverick'
+    UBUNTU_HARDY = 'ubuntu_hardy'
     UBUNTU_LUCID = 'ubuntu_lucid'
     UBUNTU_NATTY = 'ubuntu_natty'
     UBUNTU_ONEIRIC = 'ubuntu_oneiric'

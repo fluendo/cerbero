@@ -132,6 +132,8 @@ def system_info():
             distro = Distro.DEBIAN
             if d[2] == 'maverick':
                 distro_version = DistroVersion.UBUNTU_MAVERICK
+            elif d[2] == 'hardy':
+                distro_version = DistroVersion.UBUNTU_HARDY
             elif d[2] == 'lucid':
                 distro_version = DistroVersion.UBUNTU_LUCID
             elif d[2] == 'natty':
