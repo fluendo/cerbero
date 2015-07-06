@@ -8,8 +8,7 @@ class Recipe(recipe.Recipe):
     url = 'https://libkate.googlecode.com/files/libkate-0.4.1.tar.gz'
     licenses = [License.BSD_like]
     deps = ['libogg', 'libpng']
-    patches = ['libkate/0001-be-more-permissive-with-automake-errors-now-that-we-.patch',
-               'libkate/0002-Drop-python-dependency.patch']
+    patches = ['libkate/0001-be-more-permissive-with-automake-errors-now-that-we-.patch']
 
     files_libs = ['libkate', 'liboggkate']
     files_devel = ['include/kate', 'lib/pkgconfig/kate.pc', 'lib/pkgconfig/oggkate.pc']
