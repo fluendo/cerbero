@@ -89,6 +89,7 @@ class Recipe(recipe.Recipe):
             themes_path = '/usr/share/themes'
             # Old Debian/Ubuntu
             if self.config.target_distro_version in [DistroVersion.DEBIAN_SQUEEZE,
+                                                     DistroVersion.UBUNTU_HARDY,
                                                      DistroVersion.UBUNTU_LUCID,
                                                      DistroVersion.UBUNTU_MAVERICK]:
                 pass
