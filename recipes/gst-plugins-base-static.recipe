@@ -98,4 +98,9 @@ class Recipe(custom.GStreamerStatic):
 
         if self.config.variants.nodebug:
             self.configure_options += ' --disable-gst-debug'
+
+        if self.config.target_distro_version == DistroVersion.UBUNTU_HARDY and \
+                self.config.target_arch == Architecture.X86:
+            self.new_env['CFLAGS'] = os.environ['CFLAGS'] + ' -msse2'
+
         custom.GStreamerStatic.prepare(self)
