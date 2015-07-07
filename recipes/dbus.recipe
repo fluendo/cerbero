@@ -70,6 +70,12 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.ANDROID:
             self.patches = ['dbus/0001-fnctl-bionic.patch']
 
+    def configure(self):
+        if self.config.target_distro_version == DistroVersion.UBUNTU_HARDY:
+            shell.replace(os.path.join(self.build_dir, 'configure.ac'),
+                {'type-limits \\': '\\'})
+        super(Recipe, self).configure()
+
     def post_install(self):
         if self.config.target_platform == Platform.DARWIN:
             # For the universal build we need to ship glibconfig.h of both
