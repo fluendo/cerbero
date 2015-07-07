@@ -1,5 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-
+from cerbero.utils import shell, git
 
 class Recipe(recipe.Recipe):
     name = 'libgpg-error'
@@ -12,9 +12,14 @@ class Recipe(recipe.Recipe):
     files_lang = ['libgpg-error']
     autoreconf = True
 
-    patches = ['libgpg-error/0001-gettext-0.18.patch']
-
     def prepare(self):
         if self.config.target_platform == Platform.ANDROID:
             self.new_env['CPP'] = os.environ['CPP']
             self.new_env['CPP'] += ' %s' % (os.environ['CFLAGS'])
+
+    def extract(self):
+        self.stype.extract(self)
+        git.checkout(self.build_dir, 'HEAD')
+        _patch = self.relative_path('libgpg-error/0001-gettext-0.18.patch')
+        shell.apply_patch(_patch, self.build_dir, 1)
+
