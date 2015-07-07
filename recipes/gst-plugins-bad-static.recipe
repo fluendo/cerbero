@@ -9,7 +9,7 @@ class Recipe(custom.GStreamerStatic):
 
     remotes = {
             'upstream': 'git://anongit.freedesktop.org/gstreamer/gst-plugins-bad',
-            'fluendo': 'https://github.com/fluendo/gst-plugins-bad.git',
+            'fluendo': 'git@github.com:fluendo/gst-plugins-bad.git',
             }
     commit = 'fluendo/sdk-0.10.23-hls'
 
