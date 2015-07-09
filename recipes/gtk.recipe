@@ -4,6 +4,7 @@
 class Recipe(recipe.Recipe):
     name = 'gtk+'
     version = '2.24.22'
+    remotes = {'origin' : 'git@github.com:fluendo/gtk.git'}
     # TODO: check license - some source files are LGPLv2, others LGPLv2+,
     #       others LGPLv2.1+, COPYING is LGPLv2 and the webpage states LGPLv2.1
     licenses = [License.LGPLv2_1Plus]
