@@ -1,26 +1,34 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-from cerbero.utils import shell, git
+from cerbero.utils import shell
 
 
 class Recipe(recipe.Recipe):
     name = 'gdk-pixbuf'
-    version = '2.26.2'
+    version = '2.30.8'
     licenses = [License.LGPLv2Plus]
-    configure_options = '--with-included-loaders --enable-static '
-    deps = ['jpeg', 'glib', 'libpng', 'tiff', 'zlib' ]
-    patches = ['gdk-pixbuf-strncasecmp-prefix.diff']
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnome.org/pub/gnome/sources/gdk-pixbuf/2.30/gdk-pixbuf-2.30.8.tar.xz'
+    patches = [
+            'gdk-pixbuf/0001-io-extened-support-for-relotations-to-OS-X-and-Linux.patch',
+            'gdk-pixbuf/0002-nls-update-gettext-macros-for-0.18.patch',
+            ]
+    configure_options = '--with-included-loaders --enable-static --enable-gio-sniffing=no '
+    deps = ['glib', 'libpng', 'tiff', 'zlib' ]
     autoreconf = True
 
     files_libs = ['libgdk_pixbuf-2.0']
     files_bins = ['gdk-pixbuf-query-loaders', 'gdk-pixbuf-csource']
     files_devel = ['lib/pkgconfig/gdk-pixbuf-2.0.pc', 'include/gdk-pixbuf-2.0']
     files_lang = ['gdk-pixbuf']
+    files_typelibs = ['GdkPixbuf-2.0']
 
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
             self.configure_options += '--without-gdiplus '
         if self.config.target_platform == Platform.DARWIN:
             self.configure_options += '--without-x11 '
+        if self.config.prefix_is_executable():
+            self.files_misc = ['lib/gdk-pixbuf-2.0/2.10.0/loaders.cache']
 
     def post_install (self):
         if self.config.platform == Platform.WINDOWS and\
@@ -28,11 +36,3 @@ class Recipe(recipe.Recipe):
             cache = os.path.join(self.config.prefix, 'lib', 'gdk-pixbuf-2.0',
                 '2.10.0', 'loaders.cache')
             shell.replace(cache, {self.config.prefix: '../'})
-
-    def configure(self):
-        git.checkout(self.build_dir, 'HEAD')
-        for patch in self.patches:
-            if not os.path.isabs(patch):
-                patch = self.relative_path(patch)
-            shell.apply_patch(patch, self.build_dir, 1)
-        super(recipe.Recipe, self).configure()
