@@ -10,6 +10,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2_1]
     autoreconf = True
     autoreconf_sh = 'NOCONFIGURE=1 ./autogen.sh'
+    configure_options = "--enable-gtk-doc-html=no --enable-trace=no"
     deps = ['glib', 'libpng', 'zlib', 'pixman', 'fontconfig', 'freetype']
     patches = ['cairo/0001-Fix-compilation-with-Android-s-bionic-libc.patch']
 
