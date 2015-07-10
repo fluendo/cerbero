@@ -5,9 +5,13 @@ import shutil
 
 class Recipe(recipe.Recipe):
     name = 'pixman'
-    version = '0.26.2'
+    version = '0.32.6'
+    stype = SourceType.TARBALL
+    url = 'http://cairographics.org/releases/pixman-0.32.6.tar.gz'
     licenses = [License.MIT]
     autoreconf = True
+    patches = ['pixman/0001-Fix-build-on-Android.patch',
+               'pixman/0002-Enable-CPU-detection-on-Android.patch']
 
     files_libs = ['libpixman-1']
     files_devel = ['include/pixman-1', 'lib/pkgconfig/pixman-1.pc']
@@ -17,10 +21,15 @@ class Recipe(recipe.Recipe):
             # FIXME: Fails to link because of undefined __builtin_* symbols
             self.configure_options = '--disable-arm-iwmmxt'
             # Prevent symbol conflicts
-            self.append_env['CFLAGS']= '-Dandroid_getCpuFamily=pixman_android_getCpuFamily \
-                    -Dandroid_getCpuFeatures=pixman_android_getCpuFeatures \
-                    -Dandroid_getCpuCount=pixman_android_getCpuCount \
-                    -Dandroid_setCpu=pixman_android_setCpu'
+            self.append_env['CFLAGS'] = \
+                "-Dandroid_getCpuFamily=pixman_android_getCpuFamily "\
+                "-Dandroid_getCpuFeatures=pixman_android_getCpuFeatures "\
+                "-Dandroid_getCpuCount=pixman_android_getCpuCount " \
+                "-Dandroid_cpuInit=pixman_android_cpuInit " \
+                "-Dandroid_cpuInitDummy=pixman_android_cpuInitDummy " \
+                "-Dandroid_getCpuIdArm=pixman_android_getCpuIdArm " \
+                "-Dandroid_setCpu=pixman_android_setCpu " \
+                "-Dandroid_setCpuArm=pixman_android_setCpuArm "
 
     def configure(self):
         if self.config.target_platform == Platform.ANDROID:
