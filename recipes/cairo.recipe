@@ -42,6 +42,6 @@ class Recipe(recipe.Recipe):
             self.files_devel += ['lib/pkgconfig/cairo-xlib-xrender.pc',
                                  'lib/pkgconfig/cairo-xlib.pc']
         else:
-            self.configure_options += '--without-x '
+            self.configure_options += ' --without-x '
         if self.config.target_platform == Platform.DARWIN:
             self.configure_options += ' --enable-quartz-font --enable-quartz-image'
