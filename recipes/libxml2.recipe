@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 
+from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'libxml2'
@@ -7,18 +8,34 @@ class Recipe(recipe.Recipe):
     licenses = [License.MIT]
     deps = [ 'zlib' ]
     autoreconf = True
+    platform_deps = {
+            Platform.WINDOWS: ['libiconv'],
+            Platform.ANDROID: ['libiconv'],
+            }
     files_libs = ['libxml2']
     files_devel = ['include/libxml2', 'lib/xml2Conf.sh', 'bin/xml2-config',
                    'lib/pkgconfig/libxml-2.0.pc', 'bin/xmllint%(bext)s']
 
 
     def prepare(self):
+        self.configure_options = '--with-docbook=no'
         if self.config.target_platform == Platform.WINDOWS:
-            self.configure_options = '--without-threads'
+            self.configure_options += '--without-threads'
         elif self.config.target_platform == Platform.ANDROID:
-            self.configure_options = '--with-python=no'
+            self.configure_options += '--with-python=no'
         elif self.config.target_platform == Platform.IOS:
-            self.configure_options = '--with-python=no'
+            self.configure_options += '--with-python=no'
         elif self.config.target_platform == Platform.LINUX:
             if self.config.target_arch in [Architecture.ARM, Architecture.ARMv7]:
-                self.configure_options = '--with-python=no'
+                self.configure_options += '--with-python=no'
+
+    def extract(self):
+        super(recipe.Recipe, self).extract()
+        if self.config.target_platform == Platform.DARWIN:
+            shell.call('git reset --hard', self.build_dir)
+            shell.apply_patch(self.relative_path('xml.patch'), self.build_dir, strip=1)
+
+    def configure(self):
+        super(Recipe, self).configure()
+        shell.replace(os.path.join(self.build_dir, 'Makefile'),
+            {'SUBDIRS = include . doc example xstc python': 'SUBDIRS = include . xstc python'})
