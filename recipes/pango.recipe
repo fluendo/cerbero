@@ -33,3 +33,8 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if not self.config.variants.x11:
             self.configure_options += ' --without-x '
+
+    def configure(self):
+        shell.replace(os.path.join(self.build_dir, 'Makefile.am'),
+            {'SUBDIRS= pango modules pango-view examples docs tools tests build': 'SUBDIRS= pango modules build'})
+        super(Recipe, self).configure()
