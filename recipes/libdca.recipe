@@ -3,7 +3,11 @@
 class Recipe(recipe.Recipe):
     name = 'libdca'
     version = '0.0.5'
+    stype = SourceType.TARBALL
+    url = 'http://download.videolan.org/pub/videolan/libdca/0.0.5/libdca-0.0.5.tar.bz2'
     licenses = [License.GPL]
+    patches = ['libdca/0001-Disable-AC_C_ALWAYS_INLINE.patch']
+    autoreconf = True
 
     files_libs = ['libdca']
     files_bins = ['extract_dca', 'extract_dcs', 'dcadec', 'dcsdec']
@@ -11,9 +15,5 @@ class Recipe(recipe.Recipe):
                    'lib/pkgconfig/libdca.pc', 'lib/pkgconfig/libdts.pc']
 
     def prepare(self):
-        if self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
-            self.append_env['CFLAGS'] = '-std=gnu89'
-
         if self.config.target_platform == Platform.ANDROID:
-            self.autoreconf = True
             self.configure_options += ' --disable-oss'
