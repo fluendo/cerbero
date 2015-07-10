@@ -21,3 +21,8 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.target_platform == Platform.ANDROID:
             self.configure_options = ' --with-thread=gthread'
+
+    def configure(self):
+        shell.replace(os.path.join(self.build_dir, 'Makefile.am'),
+            {'SUBDIRS = schroedinger doc tools testsuite': 'SUBDIRS = schroedinger'})
+        super(Recipe, self).configure()
