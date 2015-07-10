@@ -1,0 +1,12 @@
+diff --git a/parserInternals.c b/parserInternals.c
+index 746b7fd..cfc1939 100644
+--- a/parserInternals.c
++++ b/parserInternals.c
+@@ -1787,7 +1787,6 @@ xmlFreeParserCtxt(xmlParserCtxtPtr ctxt)
+     if (ctxt->spaceTab != NULL) xmlFree(ctxt->spaceTab);
+     if (ctxt->nameTab != NULL) xmlFree((xmlChar * *)ctxt->nameTab);
+     if (ctxt->nodeTab != NULL) xmlFree(ctxt->nodeTab);
+-    if (ctxt->nodeInfoTab != NULL) xmlFree(ctxt->nodeInfoTab);
+     if (ctxt->inputTab != NULL) xmlFree(ctxt->inputTab);
+     if (ctxt->version != NULL) xmlFree((char *) ctxt->version);
+     if (ctxt->encoding != NULL) xmlFree((char *) ctxt->encoding);
