@@ -3,17 +3,32 @@
 
 class Recipe(recipe.Recipe):
     name = 'libsoup'
-    version = '2.38.1'
+    version = '2.50.0'
     licenses = [License.LGPLv2Plus]
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnome.org/pub/gnome/sources/libsoup/2.50/libsoup-2.50.0.tar.xz'
+    autoreconf = True
+    autoreconf_sh = 'gtkdocize && intltoolize --automake --copy && autoreconf --force --install --verbose'
     configure_options = '--without-gnome --disable-more-warnings'
-    deps = ['libxml2', 'glib', 'glib-networking']
+    deps = ['libxml2', 'glib']
+    patches = ['libsoup/0001-Rip-out-sqlite-based-cookie-storage.patch',
+               'libsoup/0002-Don-t-build-tests.patch',
+           ]
 
     files_libs = ['libsoup-2.4']
     files_devel = ['include/libsoup-2.4', 'lib/pkgconfig/libsoup-2.4.pc']
+    files_typelibs = ['Soup-2.4']
+
 
     def prepare(self):
         if self.config.target_platform != Platform.LINUX:
             self.configure_options += ' --disable-gtk-doc'
 
+        if self.config.target_platform != Platform.LINUX or \
+           self.config.target_distro_version in \
+                [DistroVersion.DEBIAN_SQUEEZE,
+                 DistroVersion.UBUNTU_MAVERICK,
+                 DistroVersion.UBUNTU_LUCID]:
+            self.deps += [ 'glib-networking' ]
         if self.config.target_platform in [Platform.WINDOWS, Platform.IOS]:
             self.configure_options += ' --disable-tls-check'
