@@ -3,14 +3,16 @@
 
 class Recipe(recipe.Recipe):
     name = 'speex'
-    version = '1.2rc1'
+    version = '1.2rc2'
+    stype = SourceType.TARBALL
+    url = 'http://downloads.xiph.org/releases/speex/speex-1.2rc2.tar.gz'
     licenses = [License.BSD_like]
     deps = ['libogg']
+    allow_parallel_build = False
 
-    files_libs = ['libspeex', 'libspeexdsp']
+    files_libs = ['libspeex']
     files_bins = ['speexdec', 'speexenc']
-    files_devel = ['include/speex', 'lib/pkgconfig/speex.pc',
-        'lib/pkgconfig/speexdsp.pc']
+    files_devel = ['include/speex', 'lib/pkgconfig/speex.pc']
 
     def prepare(self):
         if self.config.target_platform == Platform.ANDROID:
