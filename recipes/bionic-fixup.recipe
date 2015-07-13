@@ -20,7 +20,7 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         if self.config.target_platform == Platform.LINUX:
-            raise InvalidRecipeError(self, "Invalid platform")
+            raise InvalidRecipeError()
 
     def install(self):
         include_path = os.path.join(self.config.install_dir, 'include')
