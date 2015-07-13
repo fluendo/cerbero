@@ -20,3 +20,9 @@ class Recipe(recipe.Recipe):
         else:
             self.files_devel.append('lib/pkgconfig/harfbuzz-icu.pc')
             self.files_libs.append('libharfbuzz-icu')
+
+    def configure(self):
+        super(Recipe, self).configure()
+        shell.replace(os.path.join(self.build_dir, 'Makefile'),
+            {'SUBDIRS = src util test docs': 'SUBDIRS = src util'})
+
