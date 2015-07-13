@@ -4,11 +4,16 @@ from cerbero.tools.libtool import LibtoolLibrary
 
 class Recipe(recipe.Recipe):
     name = 'zlib'
-    version = '1.2.7'
+    version = '1.2.8'
+    stype = SourceType.TARBALL
+    btype = BuildType.MAKEFILE
+    url = 'http://zlib.net/zlib-1.2.8.tar.gz'
     licenses = [License.BSD_like]
     add_host_build_target = False
     can_use_configure_cache = False
-
+    configure_tpl = "./configure --prefix %(prefix)s "\
+                    "--libdir %(libdir)s %(options)s"
+    patches = ['zlib/0001-win32-fix-dll-name.patch']
 
     files_libs = ['libz']
     files_devel = ['include/zlib.h', 'include/zconf.h', 'lib/pkgconfig/zlib.pc']
@@ -22,9 +27,16 @@ class Recipe(recipe.Recipe):
                                 'LIBRARY_PATH=%(prefix)s/lib ' \
                                 'BINARY_PATH=%(prefix)s/bin ' % {'prefix':self.config.prefix}
             self._remove_steps ([BuildSteps.CONFIGURE])
+        elif self.config.target_platform == Platform.ANDROID:
+            if self.config.target_arch == Architecture.X86:
+                self.configure_options += " --uname=i686-linux-android "
+            if self.config.target_arch == Architecture.X86_64:
+                self.configure_options += " --uname=x86_64-linux-android "
+            else:
+                self.configure_options += " --uname=arm-linux-androideabi "
 
     def post_install(self):
-        libtool_la = LibtoolLibrary('z', 1, 2, 7, self.config.libdir,
+        libtool_la = LibtoolLibrary('z', 1, 2, 8, self.config.libdir,
                 self.config.target_platform)
         libtool_la.save()
         # FIXME This is to workaround a build issue trying to ld to libz.so
