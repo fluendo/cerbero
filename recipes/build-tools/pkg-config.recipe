@@ -3,9 +3,11 @@
 
 class Recipe(recipe.Recipe):
     name = 'pkg-config'
-    version = '0.27'
+    version = '0.28'
     licenses = [License.GPLv2]
-    configure_options = '--with-internal-glib --program-prefix= '
+    stype = SourceType.TARBALL
+    url='http://pkgconfig.freedesktop.org/releases/pkg-config-0.28.tar.gz'
+    configure_options = '--with-internal-glib --disable-host-tool '
 
     files_bins = ['pkg-config']
     files_share = ['share/aclocal/pkg.m4']
