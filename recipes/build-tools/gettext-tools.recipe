@@ -18,3 +18,10 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.WINDOWS:
             self.configure_options += ' --enable-threads=win32'
             self.append_env['LDFLAGS'] = '-liconv'
+
+    def configure(self):
+        super(Recipe, self).configure()
+        shell.replace(os.path.join(self.build_dir, 'gettext-tools', 'Makefile'),
+            {'SUBDIRS = doc intl gnulib-lib libgrep src libgettextpo po projects styles misc man m4 tests gnulib-tests examples':
+             'SUBDIRS = doc intl gnulib-lib libgrep src libgettextpo po projects styles misc man m4'})
+
