@@ -162,6 +162,8 @@ class CookBook (object):
         @param name: name of the recipe
         @type name: str
         '''
+        if isinstance(name, crecipe.Recipe):
+            return name
         if name not in self.recipes:
             raise RecipeNotFoundError(name)
         return self.recipes[name]
