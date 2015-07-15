@@ -4,11 +4,16 @@ class Recipe(recipe.Recipe):
     name = 'gtk-mac-integration'
     version = '1.0.1'
     licenses = [License.LGPLv2_1]
-    deps = ['gtk+', 'pygtk']
+    deps = ['gtk+']
 
     files_libs = ['libgtkmacintegration']
     files_devel = ['include/gtkmacintegration', 'lib/pkgconfig/gtk-mac-integration.pc']
-    files_python = [
-        'site-packages/gtk_osxapplication/__init__.py',
-        'site-packages/gtk_osxapplication/_gtk_osxapplication%(mext)s',
-    ]
+
+    def prepare(self):
+        if self.config.variants.python:
+            self.deps.append('pygtk')
+            self.files_python = [
+                'site-packages/gtk_osxapplication/__init__.py',
+                'site-packages/gtk_osxapplication/_gtk_osxapplication%(mext)s',
+            ]
+

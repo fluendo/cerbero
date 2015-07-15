@@ -9,10 +9,13 @@ class Recipe(recipe.Recipe):
     stype = SourceType.TARBALL
     configure_options = '--without-x'
     url = 'http://ftp.acc.umu.se/pub/GNOME/sources/glade/2.12/glade-2.12.2.tar.bz2'
-    deps = ['gtk+', 'pygtk']
+    deps = ['gtk+']
 
     files_libs = ['libglade-2']
 
+    def prepare(self):
+        if self.config.variants.python:
+            self.deps.append('pygtk')
 
     def configure(self):
         for f in ['glade/gbwidgets/gbclist.c',
