@@ -16,4 +16,6 @@ class Recipe(recipe.Recipe):
                 'site-packages/gtk_osxapplication/__init__.py',
                 'site-packages/gtk_osxapplication/_gtk_osxapplication%(mext)s',
             ]
+        else:
+            self.configure_options += " --enable-python=no"
 
