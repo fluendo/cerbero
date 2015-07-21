@@ -30,10 +30,6 @@ class Recipe(recipe.Recipe):
         'PangoFT2-1.0'
         ]
 
-    def prepare(self):
-        if not self.config.variants.x11:
-            self.configure_options += ' --without-x '
-
     def configure(self):
         super(Recipe, self).configure()
         shell.replace(os.path.join(self.build_dir, 'Makefile'),
