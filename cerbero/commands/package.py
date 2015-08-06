@@ -81,7 +81,7 @@ class Package(Command):
                          args.force, args.keep_temp)
         if None in paths:
             paths.remove(None)
-        p.post_package(paths)
+        paths = p.post_package(paths) or paths
         m.action(_("Package successfully created in %s") %
                  ' '.join([os.path.abspath(x) for x in paths]))
 
