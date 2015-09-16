@@ -36,6 +36,16 @@ class Build (object):
     '''
 
     _properties_keys = []
+    use_system_libs = False
+    append_env = None
+    new_env = None
+
+    def __init__(self):
+        if self.append_env is None:
+            self.append_env = {}
+        if self.new_env is None:
+            self.new_env = {}
+        self._old_env = None
 
     def configure(self):
         '''
@@ -60,95 +70,6 @@ class Build (object):
         Runs any checks on the module
         '''
         pass
-
-
-class CustomBuild(Build):
-
-    def configure(self):
-        pass
-
-    def compile(self):
-        pass
-
-    def install(self):
-        pass
-
-
-def modify_environment(func):
-    ''' Decorator to modify the build environment '''
-    def call(*args):
-        self = args[0]
-        append_env = self.append_env
-        new_env = self.new_env.copy()
-        if self.use_system_libs and self.config.allow_system_libs:
-            self._add_system_libs(new_env)
-        old_env = self._modify_env(append_env, new_env)
-        res = func(*args)
-        self._restore_env(old_env)
-        return res
-
-    call.func_name = func.func_name
-    return call
-
-
-class MakefilesBase (Build):
-    '''
-    Base class for makefiles build systems like autotools and cmake
-    '''
-
-    config_sh = ''
-    configure_tpl = ''
-    configure_options = ''
-    make = 'make'
-    make_install = 'make install'
-    make_check = None
-    make_clean = 'make clean'
-    use_system_libs = False
-    allow_parallel_build = True
-    srcdir = '.'
-    append_env = None
-    new_env = None
-
-    def __init__(self):
-        Build.__init__(self)
-        if self.append_env is None:
-            self.append_env = {}
-        if self.new_env is None:
-            self.new_env = {}
-        self.make_dir = os.path.abspath(os.path.join(self.build_dir,
-                                                     self.srcdir))
-        if self.config.allow_parallel_build and self.allow_parallel_build \
-                and self.config.num_of_cpus > 1:
-            self.make += ' -j%d' % self.config.num_of_cpus
-        self._old_env = None
-
-    @modify_environment
-    def configure(self):
-        shell.call(self.configure_tpl % {'config-sh': self.config_sh,
-            'prefix': to_unixpath(self.config.prefix),
-            'libdir': to_unixpath(self.config.libdir),
-            'host': self.config.host,
-            'target': self.config.target,
-            'build': self.config.build,
-            'options': self.configure_options},
-            self.make_dir)
-
-    @modify_environment
-    def compile(self):
-        shell.call(self.make, self.make_dir)
-
-    @modify_environment
-    def install(self):
-        shell.call(self.make_install, self.make_dir)
-
-    @modify_environment
-    def clean(self):
-        shell.call(self.make_clean, self.make_dir)
-
-    @modify_environment
-    def check(self):
-        if self.make_check:
-            shell.call(self.make_check, self.build_dir)
 
     def _modify_env(self, append_env, new_env):
         '''
@@ -202,6 +123,88 @@ class MakefilesBase (Build):
             '/usr/%s/pkgconfig' % libdir, '/usr/share/pkgconfig',
             '/usr/lib/%s-linux-gnu/pkgconfig' % arch]
         new_env['PKG_CONFIG_PATH'] = ':'.join(search_paths)
+
+
+class CustomBuild(Build):
+
+    def configure(self):
+        pass
+
+    def compile(self):
+        pass
+
+    def install(self):
+        pass
+
+
+def modify_environment(func):
+    ''' Decorator to modify the build environment '''
+    def call(*args):
+        self = args[0]
+        append_env = self.append_env
+        new_env = self.new_env.copy()
+        if self.use_system_libs and self.config.allow_system_libs:
+            self._add_system_libs(new_env)
+        old_env = self._modify_env(append_env, new_env)
+        res = func(*args)
+        self._restore_env(old_env)
+        return res
+
+    call.func_name = func.func_name
+    return call
+
+
+class MakefilesBase (Build):
+    '''
+    Base class for makefiles build systems like autotools and cmake
+    '''
+
+    config_sh = ''
+    configure_tpl = ''
+    configure_options = ''
+    make = 'make'
+    make_install = 'make install'
+    make_check = None
+    make_clean = 'make clean'
+    allow_parallel_build = True
+    srcdir = '.'
+
+    def __init__(self):
+        Build.__init__(self)
+        if self.config.allow_parallel_build and self.allow_parallel_build \
+                and self.config.num_of_cpus > 1:
+            self.make += ' -j%d' % self.config.num_of_cpus
+        self.make_dir = os.path.abspath(os.path.join(self.build_dir,
+                                                     self.srcdir))
+
+    @modify_environment
+    def configure(self):
+        shell.call(self.configure_tpl % {'config-sh': self.config_sh,
+            'prefix': to_unixpath(self.config.prefix),
+            'libdir': to_unixpath(self.config.libdir),
+            'host': self.config.host,
+            'target': self.config.target,
+            'build': self.config.build,
+            'options': self.configure_options},
+            self.make_dir)
+
+    @modify_environment
+    def compile(self):
+        shell.call(self.make, self.make_dir)
+
+    @modify_environment
+    def install(self):
+        shell.call(self.make_install, self.make_dir)
+
+    @modify_environment
+    def clean(self):
+        shell.call(self.make_clean, self.make_dir)
+
+    @modify_environment
+    def check(self):
+        if self.make_check:
+            shell.call(self.make_check, self.build_dir)
+
 
 
 class Autotools (MakefilesBase):
