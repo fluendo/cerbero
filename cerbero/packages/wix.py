@@ -130,7 +130,7 @@ class WixBase():
             if i > 9999:
                 raise FatalError("Unsupported version number, mayor and minor "
                         "must be less than 9999")
-            elif i > 255:
+            elif i > 65534:
                 tversions.append(version[:-2])
                 tversions.append(version[-2:])
             else:
