@@ -36,14 +36,19 @@ class OSXRelocator(object):
     ID if the file is a shared library.
     '''
 
-    def __init__(self, root, lib_prefix, new_lib_prefix, recursive):
+    def __init__(self, root, lib_prefix, new_lib_prefix, recursive,
+            use_relative_paths):
         self.root = root
         self.lib_prefix = self._fix_path(lib_prefix)
         self.new_lib_prefix = self._fix_path(new_lib_prefix)
         self.recursive = recursive
+        self.use_relative_paths = True
 
     def relocate(self):
         self.parse_dir(self.root)
+
+    def relocate_dir(self, dirname):
+        self.parse_dir(os.path.join(self.root, dirname))
 
     def relocate_file(self, object_file, id=None):
         self.change_libs_path(object_file)
@@ -60,7 +65,7 @@ class OSXRelocator(object):
     def change_libs_path(self, object_file):
         for lib in self.list_shared_libraries(object_file):
             if self.lib_prefix in lib:
-                new_lib = lib.replace(self.lib_prefix, self.new_lib_prefix)
+                new_lib = self._relative_path (object_file, lib)
                 cmd = '%s -change %s %s %s' % (INT_CMD, lib, new_lib,
                                                object_file)
                 shell.call(cmd)
@@ -99,6 +104,11 @@ class OSXRelocator(object):
         if path.endswith('/'):
             return path[:-1]
         return path
+
+    def _relative_path(self, object_file, lib):
+        new_lib = lib.replace(self.lib_prefix, '')
+        depth = len(os.path.split(object_file)[0].split('/')) - len(self.root.split('/'))
+        return self.new_lib_prefix + '/..' * depth + new_lib
 
 
 class Main(object):

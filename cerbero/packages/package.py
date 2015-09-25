@@ -95,7 +95,7 @@ class PackageBase(object):
     ignore_package_prefix = False
     sys_deps = None
     sys_deps_devel = None
-    relocate_osx_binaries = True
+    relocate_osx_binaries = ['lib', 'bin', 'libexec']
     strip = False
     strip_dirs = ['bin', 'lib']
     strip_excludes = []

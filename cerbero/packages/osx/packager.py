@@ -54,10 +54,10 @@ class PostProcessingMixin():
         prefix = self.config.prefix
         if prefix[-1] == '/':
             prefix = prefix[:-1]
-        for path in ['bin', 'lib', 'libexec']:
-            relocator = OSXRelocator(os.path.join(tmp_dir, path),
-                    self.config.prefix, '@executable_path/../', True)
-            relocator.relocate()
+        for path in self.package.relocate_osx_binaries:
+            relocator = OSXRelocator(tmp_dir, prefix, '@executable_path', True,
+                    True)
+            relocator.relocate_dir(path)
 
 
 class FrameworkHeadersMixin(object):
