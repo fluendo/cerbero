@@ -51,12 +51,8 @@ class PostProcessingMixin():
     def _relocate_binaries(self, tmp_dir):
         if not self.package.relocate_osx_binaries:
             return
-        prefix = self.config.prefix
-        if prefix[-1] == '/':
-            prefix = prefix[:-1]
-        for path in self.package.relocate_osx_binaries:
-            relocator = OSXRelocator(tmp_dir, prefix, '@executable_path', True,
-                    True)
+        relocator = OSXRelocator(tmp_dir, self.config.prefix, True)
+        for path in ['bin', 'lib', 'libexec']:
             relocator.relocate_dir(path)
 
 
