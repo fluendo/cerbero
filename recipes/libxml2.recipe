@@ -15,6 +15,8 @@ class Recipe(recipe.Recipe):
     files_libs = ['libxml2']
     files_devel = ['include/libxml2', 'lib/xml2Conf.sh', 'bin/xml2-config',
                    'lib/pkgconfig/libxml-2.0.pc', 'bin/xmllint%(bext)s']
+    patches = ['libxml2/0001-Fix-library-info-creation-to-avoid-conflicts-between.patch',
+            'libxml2/xml.patch']
 
 
     def prepare(self):
@@ -33,7 +35,8 @@ class Recipe(recipe.Recipe):
         super(recipe.Recipe, self).extract()
         if self.config.target_platform == Platform.DARWIN:
             shell.call('git reset --hard', self.build_dir)
-            shell.apply_patch(self.relative_path('xml.patch'), self.build_dir, strip=1)
+            for p in self.patches:
+                shell.apply_patch(self.relative_path(p), self.build_dir, strip=1)
 
     def configure(self):
         super(Recipe, self).configure()

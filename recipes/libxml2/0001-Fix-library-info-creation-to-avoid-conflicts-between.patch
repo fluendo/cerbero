@@ -1,0 +1,31 @@
+From 4eabbfa03cf8d7d559283d4ad4a09edf560aee56 Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Sat, 26 Sep 2015 14:48:35 +0200
+Subject: [PATCH] Fix library info creation to avoid conflicts between versions
+
+From http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+settings library info based in the package version should neve be done.
+In fact we end up in a situation in OS X where system libraries links against
+libxml2.2.dylib version 10:0:0 and cerbero libs links against the same
+library but version 11:0:0 but system libraries can't link against the new
+version.
+---
+ configure.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.in b/configure.in
+index 95f2428..6e4d84e 100644
+--- a/configure.in
++++ b/configure.in
+@@ -10,7 +10,7 @@ LIBXML_MINOR_VERSION=8
+ LIBXML_MICRO_VERSION=0
+ LIBXML_MICRO_VERSION_SUFFIX=
+ LIBXML_VERSION=$LIBXML_MAJOR_VERSION.$LIBXML_MINOR_VERSION.$LIBXML_MICRO_VERSION$LIBXML_MICRO_VERSION_SUFFIX
+-LIBXML_VERSION_INFO=`expr $LIBXML_MAJOR_VERSION + $LIBXML_MINOR_VERSION`:$LIBXML_MICRO_VERSION:$LIBXML_MINOR_VERSION
++LIBXML_VERSION_INFO=`expr $LIBXML_MAJOR_VERSION + $LIBXML_MINOR_VERSION`:$LIBXML_MICRO_VERSION:0
+ 
+ LIBXML_VERSION_NUMBER=`expr $LIBXML_MAJOR_VERSION \* 10000 + $LIBXML_MINOR_VERSION \* 100 + $LIBXML_MICRO_VERSION`
+ 
+-- 
+2.3.2 (Apple Git-55)
+
