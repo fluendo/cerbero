@@ -57,7 +57,7 @@ class OSXRelocator(object):
         filename = os.path.basename(object_file)
         if not (filename.endswith('so') or filename.endswith('dylib')):
             return
-        cmd = '%s -id %s %s' % (INT_CMD, id, object_file)
+        cmd = '%s -id "%s" "%s"' % (INT_CMD, id, object_file)
         shell.call(cmd, fail=False)
 
     def change_libs_path(self, object_file):
@@ -68,12 +68,12 @@ class OSXRelocator(object):
             if depth > 1:
                 rpaths += ['@loader_path/..', '@executable_path/..']
             for p in rpaths:
-                cmd = '%s -add_rpath %s %s' % (INT_CMD, p, object_file)
+                cmd = '%s -add_rpath %s "%s"' % (INT_CMD, p, object_file)
                 shell.call(cmd)
             for lib in self.list_shared_libraries(object_file):
                 if self.lib_prefix in lib:
                     new_lib = lib.replace(self.lib_prefix, '@rpath')
-                    cmd = '%s -change %s %s %s' % (INT_CMD, lib, new_lib,
+                    cmd = '%s -change "%s" "%s" "%s"' % (INT_CMD, lib, new_lib,
                                                    object_file)
                     shell.call(cmd)
         except:
@@ -91,7 +91,7 @@ class OSXRelocator(object):
 
     @staticmethod
     def list_shared_libraries(object_file):
-        cmd = '%s -L %s' % (OTOOL_CMD, object_file)
+        cmd = '%s -L "%s"' % (OTOOL_CMD, object_file)
         res = shell.check_call(cmd).split('\n')
         # We don't use the first line
         libs = res[1:]
