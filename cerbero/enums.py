@@ -81,6 +81,7 @@ class DistroVersion:
     OS_X_SNOW_LEOPARD = 'osx_snow_leopard'
     OS_X_LEOPARD = 'osx_leopard'
     OS_X_YOSEMITE = 'osx_yosemite'
+    OS_X_EL_CAPITAN = 'osx_el_capitan'
     IOS_6_0 = 'ios_6_0'
     IOS_6_1 = 'ios_6_1'
     IOS_7_0 = 'ios_7_0'
