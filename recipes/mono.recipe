@@ -3,14 +3,15 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '4.0.4'
+    version = '4.2.1'
     licenses = [License.LGPL]
-    stype = SourceType.TARBALL
-    url = 'http://download.mono-project.com/sources/mono/mono-%(version)s.1.tar.bz2'
+    remotes = {'origin': 'git@github.com:mono/mono.git'}
+    commit = 'mono-4.2.1.102'
     configure_options = ' --with-gc=included --with-sgen=yes '\
                         ' --with-preview=yes' \
                         ' --without-sigaltstack --disable-dtrace ' \
                         ' --with-mcs-docs=no '
+    config_sh = 'sh autogen.sh'
     files_bins = ['mono-sgen']
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
