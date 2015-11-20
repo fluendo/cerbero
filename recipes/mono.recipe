@@ -5,8 +5,8 @@ class Recipe(recipe.Recipe):
     name = 'mono'
     version = '4.2.1'
     licenses = [License.LGPL]
-    remotes = {'origin': 'git@github.com:mono/mono.git'}
-    commit = 'mono-4.2.1.102'
+    stype = SourceType.TARBALL
+    url = 'http://download.mono-project.com/sources/mono/mono-%(version)s.102.tar.bz2'
     configure_options = ' --with-gc=included --with-sgen=yes '\
                         ' --with-preview=yes' \
                         ' --without-sigaltstack --disable-dtrace ' \
