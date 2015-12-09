@@ -34,6 +34,11 @@ class Recipe(recipe.Recipe):
     def configure(self):
         shell.replace(os.path.join(self.build_dir, 'Makefile.am'),
             {'SUBDIRS = pixman demos test': 'SUBDIRS = pixman'})
+        # clang from xcode has a known bug, avoid codepath that trigger it
+        # More info : https://github.com/Homebrew/homebrew/issues/41056
+        if self.config.target_platform in [ Platform.DARWIN, Platform.IOS ] and \
+           self.config.target_arch in [ Architecture.X86, Architecture.X86_64 ]:
+            self.configure_options = '--disable-mmx'
         if self.config.target_platform == Platform.ANDROID:
             cpufeatures_path = os.path.join(self.config.toolchain_prefix, 'sources', 'android', 'cpufeatures')
             o = os.path.join(cpufeatures_path, 'cpu-features.h')
