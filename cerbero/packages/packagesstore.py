@@ -24,7 +24,7 @@ from cerbero.config import Platform, Architecture, Distro, DistroVersion,\
         License
 from cerbero.packages import package, PackageType
 from cerbero.errors import FatalError, PackageNotFoundError
-from cerbero.utils import _, shell, remove_list_duplicates
+from cerbero.utils import _, shell, remove_list_duplicates, parse_file
 from cerbero.utils import messages as m
 
 
@@ -189,7 +189,7 @@ class PackagesStore (object):
                  'Distro': Distro, 'DistroVersion': DistroVersion,
                  'License': License, 'package': package,
                  'PackageType': PackageType}
-            execfile(filepath, d)
+            parse_file(filepath, d)
             if 'Package' in d:
                 p = d['Package'](self._config, self, self.cookbook)
             elif 'SDKPackage' in d:

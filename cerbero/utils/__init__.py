@@ -265,6 +265,8 @@ def remove_list_duplicates(seq):
 
 
 def parse_file(filename, dict):
+    if '__file__' not in dict:
+        dict['__file__'] = filename
     try:
         execfile(filename, dict)
     except Exception, ex:
