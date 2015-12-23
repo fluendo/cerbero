@@ -1,0 +1,39 @@
+From b19d6f663440692d0ead82c9cbc0be711d1aaef7 Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Tue, 7 Aug 2012 10:50:31 +0200
+Subject: [PATCH 1/5] quartz: fix resizing of child nsview
+
+---
+ gdk/quartz/gdkwindow-quartz.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/gdk/quartz/gdkwindow-quartz.c b/gdk/quartz/gdkwindow-quartz.c
+index 7b43257..39983eb 100644
+--- a/gdk/quartz/gdkwindow-quartz.c
++++ b/gdk/quartz/gdkwindow-quartz.c
+@@ -1346,7 +1346,8 @@ move_resize_window_internal (GdkWindow *window,
+   if ((x == -1 || (x == private->x)) &&
+       (y == -1 || (y == private->y)) &&
+       (width == -1 || (width == private->width)) &&
+-      (height == -1 || (height == private->height)))
++      (height == -1 || (height == private->height)) &&
++      impl->toplevel)
+     {
+       return;
+     }
+@@ -1411,8 +1412,11 @@ move_resize_window_internal (GdkWindow *window,
+       if (!private->input_only)
+         {
+           NSRect nsrect;
++          GdkWindow *toplevel = gdk_window_get_effective_toplevel (window);
++          gint x, y;
+ 
+-          nsrect = NSMakeRect (private->x, private->y, private->width, private->height);
++          get_ancestor_coordinates_from_child (window, 0, 0, toplevel, &x, &y);
++          nsrect = NSMakeRect (x, y, private->width, private->height);
+ 
+           /* The newly visible area of this window in a coordinate
+            * system rooted at the origin of this window.
+-- 
+2.5.4 (Apple Git-61)
+

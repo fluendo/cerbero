@@ -3,13 +3,20 @@
 
 class Recipe(recipe.Recipe):
     name = 'gtk+'
-    version = '2.24.22'
-    remotes = {'origin' : 'git@github.com:fluendo/gtk.git'}
-    # TODO: check license - some source files are LGPLv2, others LGPLv2+,
-    #       others LGPLv2.1+, COPYING is LGPLv2 and the webpage states LGPLv2.1
+    version = '2.24.29'
+    stype = SourceType.TARBALL
+    url = 'ftp://ftp.gnome.org/pub/gnome/sources/gtk+/2.24/gtk+-2.24.29.tar.xz'
     licenses = [License.LGPLv2_1Plus]
     configure_options = '--with-included-immodules '
     deps = ['glib', 'atk', 'pango', 'gdk-pixbuf', 'cairo']
+    strip = 1
+    patches = [
+        '0001-quartz-fix-resizing-of-child-nsview.patch',
+        '0002-gtkmodules-Don-t-try-to-load-liboverlay-scrollbar.so.patch',
+        '0003-quartz-fix-fullscreen-with-dual-monitors.patch',
+        '0004-Fix-crash-accessing-a-NULL-pointer-function.patch',
+        '0005-Fix-build-of-gtk-update-icon-cache-in-Windows.patch',
+    ]
 
     files_libs = ['libgailutil']
     files_bins = ['gtk-update-icon-cache', 'gtk-query-immodules-2.0']

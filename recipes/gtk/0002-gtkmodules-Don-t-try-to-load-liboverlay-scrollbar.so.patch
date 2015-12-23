@@ -1,0 +1,36 @@
+From 664e31b0d60a385cda528e61492b2fb2a3adb556 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Sebastian=20Dr=C3=B6ge?= <sebastian.droege@collabora.co.uk>
+Date: Mon, 15 Apr 2013 11:22:08 +0200
+Subject: [PATCH 2/5] gtkmodules: Don't try to load liboverlay-scrollbar.so
+ module
+
+This is an Ubuntu specific module that uses Ubuntu specific GTK+ API
+and just crashes with our GTK+.
+---
+ gtk/gtkmodules.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/gtk/gtkmodules.c b/gtk/gtkmodules.c
+index 50729b6..50361cc 100644
+--- a/gtk/gtkmodules.c
++++ b/gtk/gtkmodules.c
+@@ -237,6 +237,16 @@ find_module (const gchar *name)
+       module_name = g_module_build_path (NULL, name);
+     }
+ 
++  /* overlay-scrollbar module that uses Ubuntu specific GTK
++   * API on Ubuntu... and thus crashes everything
++   * that ever tries to use GIO.
++   */
++  if (g_str_has_suffix (module_name, "liboverlay-scrollbar.so"))
++    {
++      g_free (module_name);
++      return NULL;
++    }
++
+   module = g_module_open (module_name, G_MODULE_BIND_LOCAL | G_MODULE_BIND_LAZY);
+ 
+   if (_gtk_module_has_mixed_deps (module))
+-- 
+2.5.4 (Apple Git-61)
+

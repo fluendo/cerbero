@@ -1,0 +1,39 @@
+From 788d008504f139619437a10b1b8a46590194a7b1 Mon Sep 17 00:00:00 2001
+From: Julien Moutte <julien@fluendo.com>
+Date: Sat, 14 Mar 2015 08:18:40 +0100
+Subject: [PATCH 4/5] Fix crash accessing a NULL pointer function.
+
+In some scenarios, GDK will use a code path that calls restack_under vmethod in the platform window implementation. Although this function might not useful on OS X, we can't leave the function pointer NULL. Provide a dummy placeholder function.
+---
+ gdk/quartz/gdkwindow-quartz.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/gdk/quartz/gdkwindow-quartz.c b/gdk/quartz/gdkwindow-quartz.c
+index 126a1f8..1d89354 100644
+--- a/gdk/quartz/gdkwindow-quartz.c
++++ b/gdk/quartz/gdkwindow-quartz.c
+@@ -1705,6 +1705,13 @@ gdk_window_quartz_lower (GdkWindow *window)
+ }
+ 
+ static void
++gdk_window_quartz_restack_under (GdkWindow *window,
++                                 GList *native_siblings)
++{
++  /* Implement me ! */
++}
++
++static void
+ gdk_window_quartz_restack_toplevel (GdkWindow *window,
+ 				    GdkWindow *sibling,
+ 				    gboolean   above)
+@@ -3212,6 +3219,7 @@ gdk_window_impl_iface_init (GdkWindowImplIface *iface)
+   iface->raise = gdk_window_quartz_raise;
+   iface->lower = gdk_window_quartz_lower;
+   iface->restack_toplevel = gdk_window_quartz_restack_toplevel;
++  iface->restack_under= gdk_window_quartz_restack_under;
+   iface->move_resize = gdk_window_quartz_move_resize;
+   iface->set_background = gdk_window_quartz_set_background;
+   iface->set_back_pixmap = gdk_window_quartz_set_back_pixmap;
+-- 
+2.5.4 (Apple Git-61)
+
