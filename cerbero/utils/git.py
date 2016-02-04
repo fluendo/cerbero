@@ -110,6 +110,7 @@ def fetch(git_dir, fail=True):
     @type fail: false
     '''
     shell.call('%s fetch --all' % GIT, git_dir, fail=fail)
+    shell.call('%s fetch --tags' % GIT, git_dir, fail=fail)
     return shell.call('%s fetch --all --tags' % GIT, git_dir, fail=fail)
 
 
