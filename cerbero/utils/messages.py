@@ -24,12 +24,12 @@ STEP_TPL = '[(%s/%s) %s -> %s ]'
 
 
 def message(msg):
-    sys.stdout.write(msg + '\n')
+    sys.stdout.write(str(msg) + '\n')
     sys.stdout.flush()
 
 
 def error(msg):
-    sys.stderr.write(msg + '\n')
+    sys.stderr.write(str(msg) + '\n')
     sys.stderr.flush()
 
 
