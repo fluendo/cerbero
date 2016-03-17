@@ -1,0 +1,27 @@
+From 3ff9aec28a6f6ff8480b821915d655235768a2ba Mon Sep 17 00:00:00 2001
+From: Victor Guzman <vguzman@fluendo.com>
+Date: Thu, 17 Mar 2016 03:36:56 -0700
+Subject: [PATCH] Revert "Simplify to validate the availability of
+ posix_fadvise" for the file fccache.c
+
+This reverts commit 51521153490ab0b01959c10c57e476de3ad27acb.
+---
+ src/fccache.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/fccache.c b/src/fccache.c
+index b681a5e..427f3b1 100644
+--- a/src/fccache.c
++++ b/src/fccache.c
+@@ -643,7 +643,7 @@ FcDirCacheMapFd (FcConfig *config, int fd, struct stat *fd_stat, struct stat *di
+     {
+ #if defined(HAVE_MMAP) || defined(__CYGWIN__)
+ 	cache = mmap (0, fd_stat->st_size, PROT_READ, MAP_SHARED, fd, 0);
+-#if (HAVE_POSIX_FADVISE) && defined(POSIX_FADV_WILLNEED)
++#if defined(HAVE_POSIX_FADVISE) && defined(POSIX_FADV_WILLNEED)
+ 	posix_fadvise (fd, 0, fd_stat->st_size, POSIX_FADV_WILLNEED);
+ #endif
+ 	if (cache == MAP_FAILED)
+-- 
+1.9.1
+
