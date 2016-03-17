@@ -64,7 +64,10 @@ class DebianBootstraper (UnixBootstraper):
         UnixBootstraper.__init__(self, config)
         if self.config.target_platform == Platform.WINDOWS:
             if self.config.arch == Architecture.X86_64:
-                self.packages.append('ia32-libs')
+                if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
+                    DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
+                    DistroVersion.UBUNTU_NATTY]:
+                  self.packages.append('ia32-libs')
         if self.config.distro_version in [DistroVersion.DEBIAN_SQUEEZE,
                 DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID]:
             self.packages.remove('glib-networking')
