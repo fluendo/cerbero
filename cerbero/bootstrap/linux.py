@@ -66,7 +66,7 @@ class DebianBootstraper (UnixBootstraper):
             if self.config.arch == Architecture.X86_64:
                 if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
                     DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
-                    DistroVersion.UBUNTU_NATTY]:
+                    DistroVersion.UBUNTU_NATTY, DistroVersion.UBUNTU_PRECISE]:
                   self.packages.append('ia32-libs')
         if self.config.distro_version in [DistroVersion.DEBIAN_SQUEEZE,
                 DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID]:
