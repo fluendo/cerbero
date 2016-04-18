@@ -85,7 +85,7 @@ class WindowsBootstraper(BootstraperBase):
 
         tarfile = os.path.join(self.prefix, tarball)
         tarfile = os.path.abspath(tarfile)
-        shell.download("%s/%s" % (MINGW_DOWNLOAD_SOURCE, tarball), tarfile)
+        shell.download("%s/%s" % (MINGW_DOWNLOAD_SOURCE, tarball), tarfile, False, False)
         if not os.path.exists(os.path.join(self.prefix, 'bin')):
             try:
                 shell.unpack(tarfile, self.prefix)
