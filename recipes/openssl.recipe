@@ -79,8 +79,6 @@ class Recipe(recipe.Recipe):
                 self.make += ' CROSS_COMPILE=x86_64-w64-mingw32-'
             else:
                 raise NotImplementedError
-        # CFLAG is no typo!
-        self.make += ' LDFLAGS+="$LDFLAGS -fPIC" CFLAG+="$CFLAGS -fPIC -DOPENSSL_PIC"'
         self.make += ' build_libs openssl.pc libssl.pc libcrypto.pc'
         #self.make_install = 'make install_sw'
         self.make_install = 'make install_libs'
