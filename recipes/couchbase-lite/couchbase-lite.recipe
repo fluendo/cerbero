@@ -1,0 +1,98 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+from cerbero.build.build import modify_environment
+
+PC_TPL ='''\
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+
+Name: Couchbase.Lite
+Description: Couchbase.Lite framework for .NET
+Version: %s
+Libs: -r:${libdir}/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll\
+ -r:${libdir}/cli/Couchbase.Lite-1.0/SQLitePCL.raw.dll\
+ -r:${libdir}/cli/Couchbase.Lite-1.0/SQLitePCL.ugly.dll
+'''
+
+
+class Recipe(recipe.Recipe):
+    name = 'Couchbase.Lite'
+    version = '1.1.2'
+    licenses = [License.Apachev2]
+    stype = SourceType.GIT
+    btype = BuildType.CUSTOM
+    deps = ['mono', 'Newtonsoft.Json', 'sqlite3']
+    remotes = {'github': 'https://github.com/fluendo/couchbase-lite-net.git'}
+    commit = 'github/1.1.2'
+    files_cli = [
+      'lib/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll',
+      'lib/cli/Couchbase.Lite-1.0/SQLitePCL.raw.dll',
+      'lib/cli/Couchbase.Lite-1.0/SQLitePCL.ugly.dll'
+    ]
+
+    def prepare(self):
+        super(Recipe, self).prepare()
+        self.append_env = {}
+        self.new_env =  {}
+        if self.config.platform == Platform.DARWIN:
+            self.append_env = {}
+            self.new_env =  {'MONO_PATH' : None}
+
+    @modify_environment
+    def compile(self):
+        shell.call("mono src/.nuget/NuGet.exe restore " \
+                   "-SolutionDirectory src src/Couchbase.Lite.Net45/packages.config", self.build_dir)
+        shell.call('xbuild src/Couchbase.Lite.sln /target:Couchbase_Lite_Net45 '
+                   '/property:Configuration=Release', self.build_dir)
+        if self.config.platform == Platform.DARWIN:
+            try:
+                shell.call("mono src/.nuget/NuGet.exe restore " \
+                        "-SolutionDirectory src src/Couchbase.Lite.Android/packages.config",
+                        self.build_dir)
+                shell.call("mono src/.nuget/NuGet.exe restore " \
+                        "-SolutionDirectory src src/Couchbase.Lite.iOS/packages.config",
+                        self.build_dir)
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool '
+                       'build -c:Release src/Couchbase.Lite.iOS/Couchbase.Lite.iOS.csproj',
+                       self.build_dir)
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool '
+                       'build -c:Release src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj',
+                       self.build_dir)
+            except:
+                pass
+        nuspec = os.path.join(self.build_dir, 'couchbase-lite.nuspec')
+        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite.nuspec'),
+                nuspec)
+        replacements = {'<id>Couchbase.Lite</id>': '<id>Couchbase.Lite.LM</id>'}
+        # We only build Android and iOS nuget packages in OS X
+        if self.config.platform != Platform.DARWIN:
+            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />'] = ""
+        # Windows needs backslashes in the path
+        if self.config.platform == Platform.WINDOWS:
+            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
+            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
+            replacements[net45lib] = net45libfixed
+        shell.replace(nuspec, replacements)
+        try:
+            shell.call('mono src/.nuget/NuGet.exe pack -Verbose -BasePath . couchbase-lite.nuspec',
+                    self.build_dir)
+        except:
+            pass
+
+    def install(self):
+        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.0')
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        shell.call('cp src/Couchbase.Lite.Net45/bin/Release/*.dll %s' % destdir,
+            self.build_dir)
+        pc_file = os.path.join(self.config.prefix, 'lib/pkgconfig/couchbase-lite.pc')
+        with open(pc_file, 'w+') as f:
+            f.write(PC_TPL % self.version)
+        nugetdir = os.path.join(self.config.prefix, 'share', 'nuget')
+        if not os.path.exists(nugetdir):
+            os.makedirs(nugetdir)
+        shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.LM.1.1.2.0.nupkg'),
+                nugetdir)
+

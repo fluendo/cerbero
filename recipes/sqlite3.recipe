@@ -1,0 +1,13 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'sqlite3'
+    version = '3.8.11.1'
+    licenses = [License.LGPLv2Plus]
+    stype = SourceType.TARBALL
+    url = 'https://www.sqlite.org/2015/sqlite-autoconf-3081101.tar.gz'
+    tarball_dirname = 'sqlite-autoconf-3081101'
+
+    files_libs = ['libsqlite3']
+    files_devel = ['include/sqlite3.h', 'include/sqlite3ext.h', 'lib/pkgconfig/sqlite3.pc']
+

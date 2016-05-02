@@ -1,0 +1,61 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+BIN_TPL='''\
+#!/bin/sh
+PREFIX=%s
+exec $PREFIX/bin/mono-sgen $PREFIX/lib/cli/XR.Baboon/%s "$@"
+'''
+
+
+class Recipe(recipe.Recipe):
+    name = 'XR.Baboon'
+    version = 'git'
+    licenses = [License.LGPL]
+    btype = BuildType.CUSTOM
+    remotes = {'origin': 'https://github.com/inorton/XR.Baboon.git'}
+    commit = 'origin/master'
+    deps = ['mono']
+    platform_deps = {
+        Platform.LINUX: ['gtksourceview-sharp'],
+        Platform.DARWIN: ['gtksourceview-sharp'],
+        }
+    files_bin = [
+            'bin/covem',
+            'bin/cov-html',
+            'bin/cov-gtk',
+            ]
+    files_cli = [
+            'lib/cli/XR.Baboon/covem.exe',
+            'lib/cli/XR.Baboon/cov-html.exe',
+            'lib/cli/XR.Baboon/cov-gtk.exe',
+            'lib/cli/XR.Baboon/XR.Mono.Cover.dll',
+            ]
+
+    def compile(self):
+        shell.call('xbuild XR.Mono.Cover/XR.Mono.Cover.csproj /property:Configuration=Release ',
+            self.build_dir)
+        shell.call('xbuild covtool/covtool.csproj /property:Configuration=Release ',
+            self.build_dir)
+        shell.call('xbuild cov-html/cov-html.csproj /property:Configuration=Release ',
+            self.build_dir)
+        if self.config.target_platform in [Platform.DARWIN, Platform.LINUX]:
+            shell.call('xbuild cov-gtk/cov-gtk.csproj /property:Configuration=Release ',
+                self.build_dir)
+
+    def install(self):
+        destdir = os.path.join(self.config.prefix, 'lib/cli/XR.Baboon')
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        shutil.copy(os.path.join(self.build_dir,
+            'XR.Mono.Cover/bin/Release/XR.Mono.Cover.dll'), destdir)
+        apps = ['covem', 'cov-html']
+        if self.config.target_platform in [Platform.DARWIN, Platform.LINUX]:
+            apps.append('cov-gtk')
+        for app in apps:
+            dest = os.path.join(self.config.prefix, 'bin', app)
+            shutil.copy(os.path.join(self.build_dir, 'covtool/bin/%s.exe' %
+                app), destdir)
+            with open(dest, 'w+') as f:
+                f.write(BIN_TPL % (self.config.prefix, app + '.exe'))
+            shell.call('chmod +x %s' % dest)

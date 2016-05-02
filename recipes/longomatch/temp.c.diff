@@ -1,0 +1,19 @@
+--- temp.c	2015-12-10 18:21:21.000000000 +0100
++++ temp.c	2015-12-10 18:21:19.000000000 +0100
+@@ -1,3 +1,4 @@
++#include "init.c"
+ #include <mono/metadata/mono-config.h>
+ #include <mono/metadata/assembly.h>
+ 
+@@ -91,9 +92,8 @@
+ 	}
+ 	newargs [k] = NULL;
+ 	
+-	if (config_dir != NULL && getenv ("MONO_CFG_DIR") == NULL)
+-		mono_set_dirs (getenv ("MONO_PATH"), config_dir);
+-	
++	custom_init ();
++
+ 	mono_mkbundle_init();
+ 
+ 	return mono_main (k, newargs);

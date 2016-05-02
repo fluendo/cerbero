@@ -1,0 +1,38 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+from urllib import urlretrieve
+
+from cerbero.utils import shell
+
+class Recipe(recipe.Recipe):
+    name = 'fody'
+    version = '1.29.4'
+    stype = SourceType.GIT
+    btype = BuildType.CUSTOM
+    commit = 'origin/master'
+    remotes = {'origin': 'git@github.com:ylatuya/Fody.git'}
+
+    def compile(self):
+        try:
+	        shell.download('http://nuget.org/nuget.exe',
+	                os.path.join(self.build_dir, 'NuGet.exe'), check_cert=False)
+        except:
+	        shell.download_curl('http://nuget.org/nuget.exe',
+	                os.path.join(self.build_dir, 'NuGet.exe'), check_cert=False)
+
+        for conf in ['NuGet/packages.config']:
+            shell.call('mono NuGet.exe restore -SolutionDirectory . %s' % conf,
+                    self.build_dir)
+        shell.call('xbuild Fody/Fody.csproj /property:SolutionDir=../', self.build_dir)
+        shell.call('xbuild FodyIsolated/FodyIsolated.csproj /property:SolutionDir=../', self.build_dir)
+        shell.call('xbuild NuGet/Nuget.csproj /property:SolutionDir=../', self.build_dir)
+        shell.call('xbuild NuGetCecil/NugetCecil.csproj /property:SolutionDir=../', self.build_dir)
+
+    def install(self):
+        nugetdir = os.path.join(self.config.prefix, 'share', 'nuget')
+        if not os.path.exists(nugetdir):
+            os.makedirs(nugetdir)
+        shutil.copy(os.path.join(self.build_dir, 'NuGetBuild',
+            'Fody.1.29.4.nupkg'), nugetdir)
+        shutil.copy(os.path.join(self.build_dir, 'NuGetCecilBuild',
+            'FodyCecil.1.29.4.nupkg'), nugetdir)

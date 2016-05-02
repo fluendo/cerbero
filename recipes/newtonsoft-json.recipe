@@ -1,0 +1,35 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'Newtonsoft.Json'
+    version = '6.0.8'
+    licenses = [License.LGPL]
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+    deps = ['mono']
+    url = 'https://github.com/JamesNK/Newtonsoft.Json/archive/%(version)s.tar.gz'
+    patches = ['newtonsoft-json/0001-Fix-build-with-the-Client-target-profile.patch']
+    config_sh = 'sh autogen.sh'
+    files_cli = ['lib/cli/Newtonsoft.Json-6.0/Newtonsoft.Json.dll']
+
+    def compile(self):
+        shell.call('xbuild Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj ' \
+                   '/property:SignAssembly=true ' \
+                   '/property:AssemblyOriginatorKeyFile=Dynamic.snk ' \
+                   '/property:Configuration=Release ' \
+                   '/property:TargetFrameworkVersion="v4.5" ' \
+                   '/property:DefineConstants=\'SIGNED NET40 TRACE\' ',
+            self.build_dir)
+
+    def install(self):
+        destdir = os.path.join(self.config.prefix, 'lib/cli/Newtonsoft.Json-6.0')
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        shell.call('cp Src/Newtonsoft.Json/bin/Release/Net40/Newtonsoft.Json.dll %s' % destdir,
+            self.build_dir)
+        jsonpc = os.path.join(self.config.libdir, 'pkgconfig', 'newtonsoft-json.pc')
+        shell.call('cp %s %s' % (self.relative_path("newtonsoft-json/newtonsoft-json.pc.in"),
+                                 jsonpc))
+        shell.replace(jsonpc, {'@VERSION@': self.version})
+        for f in self.files_cli:
+            shell.call('gacutil -i %s' % os.path.join(self.config.prefix, f))

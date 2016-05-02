@@ -1,0 +1,17 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    version = '2.11.2'
+    name = 'gtksourceview'
+    licenses = [License.LGPL]
+    stype = SourceType.TARBALL
+    url = 'https://download.gnome.org/sources/gtksourceview/2.11/gtksourceview-2.11.2.tar.bz2'
+    patches = ['gtksourceview/fix_os_x_build.patch']
+    strip = 0
+    deps = ['gtk+', 'mono']
+    platform_deps = {
+        Platform.DARWIN: ['gtk-mac-integration'],
+        }
+
+    files_libs = ['libglade-2']

@@ -1,0 +1,24 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'mono-addins'
+    version = '1.1'
+    licenses = [License.LGPL]
+    stype = SourceType.TARBALL
+    deps = ['mono', 'gtk-sharp']
+    url = 'https://github.com/mono/mono-addins/archive/mono-addins-1.1.tar.gz'
+    tarball_dirname = 'mono-addins-mono-addins-1.1'
+    config_sh = 'sh autogen.sh'
+    files_cli = ['lib/mono/mono-addins/Mono.Addins.dll']
+
+    def configure(self):
+        shell.replace(os.path.join(self.build_dir, 'xbuild.include'),
+            {'/nologo': ''})
+        shell.replace(os.path.join(self.build_dir, 'Makefile.include'),
+            {'/f': '-f', '/i': '-i'})
+        shell.replace(os.path.join(self.build_dir, 'configure.ac'),
+            {'/package ': '-package ', '/root ': '-root ',
+             'AC_PATH_PROG(MCS, gmcs, no)' : 'AC_PATH_PROG(MCS, mcs, no)'})
+        if self.config.platform == Platform.WINDOWS:
+            shell.call ("dos2unix configure.ac", self.build_dir)
+        super(recipe.Recipe, self).configure()

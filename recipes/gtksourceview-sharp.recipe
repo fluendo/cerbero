@@ -1,0 +1,32 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.build.build import modify_environment
+
+class Recipe(recipe.Recipe):
+    name = 'gtksourceview-sharp'
+    version = '2.26.0'
+    licenses = [License.LGPL]
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnome.org/pub/GNOME/sources/gnome-desktop-sharp/2.26/gnome-desktop-sharp-2.26.0.tar.bz2'
+    tarball_dirname = 'gnome-desktop-sharp-2.26.0'
+    make = 'make -C gtksourceview'
+    make_install = 'make -C gtksourceview install'
+    deps = ['mono', 'gtksourceview', 'gtk-sharp']
+    new_env = {
+            'GNOMESHARP_CFLAGS': ' ',
+            'GNOMESHARP_LIBS': ' ',
+            'GNOMEDESKTOP_CFLAGS': ' ',
+            'GNOMEDESKTOP_LIBS': ' ',
+            }
+    files_libs = ['libgtksourceview2sharpglue-2']
+    files_cli = ['lib/mono/gac/gtksourceview2-sharp/2.0.0.0__35e10195dab3c99f/gtksourceview2-sharp.dll',
+                 'lib/mono/gac/gtksourceview2-sharp/2.0.0.0__35e10195dab3c99f/gtksourceview2-sharp.dll.config']
+    files_devel = ['lib/pkgconfig/gtksourceview2-sharp.pc']
+
+
+    @modify_environment
+    def configure(self):
+        # We only need gtksourceview and we don't wan't to install all the
+        # gnome-desktop deps that are not need for this build but are a hard
+        # configure requirement
+        os.environ['GNOMESHARP_LIBS'] = shell.check_call('pkg-config --libs gtk-sharp-2.0').split('\n')[0]
+        super(recipe.Recipe, self).configure()

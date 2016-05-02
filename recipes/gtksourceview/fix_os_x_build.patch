@@ -1,0 +1,94 @@
+--- gtksourceview/gtksourceview-i18n.c	2015-03-09 17:29:37.000000000 +0100
++++ gtksourceview/gtksourceview-i18n.c	2015-03-09 17:16:05.000000000 +0100
+@@ -23,10 +23,6 @@
+ #include <config.h>
+ #endif
+ 
+-#ifdef OS_OSX
+-#include <ige-mac-bundle.h>
+-#endif
+-
+ #include <string.h>
+ 
+ #include "gtksourceview-i18n.h"
+@@ -40,17 +44,6 @@
+ 	locale_dir = g_build_filename (win32_dir, "share", "locale", NULL);
+ 
+ 	g_free (win32_dir);
+-#elif defined (OS_OSX)
+-	IgeMacBundle *bundle = ige_mac_bundle_get_default ();
+-
+-	if (ige_mac_bundle_get_is_app_bundle (bundle))
+-	{
+-		locale_dir = g_strdup (ige_mac_bundle_get_localedir (bundle));
+-	}
+-	else
+-	{
+-		locale_dir = g_build_filename (DATADIR, "locale", NULL);
+-	}
+ #else
+ 	locale_dir = g_build_filename (DATADIR, "locale", NULL);
+ #endif
+--- configure	2015-03-09 17:34:14.000000000 +0100
++++ configure	2015-03-09 17:16:04.000000000 +0100
+@@ -11146,12 +11146,12 @@
+     pkg_cv_IGE_MAC_CFLAGS="$IGE_MAC_CFLAGS"
+  elif test -n "$PKG_CONFIG"; then
+     if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"ige-mac-integration\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "ige-mac-integration") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtk-mac-integration\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "gtk-mac-integration") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+-  pkg_cv_IGE_MAC_CFLAGS=`$PKG_CONFIG --cflags "ige-mac-integration" 2>/dev/null`
++  pkg_cv_IGE_MAC_CFLAGS=`$PKG_CONFIG --cflags "gtk-mac-integration" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -11162,12 +11162,12 @@
+     pkg_cv_IGE_MAC_LIBS="$IGE_MAC_LIBS"
+  elif test -n "$PKG_CONFIG"; then
+     if test -n "$PKG_CONFIG" && \
+-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"ige-mac-integration\""; } >&5
+-  ($PKG_CONFIG --exists --print-errors "ige-mac-integration") 2>&5
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtk-mac-integration\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "gtk-mac-integration") 2>&5
+   ac_status=$?
+   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+   test $ac_status = 0; }; then
+-  pkg_cv_IGE_MAC_LIBS=`$PKG_CONFIG --libs "ige-mac-integration" 2>/dev/null`
++  pkg_cv_IGE_MAC_LIBS=`$PKG_CONFIG --libs "gtk-mac-integration" 2>/dev/null`
+ else
+   pkg_failed=yes
+ fi
+@@ -11185,14 +11185,14 @@
+         _pkg_short_errors_supported=no
+ fi
+         if test $_pkg_short_errors_supported = yes; then
+-	        IGE_MAC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "ige-mac-integration" 2>&1`
++	        IGE_MAC_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtk-mac-integration" 2>&1`
+         else
+-	        IGE_MAC_PKG_ERRORS=`$PKG_CONFIG --print-errors "ige-mac-integration" 2>&1`
++	        IGE_MAC_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtk-mac-integration" 2>&1`
+         fi
+ 	# Put the nasty error message in config.log where it belongs
+ 	echo "$IGE_MAC_PKG_ERRORS" >&5
+ 
+-	as_fn_error "Package requirements (ige-mac-integration) were not met:
++	as_fn_error "Package requirements (gtk-mac-integration) were not met:
+ 
+ $IGE_MAC_PKG_ERRORS
+ 
+--- configure.ac	2015-03-09 17:16:04.000000000 +0100
++++ configure.ac	2015-03-09 17:39:44.000000000 +0100
+@@ -114,7 +114,7 @@
+ if test "$os_osx" = "yes"; then
+ 	AC_DEFINE([OS_OSX], [1], [Defined if os is Mac OSX])
+ 
+-	PKG_CHECK_MODULES(IGE_MAC, ige-mac-integration)
++	PKG_CHECK_MODULES(IGE_MAC, gtk-mac-integration)
+ fi
+ 
+ # Check for Glade3
