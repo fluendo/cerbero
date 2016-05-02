@@ -1,0 +1,20 @@
+# vi:si:et:sw=4:sts=4:ts=4:syntax=python
+# -*- Mode: Python -*-
+
+
+class Package(package.Package):
+
+    name = 'mono'
+    shortdesc = 'Mono'
+    url = "http://www.gstreamer.com"
+    version = '2012.7'
+    license = License.LGPL
+    vendor = 'GStreamer Project'
+    org = 'org.gstreamer'
+    uuid = '5fce6233-4122-511f-8287-e8f2a895f853'
+
+    files = ['mono:libs:bins:bin:config:posix_helper']
+
+    def prepare(self):
+        if self.config.platform != Platform.WINDOWS:
+            self.files += ['libgdiplus:libs']

@@ -1,0 +1,39 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+from cerbero.utils import shell
+
+DB4O_PC = '''\
+prefix=%s
+libdir=${prefix}/lib
+pkglibdir=${libdir}/cli/
+
+Name: db4o
+Description: db4o - native OODBMS for CLI
+Version: 8.0
+Libs: -r:${pkglibdir}/Db4objects.Db4o-8.0/Db4objects.Db4o.dll
+'''
+
+class Recipe(recipe.Recipe):
+    name = 'db4o'
+    version = '8.0.184.15484+dfsg'
+
+    licenses = [License.LGPL]
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+    files_cli = ['lib/cli/Db4objects.Db4o-8.0/Db4objects.Db4o.dll']
+
+    def install(self):
+        # Install assembly
+        src = self.relative_path('Db4objects.Db4o.dll')
+        dest = os.path.join(self.config.prefix, self.files_cli[0])
+        if not os.path.exists(os.path.dirname(dest)):
+            os.makedirs(os.path.dirname(dest))
+        shutil.copy(src, dest)
+
+        # Install db4o.pc
+        cecil_pc = os.path.join(self.config.prefix, 'lib', 'pkgconfig', 'db4o.pc')
+        with open(cecil_pc, 'w') as f:
+            f.write(DB4O_PC % self.config.prefix)
+        for f in self.files_cli:
+            shell.call('gacutil -i %s' % os.path.join(self.config.prefix, f))

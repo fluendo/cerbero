@@ -1,0 +1,18 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    version = '2.6.4'
+    name = 'libglade'
+    licenses = [License.LGPL]
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnome.org/pub/gnome/sources/libglade/2.6/libglade-2.6.4.tar.bz2'
+    deps = ['gtk+']
+    append_env = {'LDFLAGS': '-lgmodule-2.0'}
+
+    files_libs = ['libglade-2.0']
+
+    def prepare(self):
+        if self.config.variants.python:
+            self.deps.append('pygtk')
+

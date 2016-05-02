@@ -1,0 +1,34 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell
+import shutil
+
+class Recipe(recipe.Recipe):
+    name = 'ubuntu-font-family'
+    version = '0.80'
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+    url = 'http://font.ubuntu.com/download/ubuntu-font-family-%s.zip' % version
+    files_fonts = [ 'share/fonts/truetype/ubuntu-font-family' ]
+    platform_files_fonts = {
+        Platform.WINDOWS: ['etc/pango/pango.aliases'],
+    }
+
+    def install(self):
+        fonts_dir = os.path.join(self.config.prefix, 'share', 'fonts', 'truetype', 'ubuntu-font-family')
+        if not os.path.exists(fonts_dir):
+            os.makedirs(fonts_dir)
+        for f in os.listdir(self.build_dir):
+            if not f.endswith(".ttf"):
+                continue
+            shutil.copy(os.path.join(self.build_dir, f), fonts_dir)
+
+        if self.config.target_platform == Platform.WINDOWS:
+            pango_aliases_filename = os.path.join(self.config.prefix, 'etc', 'pango', 'pango.aliases')
+            with open(pango_aliases_filename,'w') as f:
+                f.write('ubuntu = ubuntu\n')
+                # Simplified Chinese fonts
+                f.write('ubuntu += "NSimSun"\n')
+                f.write('ubuntu += "SimSun"\n')
+                # Japanese fonts
+                f.write('ubuntu += "MS PMincho"\n')
+                f.write('ubuntu += "MS Mincho"\n')

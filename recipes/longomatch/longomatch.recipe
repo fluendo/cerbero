@@ -1,0 +1,175 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+from cerbero.errors import FatalError
+from cerbero.utils import shell, to_winpath
+from cerbero.build.build import modify_environment
+from cerbero.build.filesprovider import FilesProvider
+
+class Recipe(recipe.Recipe):
+    name = 'longomatch'
+    version = 'git-master'
+    licenses = [License.GPL]
+    remotes = {'github': 'https://github.com/ylatuya/longomatch.git'}
+    commit = 'github/master'
+    config_sh = 'sh autogen.sh'
+    configure_options = '--without-multimedia-tools'
+    deps = ['gstreamer', 'gst-plugins-base', 'libav', 'Newtonsoft.Json', 'librsvg', 'ubuntu-font-family',
+            'mono', 'mono-addins', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
+
+    platform_deps = {
+        Platform.WINDOWS: ['mkbundle'],
+        }
+
+    platform_files_libs = {
+        Platform.LINUX: ['libcesarplayer'],
+        Platform.DARWIN: ['libcesarplayer'],
+        Platform.WINDOWS: ['libcesarplayer'],
+    }
+    files_lang = ['longomatch']
+    langs = ['cs', 'de', 'es', 'eu', 'fr', 'hu', 'it', 'nb', 'nl', 'no',
+             'pt_BR', 'ro', 'ru', 'sr', 'sr@latin', 'sv', 'zh_CN', 'ja']
+
+    files_share = ['share/longomatch']
+    files_devel = [
+        'lib/pkgconfig/longomatch-addins.pc',
+        'lib/pkgconfig/longomatch-core.pc',
+        'lib/pkgconfig/longomatch-drawing-cairo.pc',
+        'lib/pkgconfig/longomatch-drawing.pc',
+        'lib/pkgconfig/longomatch-gui-helpers.pc',
+        'lib/pkgconfig/longomatch-gui-multimedia.pc',
+        'lib/pkgconfig/longomatch-gui.pc',
+        'lib/pkgconfig/longomatch-multimedia.pc',
+        'lib/pkgconfig/longomatch-oxyplot.pc',
+        'lib/pkgconfig/longomatch-services.pc',
+    ]
+    files_longomatch = [
+        'lib/longomatch/Couchbase.Lite.dll',
+        'lib/longomatch/Newtonsoft.Json.dll',
+        'lib/longomatch/Stateless.dll',
+        'lib/longomatch/SQLitePCL.raw.dll',
+        'lib/longomatch/SQLitePCL.ugly.dll',
+        'lib/longomatch/ICSharpCode.SharpZipLib.Portable.dll',
+        'lib/longomatch/PropertyChanged.dll',
+        'lib/longomatch/LongoMatch.Addins.dll',
+        'lib/longomatch/LongoMatch.Addins.dll.mdb',
+        'lib/longomatch/LongoMatch.DB.dll',
+        'lib/longomatch/LongoMatch.DB.dll.mdb',
+        'lib/longomatch/LongoMatch.GUI.Multimedia.dll',
+        'lib/longomatch/LongoMatch.GUI.Multimedia.dll.mdb',
+        'lib/longomatch/LongoMatch.GUI.dll',
+        'lib/longomatch/LongoMatch.GUI.dll.mdb',
+        'lib/longomatch/LongoMatch.GUI.Helpers.dll',
+        'lib/longomatch/LongoMatch.GUI.Helpers.dll.mdb',
+        'lib/longomatch/LongoMatch.GUI.Helpers.dll.config',
+        'lib/longomatch/LongoMatch.Drawing.dll',
+        'lib/longomatch/LongoMatch.Drawing.dll.mdb',
+        'lib/longomatch/LongoMatch.Drawing.Cairo.dll',
+        'lib/longomatch/LongoMatch.Drawing.Cairo.dll.mdb',
+        'lib/longomatch/LongoMatch.Multimedia.dll',
+        'lib/longomatch/LongoMatch.Multimedia.dll.config',
+        'lib/longomatch/LongoMatch.Multimedia.dll.mdb',
+        'lib/longomatch/LongoMatch.Services.dll',
+        'lib/longomatch/LongoMatch.Services.dll.mdb',
+        'lib/longomatch/LongoMatch.Core.dll',
+        'lib/longomatch/LongoMatch.Core.dll.mdb',
+        'lib/longomatch/OxyPlotMono.dll',
+        'lib/longomatch/OxyPlotMono.dll.mdb',
+        'lib/longomatch/LongoMatch.exe',
+        'lib/longomatch/LongoMatch.exe.mdb',
+        'lib/longomatch/migration/LongoMatch.exe',
+        'lib/longomatch/migration/LongoMatch.exe.mdb',
+        'lib/longomatch/plugins/LongoMatch.Plugins.dll',
+        'lib/longomatch/plugins/LongoMatch.Plugins.dll.mdb',
+        'lib/longomatch/plugins/LongoMatch.Plugins.Stats.dll',
+        'lib/longomatch/plugins/LongoMatch.Plugins.Stats.dll.mdb',
+    ]
+    platform_files_longomatch = {
+        # We need a copy of LongoMatch.Addins in the same folder as LongoMatch.exe
+        Platform.WINDOWS: [
+            'bin/LongoMatch.Addins.dll',
+        ]
+    }
+    platform_files_bin = {
+        Platform.WINDOWS: ['%(sdir)s/LongoMatch.exe'],
+    }
+    platform_files_bins = {
+        Platform.DARWIN: ['longomatch'],
+        Platform.LINUX: ['longomatch']
+    }
+
+    platform_files_share = {
+        Platform.LINUX: ['share/applications/longomatch.desktop',
+                         'share/icons/hicolor/48x48/apps/longomatch.png',
+                         'share/icons/hicolor/scalable/apps/longomatch.svg']
+    }
+
+    def prepare(self):
+        if self.config.target_platform in [Platform.WINDOWS, Platform.DARWIN]:
+            search_paths = ['lib/longomatch', 'lib/cli/Db4objects.Db4o-8.0']
+            search_paths = [os.path.join(self.config.prefix, f) for f in search_paths]
+            if 'MONO_PATH' in os.environ:
+                search_paths.insert (0, os.environ['MONO_PATH'])
+            if self.config.target_platform == Platform.WINDOWS:
+                self.new_env['MONO_PATH'] = ';'.join(search_paths)
+                sdir = 'bin'
+            else:
+                self.new_env['MONO_PATH'] = ':'.join(search_paths)
+                sdir = 'lib/mono/4.0'
+            if self.config.target_platform == Platform.DARWIN:
+                self.new_env['AS'] = 'as -arch i386'
+            cc = os.environ.get('CC', 'gcc')
+            self.new_env['CC'] = '%s %s' % (cc, os.environ['CFLAGS'])
+        if self.config.target_platform == Platform.WINDOWS:
+            self.configure_tpl = "%%(config-sh)s --prefix %s "\
+                "--libdir %%(libdir)s %%(options)s" % \
+                to_winpath(self.config.prefix)
+
+    def _search_langfiles(self, files):
+        fs = []
+        for x in super(Recipe, self)._search_langfiles(files):
+            lang = x.split('/')[2]
+            if lang in self.langs:
+                fs.append(x)
+        return fs
+
+    def compile(self):
+        #HACK: Temporal workaround for https://bugzilla.xamarin.com/show_bug.cgi?id=37478
+        if self.config.target_platform == Platform.WINDOWS:
+            shell.call("make -C .nuget", self.build_dir)
+            csproj = os.path.join(self.build_dir, 'LongoMatch.DB/LongoMatch.DB.Net45.csproj')
+            dllpath = shell.check_call(
+                "sed -n 's:.*<HintPath>\(.*SharpZipLib.*\)</HintPath>.*:\\1:p' %s" % csproj)
+            dllpath = dllpath.split('\n')[0].replace("\\", "/").replace("$(SolutionDir)", self.build_dir)
+            bindir = os.path.join(self.build_dir, 'bin')
+            if not os.path.exists(bindir):
+                os.makedirs(bindir)
+            shutil.copy(dllpath, bindir)
+        super(recipe.Recipe, self).compile()
+
+    @modify_environment
+    def post_install(self):
+        if self.config.target_platform in [Platform.LINUX, Platform.DARWIN]:
+            bindir = os.path.join(self.config.prefix, 'bin')
+            shutil.copy(self.relative_path('longomatch'), bindir)
+
+        if self.config.target_platform in [Platform.WINDOWS]:
+            longomatchlib = os.path.join(self.config.prefix, 'lib', 'longomatch')
+            shutil.copy(os.path.join(longomatchlib, 'LongoMatch.Addins.dll'),
+                os.path.join(self.config.prefix, 'bin'))
+
+            shutil.copy(self.relative_path("init.c"), self.build_dir)
+            binary = os.path.join(self.config.prefix, self.extensions['sdir'],
+                    'LongoMatch.exe')
+            assembly = os.path.join(longomatchlib, 'LongoMatch.exe')
+            mkbundle = 'mkbundle -o %s %s --config %s --nodeps --keeptemp ' % (binary, assembly,
+                    os.path.join(self.config.prefix, 'etc', 'mono', 'config'))
+            shell.call(mkbundle, self.build_dir)
+            libs = shell.check_call("pkg-config --cflags --libs mono-2 glib-2.0")
+            libs = libs.replace('\n', ' ').replace('\r', '')
+            # Use mono sgen GC
+            libs = libs.replace('-lmono-2.0', '-lmonosgen-2.0')
+            shell.apply_patch(self.relative_path('temp.c.diff'), self.build_dir, 0)
+            shell.call('$WINDRES %s -o logo.o' % self.relative_path ('logo.rc'), self.build_dir)
+            rebuild_bundle = '$CC $CFLAGS -o %s temp.c %s temp.o logo.o' % (binary, libs)
+            shell.call(rebuild_bundle, self.build_dir)

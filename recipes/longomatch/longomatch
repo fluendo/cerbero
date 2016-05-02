@@ -1,0 +1,39 @@
+#!/bin/bash
+
+CUR_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PREFIX="$CUR_DIR/.."
+
+# GStreamer
+export GST_PLUGIN_PATH="$PREFIX/lib/gstreamer-0.10"
+export GST_PLUGIN_SYSTEM_PATH="$PREFIX/lib/gstreamer-0.10"
+export GST_PLUGIN_SCANNER="$PREFIX/libexec/gstreamer-0.10/gst-plugin-scanner"
+
+# Python
+export PYTHONPATH="$PREFIX/%(py_prefix)s/site-packages${PYTHONPATH:+:$PYTHONPATH}"
+
+# Gio
+export GIO_EXTRA_MODULES="$PREFIX/lib/gio/modules"
+
+# Gtk
+export GTK_PATH="$PREFIX"
+export GTK_EXE_PREFIX=$PREFIX
+export GTK_DATA_PREFIX=$PREFIX
+export GTK2_RC_FILES=$PREFIX/etc/gtk-2.0/gtkrc
+
+# FontConfig
+export FONTCONFIG_PATH="$PREFIX/etc/fonts"
+
+export GDK_PIXBUF_MODULEDIR=$PREFIX/lib/gdk-pixbuf-2.0/2.10.0/loaders/
+export GDK_PIXBUF_MODULE_FILE=$PREFIX/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
+
+export LD_LIBRARY_PATH=$PREFIX/lib:$PREFIX/lib/longomatch/plugins/gstreamer-0.10:/usr/lib
+export DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib:$PREFIX/lib/longomatch/plugins/gstreamer-0.10:$PREFIX/lib/longomatch/plugins/gstreamer-0.10/lib:/usr/lib
+export PATH=$PREFIX/bin:$PATH
+
+export MONO_PATH=$PREFIX/lib/mono/4.5:$PREFIX/lib/mono/4.5/Facades:$PREFIX/lib/mono/gtk-sharp-2.0/:$PREFIX/lib/mono/mono-addins:$PREFIX/lib/cli/Db4objects.Db4o-8.0/:$PREFIX/lib/cli/Newtonsoft.Json-6.0
+
+export MONO_CONFIG=$PREFIX/etc/mono/config
+export MONO_CFG_DIR=$PREFIX/etc
+
+cd "$PREFIX/bin"
+./mono-sgen "$PREFIX/lib/longomatch/LongoMatch.exe"

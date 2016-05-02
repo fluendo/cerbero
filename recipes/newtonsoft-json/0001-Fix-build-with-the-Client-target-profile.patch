@@ -1,0 +1,24 @@
+From f0c9415f98421e52da19bbd99eef4f5295e3948b Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Mon, 1 Sep 2014 11:57:04 +0200
+Subject: [PATCH] Fix build with the Client target profile
+
+---
+ Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj b/Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj
+index 5051da4..deed5a6 100644
+--- a/Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj
++++ b/Src/Newtonsoft.Json/Newtonsoft.Json.Net40.csproj
+@@ -42,7 +42,6 @@
+     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+     <UseApplicationTrust>false</UseApplicationTrust>
+     <BootstrapperEnabled>true</BootstrapperEnabled>
+-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+   </PropertyGroup>
+   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+     <DebugSymbols>true</DebugSymbols>
+-- 
+1.8.5.2 (Apple Git-48)
+

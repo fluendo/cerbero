@@ -27,9 +27,15 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
             self.configure_options += ' -DWIN32=1'
-        if self.config.target_platform == Platform.ANDROID:
+        elif self.config.target_platform == Platform.ANDROID:
             # configure for android
             self.configure_options += ' -DANDROID_NDK=1 '
+        elif self.config.target_platform == Platform.LINUX and \
+                self.config.target_distro_version == DistroVersion.UBUNTU_TRUSTY:
+            if self.config.target_arch == Architecture.X86_64:
+                self.new_env['LD_PRELOAD'] = '/usr/lib/x86_64-linux-gnu/mesa/libGL.so.1'
+            else:
+                self.new_env['LD_PRELOAD'] = '/usr/lib/i386-linux-gnu/mesa/libGL.so.1'
         self.configure_options += ' -DZLIB_ROOT=%s ' % self.config.prefix
 
     def install(self):
