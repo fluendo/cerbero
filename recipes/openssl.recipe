@@ -65,9 +65,6 @@ class Recipe(recipe.Recipe):
             else:
                 raise NotImplementedError
         elif self.config.target_platform == Platform.WINDOWS:
-            # XXX: Remove this once the build is fixed
-            messages.warning("Build currently fails on Windows! Do not import "
-                "into Cerbero master!")
             # Set CROSS_COMPILE so that the correct `windres` is invoked.
             # We don't do this in Configure because that messes with CC/LD/AR etc.
             if self.config.target_arch == Architecture.X86:
