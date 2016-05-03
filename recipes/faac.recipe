@@ -1,0 +1,16 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    version = '1.28'
+    name = 'faac'
+    licenses = [License.GPL]
+    stype = SourceType.TARBALL
+    url = 'http://downloads.sourceforge.net/faac/faac-1.28.tar.bz2'
+
+    files_libs = ['libfaac']
+    files_devel = ['include/faac.h', 'include/faaccfg.h']
+
+    def prepare(self):
+       self.make = 'make -C libfaac libfaac_la_LDFLAGS=-no-undefined'
+       self.make_install = 'make install -C libfaac; make install -C include'

@@ -1,0 +1,14 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    version = '3.99.5'
+    name = 'lame'
+    licenses = [License.GPL]
+    stype = SourceType.TARBALL
+    configure_options = '--enable-shared'
+    url = 'http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz'
+
+    files_libs = ['libmp3lame']
+    files_bins = ['lame']
+    files_devel = ['include/lame']
