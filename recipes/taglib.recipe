@@ -32,6 +32,8 @@ class Recipe(recipe.Recipe):
             self.configure_options += ' -DANDROID_NDK=1 '
         elif self.config.target_platform == Platform.LINUX and \
                 self.config.target_distro_version == DistroVersion.UBUNTU_TRUSTY:
+            # Hack to avoid bug with ld in Trusty because of this:
+            # https://bugs.launchpad.net/ubuntu/+source/nvidia-graphics-drivers-319/+bug/1248642?comments=all
             if self.config.target_arch == Architecture.X86_64:
                 self.new_env['LD_PRELOAD'] = '/usr/lib/x86_64-linux-gnu/mesa/libGL.so.1'
             else:
