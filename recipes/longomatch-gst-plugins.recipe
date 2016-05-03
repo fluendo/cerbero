@@ -1,0 +1,70 @@
+import shutil
+from cerbero.build.cookbook import CookBook
+from cerbero.utils import shell
+
+
+class Recipe(recipe.Recipe):
+    name = 'longomatch-gstreamer-plugins'
+    version = '1.0.0'
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+    deps = ['longomatch', 'gst-plugins-bad', 'gst-plugins-ugly', 'gst-ffmpeg']
+
+    files_longomatch = [
+        'lib/longomatch/plugins/LongoMatch.Plugins.GStreamer.dll',
+        'lib/longomatch/plugins/LongoMatch.Plugins.GStreamer.dll.config',
+        'lib/longomatch/plugins/LongoMatch.Plugins.GStreamer.dll.mdb',
+    ]
+
+    _files = ['a52dec:libs', 'opencore-amr:libs', 'libmad:libs', 'libmpeg2:libs',
+              'faad2:libs', 'libdca:libs', 'x264:libs', 'lame:libs', 'faac:libs',
+              'gst-ffmpeg:plugins_codecs_restricted',
+              'gst-plugins-ugly:plugins_codecs_restricted',
+              'gst-plugins-bad:plugins_codecs_restricted']
+
+    def prepare(self):
+        self.pluginsdir = 'lib/longomatch/plugins/gstreamer-0.10'
+
+    def dist_files_list(self):
+        return recipe.Recipe.dist_files_list(self) + self._get_files_list()[1]
+
+    def post_install(self):
+        src_files, dst_files = self._get_files_list()
+        for i in range(len(src_files)):
+            src = os.path.join(self.config.prefix, src_files[i])
+            dst = os.path.join(self.config.prefix, dst_files[i])
+            dst_dir = os.path.split(dst)[0]
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+            shutil.copy(src, dst)
+            if self.config.target_platform == Platform.DARWIN:
+                rpaths = ['@loader_path', '@executable_path']
+                for p in rpaths:
+                    shell.call('install_name_tool -add_rpath %s "%s"' % (p, dst))
+
+    def _get_files_list(self):
+        cookbook = CookBook(self.config)
+        recipes_files = {}
+        for r in self._files:
+            l = r.split(':')
+            recipes_files[l[0]] = l[1:]
+        files = []
+        for recipe_name, categories in recipes_files.iteritems():
+            recipe = cookbook.get_recipe(recipe_name)
+            if len(categories) == 0:
+                rfiles = recipe.dist_files_list()
+            else:
+                rfiles = recipe.files_list_by_categories(categories)
+            files.extend(rfiles)
+        # In OS X keep plugins dependencies in the lib/ folder
+        # so that relocations keep working with @loader_path/lib/libfoo.dylib
+        if self.config.target_platform == Platform.DARWIN:
+            dst_files = []
+            for f in files:
+                f = f.split('/')[-1]
+                if not f.startswith('libgst'):
+                    f = 'lib/%s' % f
+                dst_files.append('%s/%s' % (self.pluginsdir, f))
+        else:
+            dst_files = [os.path.join(self.pluginsdir, f.split('/')[-1]) for f in files]
+        return (files, dst_files)
