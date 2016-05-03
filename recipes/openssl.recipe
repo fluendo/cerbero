@@ -71,9 +71,11 @@ class Recipe(recipe.Recipe):
             # Set CROSS_COMPILE so that the correct `windres` is invoked.
             # We don't do this in Configure because that messes with CC/LD/AR etc.
             if self.config.target_arch == Architecture.X86:
+                self.files_libs = ['libeay32', 'ssleay32']
                 self.openssl_platform = 'mingw'
                 self.make += ' CROSS_COMPILE=i686-w64-mingw32-'
             elif self.config.target_arch == Architecture.X86_64:
+                self.files_libs = ['libeay64', 'ssleay64']
                 self.target_host_prefix = 'x86_64-w64-mingw32-'
                 self.openssl_platform = 'mingw64'
                 self.make += ' CROSS_COMPILE=x86_64-w64-mingw32-'
