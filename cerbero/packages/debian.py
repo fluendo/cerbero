@@ -440,8 +440,8 @@ class DebianPackager(LinuxPackager):
         if isinstance(self.package, App):
             args['excl'] =  ' '.join(['-X%s' % x for x in
                 self.package.strip_excludes])
-        if not isinstance(self.package, MetaPackage) and \
-           self.package.has_runtime_package:
+        if self.package.strip and (not isinstance(self.package, MetaPackage) and \
+           self.package.has_runtime_package):
             args['dh_strip'] = DH_STRIP_TPL % args
         else:
             args['dh_strip'] = ''
