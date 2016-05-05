@@ -1,0 +1,24 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+class Recipe(recipe.Recipe):
+    name = 'mkbundle'
+    version = '3.8.0'
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+    licenses = [License.MIT]
+
+    files_bins = ['mkbundle']
+
+    def extract(self):
+        if os.path.exists(self.build_dir):
+            shutil.rmtree(self.build_dir)
+        os.makedirs(self.build_dir)
+        shell.copy_dir(self.relative_path('src'), self.build_dir)
+
+    def compile(self):
+        shell.call('make', self.build_dir)
+
+    def install(self):
+        shutil.copy(os.path.join(self.build_dir, 'mkbundle.exe'),
+            os.path.join(self.config.prefix, 'bin'))
