@@ -15,7 +15,8 @@ class Recipe(recipe.Recipe):
     config_sh = 'sh autogen.sh'
     configure_options = '--without-multimedia-tools'
     deps = ['gstreamer', 'gst-plugins-base', 'libav', 'Newtonsoft.Json', 'librsvg', 'ubuntu-font-family',
-            'mono', 'mono-addins', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
+            'mono', 'mono-addins', 'db4o', 'gtk-sharp', 'XR.Baboon',
+            'Couchbase.Lite', 'fody', 'sync2desk-dummy']
 
     platform_deps = {
         Platform.WINDOWS: ['mkbundle'],
