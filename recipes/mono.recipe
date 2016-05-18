@@ -19,6 +19,8 @@ class Recipe(recipe.Recipe):
     deps = ['libgdiplus']
 
     def prepare(self):
+        if self.config.target_platform == Platform.WINDOWS:
+            raise InvalidRecipeError()
         if self.config.target_platform == Platform.DARWIN:
             self.append_env = {'LDFLAGS': ' -lcharset -lintl'}
             self.configure_options += ' --without-x'

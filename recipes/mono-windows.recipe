@@ -1,0 +1,75 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+import cerbero.utils.messages as m
+from cerbero.utils import shell
+
+class Recipe(recipe.Recipe):
+    name = 'mono'
+    version = '4.2.1'
+    licenses = [License.LGPL]
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+
+    _mono = [
+        'bin/al',
+        'bin/mcs',
+        'bin/mcs.bat',
+        'bin/dmcs',
+        'bin/gacutil',
+        'bin/intl.dll',
+        'bin/monosgen-2.0.dll',
+        'bin/mono-sgen.exe',
+        'bin/libMonoPosixHelper.dll',
+        'bin/resgen',
+        'bin/xbuild',
+        'bin/zlib1.dll',
+        'etc/mono',
+        'lib/mono/gac',
+        'lib/mono/2.0',
+        'lib/mono/4.0',
+        'lib/mono/4.5',
+        'lib/mono/xbuild',
+        'lib/mono/xbuild-frameworks',
+        'include/mono-2.0',
+        'lib/mono-2.0.lib',
+        'lib/monosgen-2.0.lib',
+        'lib/pkgconfig/mono-2.pc',
+        'lib/pkgconfig/mono.pc',
+    ]
+
+    files_bins = ['mono-sgen']
+    files_bin = ['bin/zlib1.dll',
+                 'bin/intl.dll',
+                 'bin/monosgen-2.0.dll']
+    files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
+    files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+
+    def prepare(self):
+        if self.config.target_platform != Platform.WINDOWS:
+            raise InvalidRecipeError()
+
+    def install(self):
+        pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
+        mono_prefix_dir = os.path.join(pf, 'Mono')
+        if not os.path.exists(mono_prefix_dir):
+            m.error("ERROR: Mono not found!")
+            raise FatalError("Mono not found!")
+        for f in self._mono:
+            src = os.path.join(mono_prefix_dir, f)
+            dest = os.path.join(self.config.prefix, f)
+            if os.path.isdir(src):
+                shell.copy_dir (src, dest)
+            elif os.path.isfile(src):
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
+                shutil.copy(src, dest)
+            else:
+                print "WARNING: %s not found" % f
+        shutil.copy(os.path.join(self.config.prefix, 'bin', 'mono-sgen.exe'),
+                    os.path.join(self.config.prefix, 'bin', 'mono.exe'))
+        shutil.copy(os.path.join(self.config.prefix, 'bin', 'mcs'),
+                    os.path.join(self.config.prefix, 'bin', 'dmcs'))
+        shutil.copy(self.relative_path('cygpath'),
+                    os.path.join(self.config.prefix, 'bin', 'cygpath'))
+        shutil.copy(self.relative_path('config'),
+                    os.path.join(self.config.prefix, 'etc', 'mono', 'config'))
