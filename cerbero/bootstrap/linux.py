@@ -73,6 +73,10 @@ class DebianBootstraper (UnixBootstraper):
             self.packages.remove('glib-networking')
         if self.config.distro_version in [DistroVersion.UBUNTU_LUCID]:
             self.packages.remove('autopoint')
+        plat_packages = self.config.extra_bootstrap_packages.get(
+                self.config.platform, None)
+        if plat_packages:
+            self.packages += plat_packages.get(self.config.distro, [])
 
 
 class RedHatBootstraper (UnixBootstraper):
