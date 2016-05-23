@@ -69,8 +69,8 @@ class Recipe(recipe.Recipe):
         self.stype.extract(self)
         git.checkout(self.build_dir, 'HEAD')
         if self.config.target_platform == Platform.DARWIN or \
-                (self.config.target_platform == Platform.LINUX and \
-                self.config.target_distro_version in [DistroVersion.UBUNTU_TRUSTY, DistroVersion.UBUNTU_UTOPIC, DistroVersion.UBUNTU_VIVID, DistroVersion.UBUNTU_WILY]):
+                (self.config.platform == Platform.LINUX and \
+                self.config.distro_version in [DistroVersion.UBUNTU_TRUSTY, DistroVersion.UBUNTU_UTOPIC, DistroVersion.UBUNTU_VIVID, DistroVersion.UBUNTU_WILY]):
             _patch = self.relative_path('gstreamer/0001-gst-parse-switch-to-lex-param.patch')
             shell.apply_patch(_patch, self.build_dir, 1)
 
