@@ -20,16 +20,11 @@ class Recipe(recipe.Recipe):
 
 
     def prepare(self):
-        self.configure_options = '--with-docbook=no'
+        self.configure_options = ' --with-docbook=no '
         if self.config.target_platform == Platform.WINDOWS:
-            self.configure_options += '--without-threads'
-        elif self.config.target_platform == Platform.ANDROID:
-            self.configure_options += '--with-python=no'
-        elif self.config.target_platform == Platform.IOS:
-            self.configure_options += '--with-python=no'
-        elif self.config.target_platform == Platform.LINUX:
-            if self.config.target_arch in [Architecture.ARM, Architecture.ARMv7]:
-                self.configure_options += '--with-python=no'
+            self.configure_options += ' --without-threads '
+        if self.config.variants.nopython:
+            self.configure_options += ' --with-python=no '
 
     def extract(self):
         super(recipe.Recipe, self).extract()

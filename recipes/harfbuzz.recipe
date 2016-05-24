@@ -20,6 +20,10 @@ class Recipe(recipe.Recipe):
         else:
             self.files_devel.append('lib/pkgconfig/harfbuzz-icu.pc')
             self.files_libs.append('libharfbuzz-icu')
+        if Architecture.is_arm(self.config.target_platform):
+            self.append_env = {
+                'CFLAGS' : ' -fPIC ',
+                'CXXFLAGS' : ' -fPIC '}
 
     def configure(self):
         super(Recipe, self).configure()
