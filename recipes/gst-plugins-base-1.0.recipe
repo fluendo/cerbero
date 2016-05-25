@@ -96,6 +96,8 @@ class Recipe(recipe.Recipe):
             ]
     }
 
+    files_plugins_sys = []
+
     files_lang = ['gst-plugins-base-1.0']
 
 
