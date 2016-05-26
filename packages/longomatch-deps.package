@@ -41,6 +41,7 @@ class Package(package.Package):
             'lib/mono/4.5/Facades/System.IO.dll',
             'lib/mono/4.5/Facades/System.Runtime.dll',
             'lib/mono/4.5/Facades/System.Runtime.Extensions.dll',
+            'lib/mono/4.5/Facades/System.Text.Encoding.dll',
         ]
         if self.config.target_platform == Platform.LINUX:
             prefix = self.config.prefix
