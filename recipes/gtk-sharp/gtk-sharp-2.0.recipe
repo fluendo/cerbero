@@ -1,20 +1,45 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
     version = '2.12.10'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
-    deps = ['mono', 'gtk+']
+    deps = ['gtk+', 'libglade', 'mono']
     url = 'http://ftp.gnome.org/pub/gnome/sources/gtk-sharp/2.12/gtk-sharp-2.12.10.tar.gz'
     patches = ['0001-fix_glib_imports.patch']
     strip = '1'
 
     files_glue = [
-        '%(sdir)s/libatksharpglue-2%(mext)s',
-        '%(sdir)s/libgdksharpglue-2%(mext)s',
-        '%(sdir)s/libglibsharpglue-2%(mext)s',
-        '%(sdir)s/libgtksharpglue-2%(mext)s',
-        '%(sdir)s/libpangosharpglue-2%(mext)s',
-        ]
+            '%(sdir)s/libatksharpglue-2%(mext)s',
+            '%(sdir)s/libgdksharpglue-2%(mext)s',
+            '%(sdir)s/libglibsharpglue-2%(mext)s',
+            '%(sdir)s/libgtksharpglue-2%(mext)s',
+            '%(sdir)s/libpangosharpglue-2%(mext)s',
+            '%(sdir)s/libgladesharpglue-2%(mext)s',
+    ]
 
+    files_mono = [
+        'lib/mono/gtk-sharp-2.0/atk-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/gtk-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/gdk-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/pango-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/glib-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/glade-sharp.dll',
+        'lib/mono/gtk-sharp-2.0/atk-sharp.dll.config',
+        'lib/mono/gtk-sharp-2.0/gtk-sharp.dll.config',
+        'lib/mono/gtk-sharp-2.0/gdk-sharp.dll.config',
+        'lib/mono/gtk-sharp-2.0/pango-sharp.dll.config',
+        'lib/mono/gtk-sharp-2.0/glib-sharp.dll.config',
+        'lib/mono/gtk-sharp-2.0/glade-sharp.dll.config',
+       ]
+
+    def prepare(self):
+        if self.config.target_platform == Platform.WINDOWS:
+            raise InvalidRecipeError()
+
+    def post_install(self):
+        for x in ['atk', 'gtk', 'gdk', 'pango', 'glib', 'glade']:
+            shutil.copy(os.path.join(self.build_dir, x, "%s-sharp.dll.config" % x),
+                       os.path.join(self.config.prefix, 'lib', 'mono', 'gtk-sharp-2.0'))
