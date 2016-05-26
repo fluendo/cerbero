@@ -1,0 +1,60 @@
+
+import shutil
+from cerbero.utils import shell
+
+class Recipe(recipe.Recipe):
+    name = 'gtk-sharp'
+    version = '2.12.10'
+    licenses = [License.LGPL]
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+
+    files_glue = [
+        'bin/atksharpglue-2.dll',
+        'bin/gdksharpglue-2.dll',
+        'bin/gladesharpglue-2.dll',
+        'bin/glibsharpglue-2.dll',
+        'bin/gtksharpglue-2.dll',
+        'bin/pangosharpglue-2.dll',
+    ]
+
+    files_mono = [
+        'lib/gtk-sharp-2.0/atk-sharp.dll',
+        'lib/gtk-sharp-2.0/gtk-sharp.dll',
+        'lib/gtk-sharp-2.0/gdk-sharp.dll',
+        'lib/gtk-sharp-2.0/pango-sharp.dll',
+        'lib/gtk-sharp-2.0/glib-sharp.dll',
+        'lib/gtk-sharp-2.0/glade-sharp.dll',
+    ]
+
+    files_mono_devel = [
+        'lib/pkgconfig/glade-sharp-2.0.pc',
+        'lib/pkgconfig/glib-sharp-2.0.pc',
+        'lib/pkgconfig/gtk-sharp-2.0.pc',
+    ]
+
+    def prepare(self):
+        if self.config.target_platform != Platform.WINDOWS:
+            raise InvalidRecipeError()
+
+    def install(self):
+        pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
+        mono_prefix_dir = os.path.join(pf, 'Mono')
+        if not os.path.exists(mono_prefix_dir):
+            m.error("ERROR: Mono not found!")
+            raise FatalError("Mono not found!")
+
+        for f in self.files_glue + self.files_mono + self.files_mono_devel:
+            src = os.path.join(mono_prefix_dir, f)
+            dest = os.path.join(self.config.prefix, f)
+            if os.path.isdir(src):
+                shell.copy_dir (src, dest)
+            elif os.path.isfile(src):
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
+                shutil.copy(src, dest)
+
+        gtkdir = os.path.join(self.config.prefix, 'lib', 'gtk-sharp-2.0')
+        for d in ['atk', 'gdk', 'glade', 'glib', 'gtk', 'pango']:
+            apath = os.path.join(gtkdir, '%s-sharp.dll' % d)
+            shell.call('gacutil -i %s' % apath)
