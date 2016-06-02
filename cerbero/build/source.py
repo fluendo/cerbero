@@ -78,12 +78,14 @@ class Tarball (Source):
     '''
 
     url = None
-    patches = []
+    patches = None
     strip = 1
     tarball_name = None
     tarball_dirname = None
 
     def __init__(self):
+        if self.patches is None:
+            self.patches = []
         Source.__init__(self)
         if not self.url:
             raise InvalidRecipeError(
