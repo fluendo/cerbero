@@ -18,13 +18,13 @@ Libs: -r:${libdir}/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll\
 
 class Recipe(recipe.Recipe):
     name = 'Couchbase.Lite'
-    version = '1.1.2'
+    version = '1.2.1.1'
     licenses = [License.Apachev2]
     stype = SourceType.GIT
     btype = BuildType.CUSTOM
     deps = ['mono', 'Newtonsoft.Json', 'sqlite3']
     remotes = {'github': 'https://github.com/fluendo/couchbase-lite-net.git'}
-    commit = 'github/1.1.2'
+    commit = 'github/release/1.2.1'
     files_cli = [
       'lib/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll',
       'lib/cli/Couchbase.Lite-1.0/SQLitePCL.raw.dll',
@@ -39,25 +39,30 @@ class Recipe(recipe.Recipe):
             self.append_env = {}
             self.new_env =  {'MONO_PATH' : None}
 
+    def extract(self):
+        super(recipe.Recipe, self).extract()
+        shell.call('git submodule init', self.build_dir)
+        shell.call('git submodule update --recursive', self.build_dir)
+
     @modify_environment
     def compile(self):
         shell.call("mono src/.nuget/NuGet.exe restore " \
-                   "-SolutionDirectory src src/Couchbase.Lite.Net45/packages.config", self.build_dir)
-        shell.call('xbuild src/Couchbase.Lite.sln /target:Couchbase_Lite_Net45 '
+                   "src/Couchbase.Lite.Net45.sln", self.build_dir)
+        shell.call('xbuild src/Couchbase.Lite.Net45.sln /target:Couchbase_Lite_Net45 '
                    '/property:Configuration=Release', self.build_dir)
         if self.config.platform == Platform.DARWIN:
             try:
                 shell.call("mono src/.nuget/NuGet.exe restore " \
-                        "-SolutionDirectory src src/Couchbase.Lite.Android/packages.config",
+                        "src/Couchbase.Lite.Android.sln",
                         self.build_dir)
                 shell.call("mono src/.nuget/NuGet.exe restore " \
-                        "-SolutionDirectory src src/Couchbase.Lite.iOS/packages.config",
+                        "src/Couchbase.Lite.iOS.sln",
                         self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool '
-                       'build -c:Release src/Couchbase.Lite.iOS/Couchbase.Lite.iOS.csproj',
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
+                       'build -c:Release src/Couchbase.Lite.iOS.sln',
                        self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool '
-                       'build -c:Release src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj',
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
+                       'build -c:Release src/Couchbase.Lite.Android.sln',
                        self.build_dir)
             except:
                 pass
@@ -74,6 +79,8 @@ class Recipe(recipe.Recipe):
             net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
             net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
             replacements[net45lib] = net45libfixed
+        # Remove Net35
+        replacements['<file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />'] = ""
         shell.replace(nuspec, replacements)
         try:
             shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite.nuspec',
@@ -82,10 +89,10 @@ class Recipe(recipe.Recipe):
             pass
 
     def install(self):
-        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.0')
+        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.2')
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        shell.call('cp src/Couchbase.Lite.Net45/bin/Release/*.dll %s' % destdir,
+        shell.call('cp src/Couchbase.Lite.*/bin/Release/*.dll %s' % destdir,
             self.build_dir)
         pc_file = os.path.join(self.config.prefix, 'lib/pkgconfig/couchbase-lite.pc')
         with open(pc_file, 'w+') as f:
@@ -93,6 +100,6 @@ class Recipe(recipe.Recipe):
         nugetdir = os.path.join(self.config.prefix, 'share', 'nuget')
         if not os.path.exists(nugetdir):
             os.makedirs(nugetdir)
-        shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.LM.1.1.2.0.nupkg'),
+        shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.LM.' + str(self.version) + '.nupkg'),
                 nugetdir)
 
