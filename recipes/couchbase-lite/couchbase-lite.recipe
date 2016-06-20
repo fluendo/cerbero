@@ -76,7 +76,7 @@ class Recipe(recipe.Recipe):
             replacements[net45lib] = net45libfixed
         shell.replace(nuspec, replacements)
         try:
-            shell.call('mono src/.nuget/NuGet.exe pack -Verbose -BasePath . couchbase-lite.nuspec',
+            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite.nuspec',
                     self.build_dir)
         except:
             pass
