@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 import shutil
+import logging
 from cerbero.build.build import modify_environment
 
 PC_TPL ='''\
@@ -46,15 +47,29 @@ class Recipe(recipe.Recipe):
 
     @modify_environment
     def compile(self):
+        logging.info('Compiling Couchbase')
         shell.call("mono src/.nuget/NuGet.exe restore " \
                    "src/Couchbase.Lite.Net45.sln", self.build_dir)
         shell.call('xbuild src/Couchbase.Lite.Net45.sln /target:Couchbase_Lite_Net45 '
                    '/property:Configuration=Release', self.build_dir)
+        shell.call('xbuild src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/storage.systemsqlite.net45.csproj '
+                   '/property:Configuration=Release', self.build_dir)
+
+        logging.info('Compiling iOS / Android')
         if self.config.platform == Platform.DARWIN:
             try:
                 shell.call("mono src/.nuget/NuGet.exe restore " \
                         "src/Couchbase.Lite.Android.sln",
                         self.build_dir)
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
+                       'build -c:Release src/Couchbase.Lite.Android.sln',
+                       self.build_dir)
+                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
+                       'build -c:Release src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/storage.systemsqlite.droid.csproj',
+                       self.build_dir)
+            except:
+                logging.info('Exception compiling Android')
+            try:
                 shell.call("mono src/.nuget/NuGet.exe restore " \
                         "src/Couchbase.Lite.iOS.sln",
                         self.build_dir)
@@ -62,10 +77,12 @@ class Recipe(recipe.Recipe):
                        'build -c:Release src/Couchbase.Lite.iOS.sln',
                        self.build_dir)
                 shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
-                       'build -c:Release src/Couchbase.Lite.Android.sln',
+                       'build -c:Release src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/storage.systemsqlite.ios.csproj',
                        self.build_dir)
             except:
-                pass
+                logging.info('Exception compiling iOS')
+
+        logging.info('Creating nuspec')
         nuspec = os.path.join(self.build_dir, 'couchbase-lite.nuspec')
         shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite.nuspec'),
                 nuspec)
@@ -74,16 +91,40 @@ class Recipe(recipe.Recipe):
         if self.config.platform != Platform.DARWIN:
             replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />'] = ""
             replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />'] = ""
+        else:
+            replacements['</files>'] = """<file target="lib/MonoAndroid" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
+            <file target="lib/Xamarin.iOS10" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
+            </files>"""
         # Windows needs backslashes in the path
         if self.config.platform == Platform.WINDOWS:
             net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
             net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
             replacements[net45lib] = net45libfixed
+            replacements['</files>'] = """<file target="lib\\net45" src="src\\StorageEngines\\SystemSQLite\\storage.systemsqlite.net45\\bin\\Release\\Couchbase.Lite.Storage.SystemSQLite.dll*" />
+            </files>"""
+        else:
+            replacements['</files>'] = """<file target="lib/net45" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
+            </files>"""
         # Remove Net35
         replacements['<file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />'] = ""
+
+        replacements['Couchbase.Lite.Storage.SystemSQLite'] = "Couchbase.Lite.Storage.SystemSQLite.LM"
         shell.replace(nuspec, replacements)
+
+        # Package also SystemSQL
+        nuspec_systemsqlite = os.path.join(self.build_dir, 'couchbase-lite-storage-systemsqlite.nuspec')
+        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite-storage-systemsqlite.nuspec'),
+                nuspec_systemsqlite)
+
+        replacements = {'<id>Couchbase.Lite.Storage.SystemSQLite</id>': '<id>Couchbase.Lite.Storage.SystemSQLite.LM</id>'}
+
+        replacements['<file target="lib/net35/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+        shell.replace(nuspec_systemsqlite, replacements)
+
         try:
             shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite.nuspec',
+                    self.build_dir)
+            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite-storage-systemsqlite.nuspec',
                     self.build_dir)
         except:
             pass
@@ -94,6 +135,8 @@ class Recipe(recipe.Recipe):
             os.makedirs(destdir)
         shell.call('cp src/Couchbase.Lite.*/bin/Release/*.dll %s' % destdir,
             self.build_dir)
+        shell.call('cp src/StorageEngines/SystemSQLite/storage.systemsqlite.*/bin/Release/*.dll %s' % destdir,
+            self.build_dir)
         pc_file = os.path.join(self.config.prefix, 'lib/pkgconfig/couchbase-lite.pc')
         with open(pc_file, 'w+') as f:
             f.write(PC_TPL % self.version)
@@ -101,5 +144,7 @@ class Recipe(recipe.Recipe):
         if not os.path.exists(nugetdir):
             os.makedirs(nugetdir)
         shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.LM.' + str(self.version) + '.nupkg'),
+                nugetdir)
+        shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.Storage.SystemSQLite.LM.' + str(self.version) + '.nupkg'),
                 nugetdir)
 
