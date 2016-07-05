@@ -24,3 +24,13 @@ class Recipe(recipe.Recipe):
         if os.path.exists(self.build_dir):
             shutil.rmtree(self.build_dir)
         super(recipe.Recipe, self).extract()
+
+    def compile(self):
+        super(recipe.Recipe, self).compile()
+
+        patch = 'libtool/0001-Fix--as-needed.patch'
+        if not os.path.isabs(patch):
+            patch = self.relative_path(patch)
+        shell.call('chmod u+w libltdl/config/ltmain.sh', self.build_dir)
+        shell.apply_patch(patch, self.build_dir, self.strip)
+
