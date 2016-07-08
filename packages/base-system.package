@@ -19,7 +19,7 @@ class Package(package.Package):
              'gdk-pixbuf:bins:libs:modules:lang', 'libffi:libs', 'freetype:libs',
              'glib:libs:lang:bins:schemas', 'orc:libs', 'pango:libs:modules',
              'libpng:libs', 'tiff:libs', 'jpeg:libs',
-             'libxml2:libs', 'pixman:libs',
+             'libxml2:libs', 'pixman:libs', 'openssl:libs',
              'zlib:libs', 'bzip2:libs', ]
 
     platform_files = {
