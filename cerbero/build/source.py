@@ -75,6 +75,11 @@ class Tarball (Source):
     @type patches: list
     @cvar strip: number passed to the --strip 'patch' option
     @type patches: int
+    @cvar tarball_dirname: in case the extracted top most directory of
+    the tarball does not match %(name)s-%(version)s of the recipe, use
+    this variable to specify the extracted topmost directory name.
+    A pattern in the form %(name)s-%(version)s can be used.
+    @type tarball_dirname: str
     '''
 
     url = None
