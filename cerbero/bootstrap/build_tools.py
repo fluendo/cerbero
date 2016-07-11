@@ -31,7 +31,7 @@ class BuildTools (BootstraperBase):
     PLAT_BUILD_TOOLS = {
         Platform.DARWIN: ['intltool', 'yasm', 'cmake'],
         Platform.WINDOWS: ['intltool', 'yasm'],
-        Platform.LINUX: ['intltool-m4'],
+        Platform.LINUX: ['intltool-m4', 'libgsystem', 'gpgme', 'ostree', 'json-glib-tools', 'flatpak'],
     }
 
     def __init__(self, config):

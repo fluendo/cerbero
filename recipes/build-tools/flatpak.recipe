@@ -1,0 +1,14 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'flatpak'
+    version = '0.6.7'
+    licenses = [License.GPLv2]
+    stype = SourceType.TARBALL
+    url = 'https://github.com/flatpak/flatpak/releases/download/0.6.7/flatpak-0.6.7.tar.xz'
+
+    files_bin = [ 'bin/flatpak' ]
+    # depends on libcap-dev libsoup2.4-dev libpolkit-gobject-1-dev e2fslibs-dev (e2p) libseccomp-dev libelf-dev libdwarf-dev all of them found correctly on trusty, need to check other distros
+    # needed because of the aclocal share files libgpgme11-dev
+    use_system_libs = True
+    # system dependencies libglib-2.0-dev >= 2.40

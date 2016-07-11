@@ -1,0 +1,9 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'liblzma'
+    version = '5.0.8'
+    licenses = [License.LGPLv2Plus]
+    stype = SourceType.TARBALL
+    tarball_dirname = 'xz-%(version)s'
+    url = 'http://tukaani.org/xz/xz-5.0.8.tar.gz'

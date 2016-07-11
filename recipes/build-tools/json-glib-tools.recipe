@@ -1,0 +1,21 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'json-glib-tools'
+    version = '1.0.4'
+    licenses = [License.LGPLv2_1Plus]
+    stype = SourceType.TARBALL
+    url = 'http://download.gnome.org/sources/json-glib/1.0/json-glib-1.0.4.tar.xz'
+    deps = ['glib-tools']
+    configure_options = '--enable-static'
+    autoreconf = True
+    tarball_dirname = 'json-glib-%(version)s'
+    patches = ['json-glib/0001-Don-t-override-our-own-ACLOCAL_FLAGS-but-append-them.patch']
+
+    files_bins = ['json-glib-validate', 'json-glib-format']
+    files_libs = ['libjson-glib-1.0']
+    files_devel  = ['include/json-glib-1.0', 'lib/pkgconfig/json-glib-1.0.pc']
+    files_typelibs = ['Json-1.0']
+
+    def prepare(self):
+        self.append_env['CFLAGS'] = '-Djson_object_get_type=json_glib_object_get_type'
