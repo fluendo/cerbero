@@ -8,6 +8,7 @@ class Recipe(recipe.Recipe):
     # TODO: check license - some source files are LGPLv2, others LGPLv2+,
     #       others LGPLv2.1+, COPYING is LGPLv2 and the webpage states LGPLv2.1
     licenses = [License.LGPLv2_1Plus]
+    config_sh = 'sh autogen.sh'
     configure_options = '--with-included-immodules '
     deps = ['glib', 'atk', 'pango', 'gdk-pixbuf', 'cairo']
 
