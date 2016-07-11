@@ -1,18 +1,21 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import cerbero.utils.messages as m
 
+# This recipe needs to be named differently from glib because
+# the recipes are shared among the build tools recipes and
+# the own recipes the .cbc specifies
 class Recipe(recipe.Recipe):
     name = 'glib-tools'
-    version = '2.34.2'
+    version = '2.44.1'
     licenses = [License.LGPLv2Plus]
-    configure_sh = 'sh autogen.sh'
+    stype = SourceType.TARBALL
     configure_options = ' --enable-static'
     deps = ['libffi', 'zlib']
     can_use_configure_cache = False
-
+    tarball_dirname = 'glib-%(version)s'
+    url = 'http://ftp.gnome.org/pub/gnome/sources/glib/2.44/glib-2.44.1.tar.xz'
 
     def prepare(self):
-        self.remotes['origin'] = ('%s/%s.git' % (self.config.git_root, 'glib'))
-        self.repo_dir = os.path.join(self.config.local_sources, 'glib')
         if self.config.target_platform != Platform.LINUX:
             self.configure_options += ' --disable-gtk-doc'
         elif self.config.target_platform == Platform.WINDOWS:
