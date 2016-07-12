@@ -32,8 +32,7 @@ from cerbero.utils import messages as m
 from cerbero.build import recipe as crecipe
 
 
-COOKBOOK_NAME = 'cookbook'
-COOKBOOK_FILE = os.path.join(CONFIG_DIR, COOKBOOK_NAME)
+CACHE_FILE_NAME = 'build-cache'
 
 
 class RecipeStatus (object):
@@ -274,9 +273,9 @@ class CookBook (object):
 
     def _cache_file(self, config):
         if config.cache_file is not None:
-            return os.path.join(CONFIG_DIR, config.cache_file)
+            return os.path.join(config.home_dir, config.cache_file)
         else:
-            return COOKBOOK_FILE
+            return os.path.join(config.home_dir, CACHE_FILE_NAME)
 
     def _restore_cache(self):
         try:

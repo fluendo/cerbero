@@ -427,7 +427,7 @@ class Config (object):
                 os.path.join(self.home_dir, 'build-tools'))
         self.set_property('build_tools_sources',
                 os.path.join(self.home_dir, 'sources', 'build-tools'))
-        self.set_property('build_tools_cache', 'build-tools')
+        self.set_property('build_tools_cache', 'build-tools-cache')
 
     def _find_data_dir(self):
         if self.uninstalled:

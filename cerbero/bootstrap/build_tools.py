@@ -78,6 +78,8 @@ class BuildTools (BootstraperBase):
         config.cache_file = self.config.build_tools_cache
         config.build_tools_cache = self.config.build_tools_cache
         config.external_recipes = self.config.external_recipes
+        config.home_dir = self.config.home_dir
+        config.local_sources = self.config.local_sources
 
         if not os.path.exists(config.prefix):
             os.makedirs(config.prefix)
