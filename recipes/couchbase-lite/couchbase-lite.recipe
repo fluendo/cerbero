@@ -89,8 +89,8 @@ class Recipe(recipe.Recipe):
         replacements = {'<id>Couchbase.Lite</id>': '<id>Couchbase.Lite.LM</id>'}
         # We only build Android and iOS nuget packages in OS X
         if self.config.platform != Platform.DARWIN:
-            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />'] = ""
-            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />'] = ""
+            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll*" />'] = ""
         else:
             replacements['</files>'] = """<file target="lib/MonoAndroid" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
             <file target="lib/Xamarin.iOS10" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
