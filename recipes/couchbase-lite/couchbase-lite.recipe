@@ -82,52 +82,7 @@ class Recipe(recipe.Recipe):
             except:
                 logging.info('Exception compiling iOS')
 
-        logging.info('Creating nuspec')
-        nuspec = os.path.join(self.build_dir, 'couchbase-lite.nuspec')
-        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite.nuspec'),
-                nuspec)
-        replacements = {'<id>Couchbase.Lite</id>': '<id>Couchbase.Lite.LM</id>'}
-        # We only build Android and iOS nuget packages in OS X
-        if self.config.platform != Platform.DARWIN:
-            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll*" />'] = ""
-            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll*" />'] = ""
-        else:
-            replacements['</files>'] = """<file target="lib/MonoAndroid" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-            <file target="lib/Xamarin.iOS10" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-            </files>"""
-        # Windows needs backslashes in the path
-        if self.config.platform == Platform.WINDOWS:
-            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
-            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
-            replacements[net45lib] = net45libfixed
-            replacements['</files>'] = """<file target="lib\\net45" src="src\\StorageEngines\\SystemSQLite\\storage.systemsqlite.net45\\bin\\Release\\Couchbase.Lite.Storage.SystemSQLite.dll*" />
-            </files>"""
-        else:
-            replacements['</files>'] = """<file target="lib/net45" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />
-            </files>"""
-        # Remove Net35
-        replacements['<file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />'] = ""
-
-        replacements['Couchbase.Lite.Storage.SystemSQLite'] = "Couchbase.Lite.Storage.SystemSQLite.LM"
-        shell.replace(nuspec, replacements)
-
-        # Package also SystemSQL
-        nuspec_systemsqlite = os.path.join(self.build_dir, 'couchbase-lite-storage-systemsqlite.nuspec')
-        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite-storage-systemsqlite.nuspec'),
-                nuspec_systemsqlite)
-
-        replacements = {'<id>Couchbase.Lite.Storage.SystemSQLite</id>': '<id>Couchbase.Lite.Storage.SystemSQLite.LM</id>'}
-
-        replacements['<file target="lib/net35/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
-        shell.replace(nuspec_systemsqlite, replacements)
-
-        try:
-            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite.nuspec',
-                    self.build_dir)
-            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite-storage-systemsqlite.nuspec',
-                    self.build_dir)
-        except:
-            pass
+        self.create_nuget()
 
     def install(self):
         destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.2')
@@ -147,4 +102,57 @@ class Recipe(recipe.Recipe):
                 nugetdir)
         shutil.copy(os.path.join(self.build_dir, 'Couchbase.Lite.Storage.SystemSQLite.LM.' + str(self.version) + '.nupkg'),
                 nugetdir)
+
+    def create_nuget(self):
+        logging.info('Creating nuspec')
+        nuspec = os.path.join(self.build_dir, 'couchbase-lite.nuspec')
+        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite.nuspec'),
+                nuspec)
+        replacements = {'<id>Couchbase.Lite</id>': '<id>Couchbase.Lite.LM</id>'}
+        # We only build Android and iOS nuget packages in OS X
+        if self.config.platform != Platform.DARWIN:
+            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll*" />'] = ""
+
+        # Windows needs backslashes in the path
+        if self.config.platform == Platform.WINDOWS:
+            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
+            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
+            replacements[net45lib] = net45libfixed
+
+        # Remove Net35
+        replacements['<file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />'] = ""
+
+        replacements['Couchbase.Lite.Storage.SystemSQLite'] = "Couchbase.Lite.Storage.SystemSQLite.LM"
+        shell.replace(nuspec, replacements)
+
+        # Package also SystemSQL
+        nuspec_systemsqlite = os.path.join(self.build_dir, 'couchbase-lite-storage-systemsqlite.nuspec')
+        shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite-storage-systemsqlite.nuspec'),
+                nuspec_systemsqlite)
+
+        replacements = {'<id>Couchbase.Lite.Storage.SystemSQLite</id>': '<id>Couchbase.Lite.Storage.SystemSQLite.LM</id>'}
+
+        # We only build Android and iOS nuget packages in OS X
+        if self.config.platform != Platform.DARWIN:
+            replacements['<file target="lib/MonoAndroid/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+
+        # Windows needs backslashes in the path
+        if self.config.platform == Platform.WINDOWS:
+            net45lib = '<file target="lib/net45/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'
+            net45libfixed = '<file target="lib\\net45\\" src="src\\StorageEngines\\SystemSQLite\\storage.systemsqlite.net45\\bin\\Release\\Couchbase.Lite.Storage.SystemSQLite.dll*" />'
+            replacements[net45lib] = net45libfixed
+
+        # Remove Net35
+        replacements['<file target="lib/net35/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+        shell.replace(nuspec_systemsqlite, replacements)
+
+        try:
+            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite.nuspec',
+                    self.build_dir)
+            shell.call('mono src/.nuget/NuGet.exe pack -Verbosity detailed -BasePath . couchbase-lite-storage-systemsqlite.nuspec',
+                    self.build_dir)
+        except:
+            pass
 
