@@ -8,6 +8,6 @@ class Recipe(recipe.Recipe):
     url = 'https://github.com/ostreedev/ostree/releases/download/v2016.6/ostree-2016.6.tar.xz'
     # depends on glib >= 2.44
     deps = ['glib-tools']
-    # depends on libgpgme e2fslibs-dev liblzma
+    # depends on libgpgme e2fslibs-dev liblzma libcap-dev
     config_sh = 'sh autogen.sh'
     use_system_libs = True
