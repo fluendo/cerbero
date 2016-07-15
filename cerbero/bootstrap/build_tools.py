@@ -46,18 +46,32 @@ class BuildTools (BootstraperBase):
                 self.BUILD_TOOLS.insert(0, 'tar')
                 self.BUILD_TOOLS.insert(0, 'xz')
         if self.config.platform == Platform.LINUX:
-            if self.config.distro_version == DistroVersion.UBUNTU_LUCID or \
-                self.config.distro_version == DistroVersion.UBUNTU_PRECISE or \
-                self.config.distro_version == DistroVersion.DEBIAN_SQUEEZE:
+            if self.config.distro_version == DistroVersion.UBUNTU_HARDY:
+                self.BUILD_TOOLS.append('tar')
+                self.BUILD_TOOLS.append('xz')
+                self.BUILD_TOOLS.append('glib-tools')
+                self.BUILD_TOOLS.append('libgpg-error')
+                self.BUILD_TOOLS.append('libassuan')
+                self.BUILD_TOOLS.append('liblzma')
+                self.BUILD_TOOLS.append('libfuse')
+                # x264 requires yasm >= 1.0
+                self.BUILD_TOOLS.append('yasm')
+            if self.config.distro_version == DistroVersion.UBUNTU_LUCID:
+                self.BUILD_TOOLS.append('glib-tools')
+                # x264 requires yasm >= 1.0
+                self.BUILD_TOOLS.append('yasm')
+            if self.config.distro_version == DistroVersion.UBUNTU_NATTY:
+                self.BUILD_TOOLS.append('glib-tools')
+            if self.config.distro_version == DistroVersion.UBUNTU_PRECISE:
+                # x264 requires yasm >= 1.0
+                self.BUILD_TOOLS.append('yasm')
+            if self.config.distro_version == DistroVersion.DEBIAN_SQUEEZE:
                 # x264 requires yasm >= 1.0
                 self.BUILD_TOOLS.append('yasm')
             if self.config.distro_version in [DistroVersion.REDHAT_6]:
                 self.BUILD_TOOLS.append('cmake')
         if self.config.target_platform == Platform.IOS:
             self.BUILD_TOOLS.append('gas-preprocessor')
-        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID,
-                                          DistroVersion.UBUNTU_NATTY]:
-            self.BUILD_TOOLS.append('glib-tools')
         if self.config.platform != Platform.LINUX and\
                 not self.config.prefix_is_executable():
             # For glib-mkenums and glib-genmarshal
