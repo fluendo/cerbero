@@ -111,6 +111,8 @@ class Build (object):
         '''
         Add /usr/lib/pkgconfig to PKG_CONFIG_PATH so the system's .pc file
         can be found.
+        Add /usr/share/aclocal to the ACLOCAL_FLAGS so the system's .m4 files
+        can be found.
         '''
         arch = self.config.target_arch
         libdir = 'lib'
@@ -123,7 +125,8 @@ class Build (object):
             '/usr/%s/pkgconfig' % libdir, '/usr/share/pkgconfig',
             '/usr/lib/%s-linux-gnu/pkgconfig' % arch]
         new_env['PKG_CONFIG_PATH'] = ':'.join(search_paths)
-
+        aclocal_flags = os.environ['ACLOCAL_FLAGS']
+        new_env['ACLOCAL_FLAGS'] = aclocal_flags + ' -I/usr/share/aclocal'
 
 class CustomBuild(Build):
 
