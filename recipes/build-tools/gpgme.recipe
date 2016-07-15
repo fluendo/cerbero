@@ -6,3 +6,5 @@ class Recipe(recipe.Recipe):
     licenses = [License.GPLv2]
     stype = SourceType.TARBALL
     url = 'https://www.gnupg.org/ftp/gcrypt/gpgme/gpgme-1.4.3.tar.gz'
+    # depends on libgpgme11-dev gpgsm 
+    use_system_libs = True
