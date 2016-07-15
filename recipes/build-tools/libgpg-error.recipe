@@ -1,0 +1,8 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'libgpg-error'
+    version = '1.9'
+    licenses = [License.GPLv2]
+    stype = SourceType.TARBALL
+    url = 'ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.9.tar.gz'
