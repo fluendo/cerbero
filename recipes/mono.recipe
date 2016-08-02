@@ -3,10 +3,10 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '4.2.1'
+    version = '4.4.1'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
-    url = 'http://download.mono-project.com/sources/mono/mono-%(version)s.102.tar.bz2'
+    url = 'http://download.mono-project.com/sources/mono/mono-%(version)s.0.tar.bz2'
     configure_options = ' --with-gc=included --with-sgen=yes '\
                         ' --with-preview=yes' \
                         ' --disable-dtrace ' \
