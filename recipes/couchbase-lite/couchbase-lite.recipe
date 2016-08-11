@@ -116,8 +116,8 @@ class Recipe(recipe.Recipe):
 
         # Windows needs backslashes in the path
         if self.config.platform == Platform.WINDOWS:
-            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />'
-            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.*" />'
+            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.dll*" />'
+            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.dll*" />'
             replacements[net45lib] = net45libfixed
 
         # Remove Net35
