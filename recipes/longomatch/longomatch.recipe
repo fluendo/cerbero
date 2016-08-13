@@ -15,7 +15,7 @@ class Recipe(recipe.Recipe):
     config_sh = 'sh autogen.sh'
     configure_options = '--without-multimedia-tools'
     deps = ['gstreamer', 'gst-plugins-base', 'libav', 'Newtonsoft.Json', 'librsvg', 'ubuntu-font-family',
-            'mono', 'mono-addins', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
+            'mono', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
 
     platform_deps = {
         Platform.WINDOWS: ['mkbundle'],
@@ -77,6 +77,7 @@ class Recipe(recipe.Recipe):
         'lib/longomatch/OxyPlotMono.dll.mdb',
         'lib/longomatch/LongoMatch.exe',
         'lib/longomatch/LongoMatch.exe.mdb',
+        'lib/longomatch/Mono.Addins.dll',
         'lib/longomatch/migration/LongoMatch.exe',
         'lib/longomatch/migration/LongoMatch.exe.mdb',
         'lib/longomatch/plugins/LongoMatch.Plugins.dll',
