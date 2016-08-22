@@ -12,7 +12,6 @@ class Package(package.Package):
              'libglade:libs',
              'sqlite3:libs',
              'db4o:cli',
-             'mono-addins:cli',
              ]
 
 
