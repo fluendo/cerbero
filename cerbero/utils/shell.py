@@ -79,7 +79,7 @@ def call(cmd, cmd_dir='.', fail=True):
     @type fail: bool
     '''
     try:
-        m.message("Running command '%s'" % cmd)
+        m.message("Running command '%s' in path '%s'" % (cmd, cmd_dir))
         shell = True
         if PLATFORM == Platform.WINDOWS:
             # windows do not understand ./
