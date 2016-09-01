@@ -42,7 +42,7 @@ class RecipeStatus (object):
     @ivar steps: list of steps currently done
     @type steps: list
     @ivar needs_build: whether the recipe needs to be build or not
-                       True when all steps where successful
+                       False when all steps were successful
     @type needs_build: bool
     @ivar mtime: modification time of the recipe file, used to reset the
                  state when the recipe was modified
@@ -74,7 +74,7 @@ class RecipeStatus (object):
 
 class CookBook (object):
     '''
-    Stores a list of recipes and their build status saving it's state to a
+    Stores a list of recipes and their build status saving its state to a
     cache file
 
     @ivar recipes: dictionary with L{cerbero.recipe.Recipe} availables
@@ -200,7 +200,7 @@ class CookBook (object):
 
     def recipe_built_version (self, recipe_name):
         '''
-        Get the las built version of a recipe from the build status
+        Get the last built version of a recipe from the build status
 
         @param recipe_name: name of the recipe
         @type recipe_name: str
@@ -212,13 +212,14 @@ class CookBook (object):
 
     def step_done(self, recipe_name, step):
         '''
-        Whether is step is done or not
+        Whether this step is done or not
 
         @param recipe_name: name of the recipe
         @type recipe_name: str
         @param step: name of the step
         @type step: bool
         '''
+        print "Recipe status [%s]: %s" % (recipe_name, self._recipe_status(recipe_name))
         return step in self._recipe_status(recipe_name).steps
 
     def reset_recipe_status(self, recipe_name):
@@ -245,7 +246,7 @@ class CookBook (object):
 
     def list_recipe_deps(self, recipe_name):
         '''
-        List the dependencies that needs to be built in the correct build
+        List the dependencies that need to be built in the correct build
         order for a recipe
 
         @param recipe_name: name of the recipe
@@ -258,7 +259,7 @@ class CookBook (object):
 
     def list_recipe_reverse_deps(self, recipe_name):
         '''
-        List the dependencies that depends on this recipe
+        List the dependencies that depend on this recipe
 
         @param recipe_name: name of the recipe
         @type recipe_name: str
