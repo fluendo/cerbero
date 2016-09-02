@@ -219,7 +219,6 @@ class CookBook (object):
         @param step: name of the step
         @type step: bool
         '''
-        print "Recipe status [%s]: %s" % (recipe_name, self._recipe_status(recipe_name))
         return step in self._recipe_status(recipe_name).steps
 
     def reset_recipe_status(self, recipe_name):
