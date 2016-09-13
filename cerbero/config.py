@@ -89,7 +89,8 @@ class Config (object):
                    'build_tools_prefix', 'build_tools_sources',
                    'build_tools_cache', 'home_dir', 'recipes_commits',
                    'ios_platform', 'extra_build_tools', 'target_arch_flags',
-                   'extra_bootstrap_packages', 'binary_commits']
+                   'extra_bootstrap_packages', 'binary_commits',
+                   'ignore_runtime_deps']
 
     def __init__(self):
         self._check_uninstalled()
@@ -307,6 +308,7 @@ class Config (object):
         self.set_property('binary_commits', {})
         self.set_property('extra_build_tools', {})
         self.set_property('extra_bootstrap_packages', {})
+        self.set_property('ignore_runtime_deps', False)
 
     def set_property(self, name, value, force=False):
         if name not in self._properties:

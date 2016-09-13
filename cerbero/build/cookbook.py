@@ -302,7 +302,7 @@ class CookBook (object):
             raise FatalError(_("Dependency Cycle"))
         state[recipe] = 'in-progress'
         recipe_deps = recipe.list_deps()
-        if not recipe.runtime_dep:
+        if not recipe.runtime_dep and not self._config.ignore_runtime_deps:
             recipe_deps = self._runtime_deps () + recipe_deps
         for recipe_name in recipe_deps:
             try:
