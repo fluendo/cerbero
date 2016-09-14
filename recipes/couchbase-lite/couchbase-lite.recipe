@@ -19,13 +19,13 @@ Libs: -r:${libdir}/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll\
 
 class Recipe(recipe.Recipe):
     name = 'Couchbase.Lite'
-    version = '1.2.1.1'
+    version = '1.3.1.1'
     licenses = [License.Apachev2]
     stype = SourceType.GIT
     btype = BuildType.CUSTOM
     deps = ['mono', 'Newtonsoft.Json', 'sqlite3']
     remotes = {'github': 'https://github.com/fluendo/couchbase-lite-net.git'}
-    commit = 'github/release/1.2.1'
+    commit = 'github/release/1.3.1'
     files_cli = [
       'lib/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll',
       'lib/cli/Couchbase.Lite-1.0/SQLitePCL.raw.dll',
@@ -39,6 +39,7 @@ class Recipe(recipe.Recipe):
         if self.config.platform == Platform.DARWIN:
             self.append_env = {}
             self.new_env =  {'MONO_PATH' : None}
+            self.new_env["PATH"] = os.environ["PATH"].replace('%s/build-tools/bin:%s/dist/darwin_x86_64/bin:' % (self.config.home_dir, self.config.home_dir), '')
 
     def extract(self):
         super(recipe.Recipe, self).extract()
@@ -51,46 +52,50 @@ class Recipe(recipe.Recipe):
         shell.call("mono src/.nuget/NuGet.exe restore " \
                    "src/Couchbase.Lite.Net45.sln", self.build_dir)
         shell.call('xbuild src/Couchbase.Lite.Net45.sln /target:Couchbase_Lite_Net45 '
-                   '/property:Configuration=Release', self.build_dir)
+                   '/property:Configuration=Release /property:Archive=true', self.build_dir)
         shell.call('xbuild src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/storage.systemsqlite.net45.csproj '
-                   '/property:Configuration=Release', self.build_dir)
+                   ' /property:SolutionDir=' + self.build_dir + '/src/'
+                   ' /property:Configuration=Release /property:Archive=true', self.build_dir)
 
-        logging.info('Compiling iOS / Android')
         if self.config.platform == Platform.DARWIN:
-            try:
-                shell.call("mono src/.nuget/NuGet.exe restore " \
-                        "src/Couchbase.Lite.Android.sln",
-                        self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
-                       'build -c:Release src/Couchbase.Lite.Android.sln',
-                       self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
-                       'build -c:Release src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/storage.systemsqlite.droid.csproj',
-                       self.build_dir)
-            except:
-                logging.info('Exception compiling Android')
-            try:
-                shell.call("mono src/.nuget/NuGet.exe restore " \
-                        "src/Couchbase.Lite.iOS.sln",
-                        self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
-                       'build -c:Release src/Couchbase.Lite.iOS.sln',
-                       self.build_dir)
-                shell.call('/Applications/Xamarin\ Studio.app/Contents/MacOS/mdtool ' \
-                       'build -c:Release src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/storage.systemsqlite.ios.csproj',
-                       self.build_dir)
-            except:
-                logging.info('Exception compiling iOS')
+            self.__compile_mobile()
 
         self.create_nuget()
 
+    def __compile_mobile(self):
+        logging.info('Compiling iOS / Android')
+        try:
+            shell.call("mono src/.nuget/NuGet.exe restore " \
+                    "src/Couchbase.Lite.Android.sln",
+                    self.build_dir)
+            shell.call('xbuild src/Couchbase.Lite.Android.sln '
+                   '/property:Configuration=Release /property:Archive=true',
+                   self.build_dir)
+            shell.call('xbuild src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/storage.systemsqlite.droid.csproj '
+                   '/property:Configuration=Release /property:Archive=true',
+                   self.build_dir)
+        except:
+            logging.info('Exception compiling Android')
+        try:
+            shell.call("mono src/.nuget/NuGet.exe restore " \
+                    "src/Couchbase.Lite.iOS.sln",
+                    self.build_dir)
+            shell.call('xbuild src/Couchbase.Lite.iOS.sln '
+                   '/property:Configuration=Release /property:Archive=true',
+                   self.build_dir)
+            shell.call('xbuild src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/storage.systemsqlite.ios.csproj '
+                   '/property:Configuration=Release /property:Archive=true',
+                   self.build_dir)
+        except:
+            logging.info('Exception compiling iOS')
+
     def install(self):
-        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.2')
+        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.3')
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        shell.call('cp src/Couchbase.Lite.*/bin/Release/*.dll %s' % destdir,
+        shell.call('cp staging/Couchbase.Lite/net45/*.dll %s' % destdir,
             self.build_dir)
-        shell.call('cp src/StorageEngines/SystemSQLite/storage.systemsqlite.*/bin/Release/*.dll %s' % destdir,
+        shell.call('cp staging/Couchbase.Lite.Storage.SystemSQLite/net45/*.dll %s' % destdir,
             self.build_dir)
         pc_file = os.path.join(self.config.prefix, 'lib/pkgconfig/couchbase-lite.pc')
         with open(pc_file, 'w+') as f:
@@ -109,19 +114,20 @@ class Recipe(recipe.Recipe):
         shutil.copy(os.path.join(self.build_dir, 'packaging', 'nuget', 'couchbase-lite.nuspec'),
                 nuspec)
         replacements = {'<id>Couchbase.Lite</id>': '<id>Couchbase.Lite.LM</id>'}
+        replacements['$version$'] = self.version
         # We only build Android and iOS nuget packages in OS X
         if self.config.platform != Platform.DARWIN:
-            replacements['<file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll*" />'] = ""
-            replacements['<file target="lib/Xamarin.iOS10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll*" />'] = ""
+            replacements['<file target="lib/MonoAndroid" src="staging/Couchbase.Lite/MonoAndroid/*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10" src="staging/Couchbase.Lite/Xamarin.iOS10/*" />'] = ""
 
         # Windows needs backslashes in the path
         if self.config.platform == Platform.WINDOWS:
-            net45lib = '<file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.dll*" />'
-            net45libfixed = '<file target="lib\\net45" src="src\\Couchbase.Lite.Net45\\bin\\Release\\Couchbase.Lite.dll*" />'
+            net45lib = '<file target="lib/net45" src="staging/Couchbase.Lite/net45/*" />'
+            net45libfixed = '<file target="lib\\net45" src="staging\\Couchbase.Lite\\net45\\*" />'
             replacements[net45lib] = net45libfixed
 
         # Remove Net35
-        replacements['<file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Nuget/*" />'] = ""
+        replacements['<file target="lib/net35" src="staging/Couchbase.Lite/net35/*" />'] = ""
 
         replacements['Couchbase.Lite.Storage.SystemSQLite'] = "Couchbase.Lite.Storage.SystemSQLite.LM"
         shell.replace(nuspec, replacements)
@@ -132,20 +138,21 @@ class Recipe(recipe.Recipe):
                 nuspec_systemsqlite)
 
         replacements = {'<id>Couchbase.Lite.Storage.SystemSQLite</id>': '<id>Couchbase.Lite.Storage.SystemSQLite.LM</id>'}
+        replacements['$version$'] = self.version
 
         # We only build Android and iOS nuget packages in OS X
         if self.config.platform != Platform.DARWIN:
-            replacements['<file target="lib/MonoAndroid/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.droid/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
-            replacements['<file target="lib/Xamarin.iOS10/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.ios/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+            replacements['<file target="lib/MonoAndroid/" src="staging/Couchbase.Lite.Storage.SystemSQLite/MonoAndroid/*" />'] = ""
+            replacements['<file target="lib/Xamarin.iOS10/" src="staging/Couchbase.Lite.Storage.SystemSQLite/Xamarin.iOS10/*" />'] = ""
 
         # Windows needs backslashes in the path
         if self.config.platform == Platform.WINDOWS:
-            net45lib = '<file target="lib/net45/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'
-            net45libfixed = '<file target="lib\\net45\\" src="src\\StorageEngines\\SystemSQLite\\storage.systemsqlite.net45\\bin\\Release\\Couchbase.Lite.Storage.SystemSQLite.dll*" />'
+            net45lib = '<file target="lib/net45/" src="staging/Couchbase.Lite.Storage.SystemSQLite/net45/*" />'
+            net45libfixed = '<file target="lib\\net45\\" src="staging\\Couchbase.Lite.Storage.SystemSQLite\\net45\\*" />'
             replacements[net45lib] = net45libfixed
 
         # Remove Net35
-        replacements['<file target="lib/net35/" src="src/StorageEngines/SystemSQLite/storage.systemsqlite.net35/bin/Release/Couchbase.Lite.Storage.SystemSQLite.dll*" />'] = ""
+        replacements['<file target="lib/net35/" src="staging/Couchbase.Lite.Storage.SystemSQLite/net35/*" />'] = ""
         shell.replace(nuspec_systemsqlite, replacements)
 
         try:
