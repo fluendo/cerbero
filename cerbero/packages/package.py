@@ -22,6 +22,7 @@ from cerbero.build.filesprovider import FilesProvider
 from cerbero.enums import License, Platform
 from cerbero.packages import PackageType
 from cerbero.utils import remove_list_duplicates
+from cerbero.errors import FatalError
 
 
 class PackageBase(object):
@@ -504,9 +505,9 @@ class InstallerPackage(MetaPackage):
     def __init__(self, config, store):
         MetaPackage.__init__(self, config, store)
 
-    def get_wix_registry_key():
+    def get_wix_registry_key(self):
         if self.sdk_package is None:
-            raise FatalException("sdk_package not set for package " + self.name)
+            raise FatalError("sdk_package not set for package " + self.name)
         sdk_package = self.store.get_package(self.sdk_package)
         return sdk_package.get_wix_registry_key()
 
@@ -537,7 +538,7 @@ class AppExtensionPackage(Package):
 
     def get_wix_registry_key(self):
         if self.app_package is None:
-            raise FatalException("app_package not set for package " + self.name)
+            raise FatalError("app_package not set for package " + self.name)
         self._fetch_app()
         return self._app.get_wix_registry_key()
 
