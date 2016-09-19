@@ -43,8 +43,7 @@ class Recipe(recipe.Recipe):
 
     def extract(self):
         super(recipe.Recipe, self).extract()
-        shell.call('git submodule init', self.build_dir)
-        shell.call('git submodule update --recursive', self.build_dir)
+        shell.call('git submodule update --init --recursive', self.build_dir)
 
     @modify_environment
     def compile(self):
