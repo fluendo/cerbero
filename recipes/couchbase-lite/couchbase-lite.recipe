@@ -50,18 +50,19 @@ class Recipe(recipe.Recipe):
         logging.info('Compiling Couchbase')
         shell.call("mono src/.nuget/NuGet.exe restore " \
                    "src/Couchbase.Lite.Net45.sln", self.build_dir)
-        shell.call('xbuild src/Couchbase.Lite.Net45.sln /target:Couchbase_Lite_Net45 '
-                   '/property:Configuration=Release /property:Archive=true', self.build_dir)
+        shell.call('xbuild src/Couchbase.Lite.Net45/Couchbase.Lite.Net45.csproj '
+                   ' /property:SolutionDir=' + self.build_dir + '/src/'
+                   ' /property:Configuration=Release /property:Archive=true', self.build_dir)
         shell.call('xbuild src/StorageEngines/SystemSQLite/storage.systemsqlite.net45/storage.systemsqlite.net45.csproj '
                    ' /property:SolutionDir=' + self.build_dir + '/src/'
                    ' /property:Configuration=Release /property:Archive=true', self.build_dir)
 
         if self.config.platform == Platform.DARWIN:
-            self.__compile_mobile()
+            self._compile_mobile()
 
         self.create_nuget()
 
-    def __compile_mobile(self):
+    def _compile_mobile(self):
         logging.info('Compiling iOS / Android')
         try:
             shell.call("mono src/.nuget/NuGet.exe restore " \
