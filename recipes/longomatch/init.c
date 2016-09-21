@@ -3,7 +3,7 @@
 
 static void custom_init ()
 {
-  gchar *win_path, *exe_path, *mono_path, *db40_path, *lgm_path, *lib_path;
+  gchar *win_path, *exe_path, *mono_path, *lgm_path, *lib_path;
   gchar *mono_lib_path, *mono_lib_facades_path, *etc_path;
   gchar *gtk_path, *gst_path;
 
@@ -15,15 +15,13 @@ static void custom_init ()
   mono_lib_facades_path = g_build_filename (mono_lib_path, "Facades", NULL);
   gtk_path  = g_build_filename (exe_path, "lib",
       "gtk-sharp-2.0", NULL);
-  db40_path = g_build_filename (exe_path, "lib", "cli", "Db4objects.Db4o-8.0",
-      NULL);
   lgm_path = g_build_filename (exe_path, "lib", "longomatch", NULL);
   gst_path = g_build_filename (exe_path, "lib", "longomatch", "plugins", "gstreamer-0.10", NULL);
   win_path = g_strdup_printf ("%s;%s", g_getenv ("PATH"), gst_path);
 
   g_setenv ("PATH", win_path, TRUE);
-  mono_path = g_strdup_printf("%s;%s;%s;%s;%s", mono_lib_path,
-      mono_lib_facades_path, gtk_path, db40_path, lgm_path);
+  mono_path = g_strdup_printf("%s;%s;%s;%s", mono_lib_path,
+      mono_lib_facades_path, gtk_path, lgm_path);
   g_setenv ("MONO_PATH", mono_path, TRUE);
   mono_set_dirs (lib_path, etc_path);
   g_print ("Using PATH %s\n", win_path);

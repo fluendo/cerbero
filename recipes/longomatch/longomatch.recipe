@@ -15,7 +15,7 @@ class Recipe(recipe.Recipe):
     config_sh = 'sh autogen.sh'
     configure_options = '--without-multimedia-tools'
     deps = ['gstreamer', 'gst-plugins-base', 'libav', 'librsvg', 'ubuntu-font-family',
-            'mono', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
+            'mono', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
 
     platform_deps = {
         Platform.WINDOWS: ['mkbundle'],
@@ -107,7 +107,7 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         if self.config.target_platform in [Platform.WINDOWS, Platform.DARWIN]:
-            search_paths = ['lib/longomatch', 'lib/cli/Db4objects.Db4o-8.0']
+            search_paths = ['lib/longomatch']
             search_paths = [os.path.join(self.config.prefix, f) for f in search_paths]
             if 'MONO_PATH' in os.environ:
                 search_paths.insert (0, os.environ['MONO_PATH'])
