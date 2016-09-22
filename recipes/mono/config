@@ -2,6 +2,7 @@
 	<dllmap dll="intl" target="libintl-8" os="windows"/>
 	<dllmap dll="MonoPosixHelper" target="libMonoPosixHelper" os="windows"/>
 	<dllmap dll="sqlite3" target="libsqlite3-0.dll" os="windows"/>
+	<dllmap dll="esqlite3" target="libsqlite3-0.dll" os="windows"/>
 	<dllmap dll="i:kernel32.dll">
 		<dllentry dll="__Internal" name="CopyMemory" target="mono_win32_compat_CopyMemory"/>
 		<dllentry dll="__Internal" name="FillMemory" target="mono_win32_compat_FillMemory"/>
