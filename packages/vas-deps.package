@@ -46,6 +46,7 @@ class Package(package.Package):
             'lib/mono/4.5/Facades/System.Text.Encoding.dll',
             'lib/mono/4.5/Facades/System.Collections.dll',
             'lib/mono/4.5/Facades/System.Threading.dll',
+            'lib/mono/4.5/Facades/System.Threading.Tasks.dll',
             'lib/mono/4.5/Facades/System.Resources.ResourceManager.dll',
             'lib/mono/4.5/Facades/System.Reflection.dll',
             'lib/mono/4.5/Facades/System.Globalization.dll',
