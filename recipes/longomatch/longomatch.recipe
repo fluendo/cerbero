@@ -14,7 +14,7 @@ class Recipe(recipe.Recipe):
     commit = 'github/master'
     config_sh = 'sh autogen.sh'
     configure_options = '--without-multimedia-tools'
-    deps = ['gstreamer', 'gst-plugins-base', 'libav', 'Newtonsoft.Json', 'librsvg', 'ubuntu-font-family',
+    deps = ['gstreamer', 'gst-plugins-base', 'libav', 'librsvg', 'ubuntu-font-family',
             'mono', 'db4o', 'gtk-sharp', 'XR.Baboon', 'Couchbase.Lite', 'fody']
 
     platform_deps = {
