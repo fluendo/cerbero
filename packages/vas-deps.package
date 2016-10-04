@@ -26,6 +26,7 @@ class Package(package.Package):
             'lib/mono/4.5/Mono.CSharp.dll',
             'lib/mono/4.5/Microsoft.CSharp.dll',
             'lib/mono/4.5/System.dll',
+            'lib/mono/4.5/System.ComponentModel.DataAnnotations.dll',
             'lib/mono/4.5/System.Configuration.dll',
             'lib/mono/4.5/System.Core.dll',
             'lib/mono/4.5/System.Data.dll',
