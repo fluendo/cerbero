@@ -19,3 +19,4 @@ class Recipe(recipe.Recipe):
                 self.configure_options += ' --disable-asm'
             self.can_use_configure_cache = False
         self.configure_options += ' --disable-docs'
+        self.append_env['CFLAGS'] = " -std=gnu89"
