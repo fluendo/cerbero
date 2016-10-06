@@ -22,4 +22,7 @@ class Recipe(recipe.Recipe):
         git.checkout(self.build_dir, 'HEAD')
         _patch = self.relative_path('libgpg-error/0001-gettext-0.18.patch')
         shell.apply_patch(_patch, self.build_dir, 1)
+        _patch = self.relative_path('libgpg-error/0002-fix-include-noise-intermediate-pipeline.patch')
+        shell.apply_patch(_patch, self.build_dir, 1)
+
 
