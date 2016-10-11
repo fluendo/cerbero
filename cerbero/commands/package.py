@@ -25,7 +25,7 @@ from cerbero.errors import PackageNotFoundError, UsageError
 from cerbero.packages.packager import Packager
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.packages.disttarball import DistTarball
-
+from cerbero.utils import shell
 
 class Package(Command):
     doc = N_('Creates a distribution package')
@@ -81,9 +81,14 @@ class Package(Command):
                          args.force, args.keep_temp)
         if None in paths:
             paths.remove(None)
-        p.post_package(paths)
-        m.action(_("Package successfully created in %s") %
-                 ' '.join([os.path.abspath(x) for x in paths]))
+
+        paths = p.post_package(paths)
+        for p in paths:
+            sha1sum = shell.check_call('sha1sum %s' % os.path.abspath(p)).split(" ")[0] 
+            m.action(_("Package successfully created in %s %s") % (os.path.abspath(p), sha1sum))
+            # Generate the sha1sum file
+            with open('%s.sha1' % p, 'w+') as sha1file:
+                sha1file.write(sha1sum)
 
     def _build_deps(self, config, package):
         build_command = build.Build()
