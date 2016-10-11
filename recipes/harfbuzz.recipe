@@ -15,12 +15,12 @@ class Recipe(recipe.Recipe):
     files_devel = ['include/harfbuzz/*.h', 'lib/pkgconfig/harfbuzz.pc']
 
     def prepare(self):
-        if self.config.target_platform != Platform.LINUX:
+        if self.config.target_platform != Platform.LINUX or Architecture.is_arm(self.config.target_arch):
             self.configure_options += '--with-icu=no '
         else:
             self.files_devel.append('lib/pkgconfig/harfbuzz-icu.pc')
             self.files_libs.append('libharfbuzz-icu')
-        if Architecture.is_arm(self.config.target_platform):
+        if Architecture.is_arm(self.config.target_arch):
             self.append_env = {
                 'CFLAGS' : ' -fPIC ',
                 'CXXFLAGS' : ' -fPIC '}
