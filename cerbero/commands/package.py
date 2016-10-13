@@ -17,6 +17,7 @@
 # Boston, MA 02111-1307, USA.
 
 import os
+import hashlib
 
 from cerbero.commands import Command, register_command, build
 from cerbero.utils import _, N_, ArgparseArgument
@@ -84,7 +85,9 @@ class Package(Command):
 
         paths = p.post_package(paths)
         for p in paths:
-            sha1sum = shell.check_call('sha1sum %s' % os.path.abspath(p)).split(" ")[0] 
+            sha1 = hashlib.sha1()
+            sha1.update(os.path.abspath(p))
+            sha1sum = sha1.hexdigest()
             m.action(_("Package successfully created in %s %s") % (os.path.abspath(p), sha1sum))
             # Generate the sha1sum file
             with open('%s.sha1' % p, 'w+') as sha1file:
