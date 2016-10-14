@@ -85,9 +85,16 @@ class Package(Command):
 
         paths = p.post_package(paths)
         for p in paths:
+            BUF_SIZE = 65536  # 64kb chunks
             sha1 = hashlib.sha1()
-            sha1.update(os.path.abspath(p))
+            with open(os.path.abspath(p), 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    sha1.update(data)
             sha1sum = sha1.hexdigest()
+
             m.action(_("Package successfully created in %s %s") % (os.path.abspath(p), sha1sum))
             # Generate the sha1sum file
             with open('%s.sha1' % p, 'w+') as sha1file:
