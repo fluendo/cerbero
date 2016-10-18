@@ -22,9 +22,9 @@ class Recipe(recipe.Recipe):
         }
 
     platform_files_libs = {
-        Platform.LINUX: ['libcesarplayer'],
-        Platform.DARWIN: ['libcesarplayer'],
-        Platform.WINDOWS: ['libcesarplayer'],
+        Platform.LINUX: ['libvas'],
+        Platform.DARWIN: ['libvas'],
+        Platform.WINDOWS: ['libvas'],
     }
     files_lang = ['longomatch']
     langs = ['cs', 'de', 'es', 'eu', 'fr', 'hu', 'it', 'nb', 'nl', 'no',
