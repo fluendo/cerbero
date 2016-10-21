@@ -10,6 +10,8 @@ GLIB_CONFIG_UNVERSAL='''\
 #include "x86_64/glibconfig.h"
 #elif defined(__arm__)
 #include "arm/glibconfig.h"
+#elif defined(__arm64__)
+#include "arm64/glibconfig.h"
 #else
 #error "Unsupported Architecture"
 #endif
@@ -17,25 +19,24 @@ GLIB_CONFIG_UNVERSAL='''\
 
 class Recipe(recipe.Recipe):
     name = 'glib'
-    version = '2.38.0'
+    version = '2.48.1'
     stype = SourceType.TARBALL
-    url = 'http://ftp.acc.umu.se/pub/GNOME/sources/glib/2.38/glib-2.38.0.tar.xz'
+    url = 'http://ftp.acc.umu.se/pub/GNOME/sources/glib/2.48/glib-%(version)s.tar.xz'
     licenses = [License.LGPLv2Plus]
     config_sh = 'sh autogen.sh'
-    deps = ['libffi', 'zlib', 'gtk-doc-lite']
+    configure_options = '--with-pcre=internal'
+    deps = ['libffi', 'zlib']
     can_use_configure_cache = False
-    patches = ['glib/0002-gio-add-support-for-satic-modules.patch',
-               'glib/0005-Let-user-disable-Cocoa-and-Carbon-support-on-demand.patch',
-               'glib/0009-Optionally-revert-to-the-old-pre-2.28-URI-handler-co.patch',
-               'glib/0010-Add-support-for-loading-GIO-modules-from-the-distro-.patch',
-               'glib/0011-Allow-for-a-second-distro-GIO-module-path-as-used-on.patch',
-               'glib/0012-Blacklist-the-bamf-GIO-module.patch',
-               'glib/0014-giomodule-do-not-try-to-load-modules-from-gio-module.patch',
-               'glib/0021-giomodule-Add-return-types-to-function-definitions.patch',
-               'glib/0022-gio-Fix-Werror-format-string-errors-from-mismatched-.patch',
-               'glib/0001-configure-fix-link-with-Carbon-framework.patch',
-               'glib/0001-osx-fix-compiler-error-with-newer-clang.patch',
-    ]
+    patches = ["glib/0001-Let-user-disable-Cocoa-and-Carbon-support-on-demand.patch",
+               "glib/0002-Optionally-revert-to-the-old-pre-2.28-URI-handler-co.patch",
+               "glib/0003-Add-support-for-loading-GIO-modules-from-the-distro-.patch",
+               "glib/0004-Allow-for-a-second-distro-GIO-module-path-as-used-on.patch",
+               "glib/0005-Blacklist-the-bamf-GIO-module.patch",
+               "glib/0006-giomodule-do-not-try-to-load-modules-from-gio-module.patch",
+               "glib/0008-gdbus-codgen-Use-a-proper-shebang-in-the-generator.patch",
+               "glib/0009-Unhide-_g_io_modules_ensure_extension_points_registe.patch",
+               'glib/0015-Implementation-of-Cocoa-event-loop-integration-in-GM.patch'
+              ]
 
     files_libs = [
         'libglib-2.0', 'libgio-2.0', 'libgmodule-2.0', 'libgobject-2.0',
@@ -54,6 +55,7 @@ class Recipe(recipe.Recipe):
         'bin/glib-compile-resources%(bext)s',
         'bin/glib-genmarshal%(bext)s',
         'bin/gresource%(bext)s',
+        'bin/gdbus-codegen',
         'lib/glib-2.0/include',
         'lib/pkgconfig/gio-2.0.pc',
         'lib/pkgconfig/glib-2.0.pc',
@@ -63,7 +65,8 @@ class Recipe(recipe.Recipe):
         'lib/pkgconfig/gobject-2.0.pc',
         'lib/pkgconfig/gthread-2.0.pc',
         'include/glib-2.0',
-        'share/aclocal/glib-2.0.m4'
+        'share/aclocal/glib-2.0.m4',
+        'share/aclocal/glib-gettext.m4'
         ]
     platform_files_devel = {
         Platform.WINDOWS: ['lib/pkgconfig/gio-windows-2.0.pc', 'include/gio-win32-2.0'],
@@ -91,7 +94,8 @@ class Recipe(recipe.Recipe):
         return flags
 
     def prepare(self):
-        self.configure_options += ' --disable-compile-warnings'
+        #if needs_xcode8_sdk_workaround(self.config):
+            #self.append_env['ac_cv_func_mkostemp'] = 'no'
         if self.config.target_platform != Platform.WINDOWS:
             self.configure_options += ' --enable-static'
         if self.config.target_platform != Platform.LINUX:
@@ -104,13 +108,16 @@ class Recipe(recipe.Recipe):
             self.make = '%s private_LDFLAGS=""' % self.make
         elif self.config.target_platform == Platform.WINDOWS:
             self.configure_options += ' --with-libiconv=gnu'
+            self.append_env['CFLAGS'] = ' -DMINGW_HAS_SECURE_API=1 '
         elif self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
             self.files_devel.append(os.path.join('lib', 'glib-2.0', 'include', '*', 'glibconfig.h'))
 
             arch = self.config.target_arch
             if arch == Architecture.X86:
                 arch = 'i386'
-            elif arch in [Architecture.ARM, Architecture.ARMv7]:
+            elif arch == Architecture.ARM64:
+                arch = 'arm64'
+            elif Architecture.is_arm(arch):
                 arch = 'arm'
             extra_flags = ''
             if self.config.target_platform == Platform.IOS:
@@ -124,9 +131,9 @@ class Recipe(recipe.Recipe):
             path1 = '/usr/lib/gio/modules'
             path2 = None
             use_old_uri_scheme = False
+            self.configure_options += ' --disable-selinux'
             # Old Debian/Ubuntu
             if self.config.target_distro_version in [DistroVersion.DEBIAN_SQUEEZE,
-                                                     DistroVersion.UBUNTU_HARDY,
                                                      DistroVersion.UBUNTU_LUCID,
                                                      DistroVersion.UBUNTU_MAVERICK]:
                 use_old_uri_scheme = True
@@ -148,7 +155,8 @@ class Recipe(recipe.Recipe):
                     path2 = '/usr/lib/x86_64-linux-gnu/gio/modules'
             # Debian
             elif self.config.target_distro_version in [DistroVersion.DEBIAN_WHEEZY,
-                                                       DistroVersion.DEBIAN_JESSIE]:
+                                                       DistroVersion.DEBIAN_JESSIE,
+                                                       DistroVersion.DEBIAN_STRETCH]:
                 if self.config.target_arch == Architecture.X86:
                     path1 = '/usr/lib/i386-linux-gnu/gio/modules'
                 elif self.config.target_arch == Architecture.X86_64:
@@ -159,7 +167,12 @@ class Recipe(recipe.Recipe):
                                                        DistroVersion.FEDORA_18,
                                                        DistroVersion.FEDORA_19,
                                                        DistroVersion.FEDORA_20,
+                                                       DistroVersion.FEDORA_21,
+                                                       DistroVersion.FEDORA_22,
+                                                       DistroVersion.FEDORA_23,
+                                                       DistroVersion.FEDORA_24,
                                                        DistroVersion.REDHAT_6,
+                                                       DistroVersion.REDHAT_7,
                                                        ]:
                     if self.config.target_arch == Architecture.X86_64:
                         path1 = '/usr/lib64/gio/modules/'
@@ -167,6 +180,15 @@ class Recipe(recipe.Recipe):
             elif self.config.target_distro == Distro.SUSE:
                 if self.config.target_arch == Architecture.X86_64:
                     path1 = '/usr/lib64/gio/modules/'
+            # Arch
+            elif self.config.target_distro == Distro.ARCH:
+                path1 = '/usr/lib/gio/modules/'
+            # Gentoo
+            elif self.config.target_distro == Distro.GENTOO:
+                path1 = '/usr/lib/gio/modules/'
+            elif self.config.target_distro == Distro.NONE:
+                if self.config.target_distro_version == DistroVersion.NONE_UCLIBC:
+                    self.deps += ('gettext', 'libiconv')
             else:
                 raise FatalError(_("Add specific for other Linux distributions here"))
             self._set_gio_flags(path1, path2, use_old_uri_scheme)
@@ -183,7 +205,9 @@ class Recipe(recipe.Recipe):
             arch = self.config.target_arch
             if arch == Architecture.X86:
                 arch = 'i386'
-            if arch in [Architecture.ARM, Architecture.ARMv7]:
+            elif arch == Architecture.ARM64:
+                arch = 'arm64'
+            elif Architecture.is_arm(arch):
                 arch = 'arm'
 
             arch_dir = os.path.join(self.config.prefix, 'lib', 'glib-2.0',
