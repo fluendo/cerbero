@@ -1,0 +1,29 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import os
+
+class Recipe(recipe.Recipe):
+    name = 'glib-networking'
+    version = '2.34.2'
+    licenses = [License.LGPLv2Plus]
+    configure_options = "--without-ca-certificates"
+    deps = ['glib', 'gnutls']
+
+    files_misc = ['lib/gio/modules/libgiognutls%(mext)s']
+    files_lang = ['glib-networking']
+
+    def prepare(self):
+        querymodule_path = os.path.join(self.config.prefix, 'bin', 'gio-querymodules')
+        if self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
+          # For the universal build we need to use the right gio-querymodules
+          arch = self.config.target_arch
+          arch_path = os.path.join(self.config.prefix, arch, 'bin', 'gio-querymodules')
+          # Only for the universal builds
+          if os.path.exists(arch_path):
+              querymodule_path = arch_path
+          self.append_env['CFLAGS'] = '-Wno-error=format-nonliteral'
+          self.configure_options += ' --disable-more-warnings'
+
+        if not self.config.prefix_is_executable():
+          querymodule_path = 'true'
+
+        self.config_sh = 'GIO_QUERYMODULES=%s %s' % (querymodule_path, self.config_sh)
