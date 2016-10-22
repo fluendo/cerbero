@@ -328,3 +328,17 @@ def file_hash(path):
     Get the file md5 hash
     '''
     return hashlib.md5(open(path, 'rb').read()).digest()
+
+
+def which(pgm, path=None):
+    if path is None:
+        path = os.getenv('PATH')
+    for p in path.split(os.path.pathsep):
+        p = os.path.join(p, pgm)
+        if os.path.exists(p) and os.access(p, os.X_OK):
+            return p
+        if PLATFORM == Platform.WINDOWS:
+            for ext in os.getenv('PATHEXT').split(';'):
+                pext = p + ext
+                if os.path.exists(pext):
+                    return pext

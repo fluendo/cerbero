@@ -2,34 +2,31 @@
 import shutil
 import os
 from cerbero.errors import FatalError
+from cerbero.utils.shell import which
 
 class Recipe(recipe.Recipe):
     name = 'glib-networking-static'
-    version = '2.34.2'
+    version = '2.48.2'
     licenses = [License.LGPLv2Plus]
-    configure_options = "--without-ca-certificates --enable-static-modules --enable-static"
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnome.org/pub/gnome/sources/glib-networking/2.48/glib-networking-%(version)s.tar.xz'
+    tarball_dirname = 'glib-networking-%(version)s'
+    autoreconf = True
+    configure_options = "--without-ca-certificates --enable-static-modules --enable-static --enable-more-warnings"
     deps = ['glib', 'gnutls', 'glib-networking']
+    patches = ['glib-networking/0001-Add-support-for-static-modules.patch',
+               'glib-networking/0002-Get-the-CA-certificate-path-from-the-environment-var.patch']
 
     files_devel = ['lib/gio/modules/static/libgiognutls.a',
                    'lib/gio/modules/static/libgiognutls.la']
 
     def prepare(self):
-        self.remotes['origin'] = self.remotes['origin'].replace('-static', '')
-        self.repo_dir = self.repo_dir.replace('-static', '')
         self.tmp_destdir = os.path.join(self.build_dir, 'static-build')
 
-        querymodule_path = None
-        if self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
-          # For the universal build we need to use the right gio-querymodules
-          arch = self.config.target_arch
-          querymodule_path = os.path.join(self.config.prefix, arch, 'bin', 'gio-querymodules')
-          self.append_env['CFLAGS'] = '-Wno-error=format-nonliteral'
-          self.configure_options += ' --disable-more-warnings'
-        else:
-          querymodule_path = os.path.join(self.config.prefix, 'bin', 'gio-querymodules')
+        querymodule_path = which('true')
 
-        if not self.config.prefix_is_executable():
-          querymodule_path = 'true'
+        if self.config.target_platform in [Platform.ANDROID, Platform.IOS]:
+          self.append_env['CFLAGS'] = ' -DGST_CA_CERTIFICATES_FROM_ENV'
 
         self.config_sh = 'GIO_QUERYMODULES=%s %s' % (querymodule_path, self.config_sh)
 

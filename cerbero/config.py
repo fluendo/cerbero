@@ -347,6 +347,12 @@ class Config (object):
             return False
         return True
 
+    def cross_compiling(self):
+        "Are we building for the host platform or not?"
+        return self.target_platform != self.platform or \
+                self.target_arch != self.arch or \
+                self.target_distro_version != self.distro_version
+
     def _parse(self, filename, reset=True):
         config = {'os': os, '__file__': filename}
         if not reset:
