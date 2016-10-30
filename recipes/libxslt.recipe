@@ -12,3 +12,8 @@ class Recipe(recipe.Recipe):
     files_devel = ['bin/xsltproc%(bext)s', 'bin/xslt-config', 'include/libexslt', 'include/libxslt',
                    'lib/xsltConf.sh',
                    'lib/pkgconfig/libexslt.pc', 'lib/pkgconfig/libxslt.pc']
+
+    def prepare(self):
+        if self.config.platform != self.config.target_platform:
+            self.configure_options += ' --with-libxml-include-prefix=%s/include/libxml2' % self.config.prefix
+            self.configure_options += ' --with-libxml-lib-prefix=%s' % self.config.libdir
