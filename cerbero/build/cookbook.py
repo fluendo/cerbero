@@ -177,7 +177,8 @@ class CookBook (object):
         @type step: str
         '''
         status = self._recipe_status(recipe_name)
-        status.steps.append(step)
+        if not step in status.steps:
+            status.steps.append(step)
         status.touch()
         self.status[recipe_name] = status
         self.save()
