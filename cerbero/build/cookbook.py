@@ -21,6 +21,7 @@ import os
 import pickle
 import time
 import imp
+from binascii import hexlify
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License
@@ -208,6 +209,19 @@ class CookBook (object):
         '''
         try:
             return self._recipe_status(recipe_name).built_version
+        except:
+            return None
+
+    def recipe_file_hash (self, recipe_name):
+        '''
+        Get the hex representation of the file hash of a recipe from
+        the build status
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        '''
+        try:
+            return hexlify(self._recipe_status(recipe_name).file_hash)
         except:
             return None
 
