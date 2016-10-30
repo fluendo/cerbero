@@ -44,7 +44,7 @@ class Package(Command):
             ArgparseArgument('-f', '--force', action='store_true',
                 default=False, help=_('Delete any existing package file')),
             ArgparseArgument('-d', '--no-devel', action='store_false',
-                default=True, help=_('Do not create the development version '
+                default=False, help=_('Do not create the development version '
                     'of this package')),
             ArgparseArgument('-s', '--skip-deps-build', action='store_true',
                 default=False, help=_('Do not build the recipes needed to '
@@ -78,7 +78,7 @@ class Package(Command):
             pkg = Packager(config, p, self.store)
         m.action(_("Creating package for %s") % p.name)
         p.pre_package()
-        paths = pkg.pack(os.path.abspath(args.output_dir), args.no_devel,
+        paths = pkg.pack(os.path.abspath(args.output_dir), not args.no_devel,
                          args.force, args.keep_temp)
         if None in paths:
             paths.remove(None)
