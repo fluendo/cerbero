@@ -271,6 +271,24 @@ class CookBook (object):
         recipe = self.get_recipe(recipe_name)
         return self._find_deps(recipe, {}, [])
 
+    def list_recipes_deps(self, recipes_names):
+        '''
+        List the dependencies that need to be built in the correct build
+        order for a list of recipes
+
+        @param recipes_name: list of recipes names
+        @type recipes_name: L{str}
+        @return: list of L{str}
+        @rtype: list
+        '''
+        ordered_recipes = []
+        for recipe in recipes_names:
+            recipes = [x.name for x in self.list_recipe_deps(recipe)]
+            # remove recipes already scheduled to be built
+            recipes = [x for x in recipes if x not in ordered_recipes]
+            ordered_recipes.extend(recipes)
+        return ordered_recipes
+
     def list_recipe_reverse_deps(self, recipe_name):
         '''
         List the dependencies that depend on this recipe
