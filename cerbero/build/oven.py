@@ -36,57 +36,47 @@ class Oven (object):
     @type: L{cerberos.cookbook.CookBook}
     @ivar force: Force the build of the recipe
     @type: bool
-    @ivar no_deps: Ignore dependencies
-    @type: bool
     @ivar missing_files: check for files missing in the recipe
     @type missing_files: bool
     '''
 
     STEP_TPL = '[(%s/%s) %s -> %s ]'
 
-    def __init__(self, recipes, cookbook, force=False, no_deps=False,
+    def __init__(self, cookbook, force=False,
                  missing_files=False, dry_run=False):
-        if isinstance(recipes, Recipe):
-            recipes = [recipes]
-        self.recipes = recipes
         self.cookbook = cookbook
         self.force = force
-        self.no_deps = no_deps
         self.missing_files = missing_files
         shell.DRY_RUN = dry_run
 
-    def start_cooking(self):
+    def start_cooking(self, recipes):
         '''
-        Cooks the recipe and all its dependencies
+        Cooks the provided recipe names
         '''
-        if self.no_deps:
-            ordered_recipes = [self.cookbook.get_recipe(x) for x in
-                               self.recipes]
-        else:
-            ordered_recipes = []
-            for recipe in self.recipes:
-                recipes = self.cookbook.list_recipe_deps(recipe)
-                # remove recipes already scheduled to be built
-                recipes = [x for x in recipes if x not in ordered_recipes]
-                ordered_recipes.extend(recipes)
+        if isinstance(recipes, str):
+            recipes = [recipes]
+
         m.message(_("Building the following recipes: %s") %
-                  ' '.join([x.name for x in ordered_recipes]))
+                  ' '.join([x for x in recipes]))
 
         i = 1
-        for recipe in ordered_recipes:
-            self._cook_recipe(recipe, i, len(ordered_recipes))
+        for recipe in recipes:
+            self.cook_recipe(recipe, i, len(recipes))
             i += 1
 
-    def _cook_recipe(self, recipe, count, total):
-        if not self.cookbook.recipe_needs_build(recipe.name) and \
+    def cook_recipe(self, recipe_name, count, total):
+        '''
+        Cooks the provided recipe name
+        '''
+        if not self.cookbook.recipe_needs_build(recipe_name) and \
                 not self.force:
-            m.build_step(count, total, recipe.name, _("already built"))
+            m.build_step(count, total, recipe_name, _("already built"))
             return
 
         if self.missing_files:
             # create a temp file that will be used to find newer files
             tmp = tempfile.NamedTemporaryFile()
-
+        recipe = self.cookbook.get_recipe(recipe_name)
         recipe.force = self.force
         for desc, step in recipe.steps:
             m.build_step(count, total, recipe.name, step)

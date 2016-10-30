@@ -19,7 +19,10 @@
 
 #from cerbero.oven import Oven
 from cerbero.commands import Command, register_command
+from cerbero.errors import BuildStepError
 from cerbero.build.cookbook import CookBook
+from cerbero.packages.packagesstore import PackagesStore
+from cerbero.build.fridge import Fridge
 from cerbero.build.oven import Oven
 from cerbero.utils import _, N_, ArgparseArgument
 
@@ -38,7 +41,10 @@ class Build(Command):
                            'listed in the recipe')),
                 ArgparseArgument('--dry-run', action='store_true',
                     default=False,
-                    help=_('only print commands instead of running them '))]
+                    help=_('only print commands instead of running them ')),
+                ArgparseArgument('--use-binaries', action='store_true',
+                    default=False,
+                    help=_('try to use binaries from the repo before building'))]
             if force is None:
                 args.append(
                     ArgparseArgument('--force', action='store_true',
@@ -61,17 +67,38 @@ class Build(Command):
         if self.no_deps is None:
             self.no_deps = args.no_deps
         self.runargs(config, args.recipe, args.missing_files, self.force,
-                     self.no_deps, dry_run=args.dry_run)
+                     self.no_deps, dry_run=args.dry_run,
+                     use_binaries=args.use_binaries)
 
     def runargs(self, config, recipes, missing_files=False, force=False,
-                no_deps=False, cookbook=None, dry_run=False):
-        if cookbook is None:
-            cookbook = CookBook(config)
+                no_deps=False, store=None, dry_run=False, use_binaries=False):
+        if not store:
+            store = PackagesStore(config)
+        cookbook = store.cookbook
 
-        oven = Oven(recipes, cookbook, force=self.force,
-                    no_deps=self.no_deps, missing_files=missing_files,
+        oven = Oven(cookbook, force=self.force, missing_files=missing_files,
                     dry_run=dry_run)
-        oven.start_cooking()
+
+        if isinstance(recipes, str):
+            recipes = [recipes]
+
+        if no_deps:
+            ordered_recipes = recipes
+        else:
+            ordered_recipes = cookbook.list_recipes_deps(recipes)
+
+        if use_binaries:
+            fridge = Fridge(store, force=self.force, dry_run=dry_run)
+            i = 1
+            for recipe in ordered_recipes:
+                try:
+                    fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
+                except BuildStepError:
+                    oven.cook_recipe(recipe, i, len(ordered_recipes))
+                    fridge.freeze_recipe(recipe, i, len(ordered_recipes))
+                i += 1
+        else:
+            oven.start_cooking(ordered_recipes)
 
 
 class BuildOne(Build):

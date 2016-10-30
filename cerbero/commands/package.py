@@ -103,7 +103,7 @@ class Package(Command):
     def _build_deps(self, config, package):
         build_command = build.Build()
         build_command.runargs(config, package.recipes_dependencies(),
-            cookbook=self.store.cookbook)
+            store=self.store)
 
 
 register_command(Package)
