@@ -241,6 +241,22 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
             raise e
 
 
+def upload_curl(source, url, user=None, password=None):
+    if not os.path.exists(source):
+        raise FatalError(_("File %s does not exist.") % source)
+
+    path = None
+    cmd = "curl -T "
+    if user:
+        cmd += " --user=%s" % user
+        if password:
+            cmd += ":%s" % password
+
+    cmd += "%s %s" % (source, url)
+
+    logging.info("Uploading %s to %s", source, url)
+    call(cmd, path)
+
 def _splitter(string, base_url):
     lines = string.split('\n')
     for line in lines:
