@@ -9,6 +9,6 @@ class Recipe(recipe.Recipe):
     deps = ['libxml2']
 
     files_libs = ['libxslt', 'libexslt']
-    files_devel = ['bin/xsltproc', 'bin/xslt-config', 'include/libexslt', 'include/libxslt',
+    files_devel = ['bin/xsltproc%(bext)s', 'bin/xslt-config', 'include/libexslt', 'include/libxslt',
                    'lib/xsltConf.sh',
                    'lib/pkgconfig/libexslt.pc', 'lib/pkgconfig/libxslt.pc']
