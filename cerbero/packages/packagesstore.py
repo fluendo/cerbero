@@ -163,7 +163,7 @@ class PackagesStore (object):
         for reponame, (repodir, priority) in repos.iteritems():
             packages[int(priority)].update(
                     self._load_packages_from_dir(repodir))
-        # Add recipes by asceding pripority
+        # Add packages by ascending pripority
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
 
