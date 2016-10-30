@@ -160,7 +160,7 @@ def unpack(filepath, output_dir):
         zf.extractall(path=output_dir)
 
 
-def download(url, destination=None, recursive=False, check_cert=True):
+def download(url, destination=None, recursive=False, check_cert=True, user=None, password=None):
     '''
     Downloads a file with wget
 
@@ -168,6 +168,10 @@ def download(url, destination=None, recursive=False, check_cert=True):
     @type: str
     @param destination: destination where the file will be saved
     @type destination: str
+    @param user: the username to use when connecting
+    @type user: str
+    @param password: the password to use when connecting
+    @type password: str
     '''
     cmd = "wget %s " % url
     path = None
@@ -181,6 +185,11 @@ def download(url, destination=None, recursive=False, check_cert=True):
     if not check_cert:
         cmd += " --no-check-certificate"
 
+    if user:
+        cmd += " --user=%s" % user
+    if password:
+        cmd += " --password=%s" % password
+
     if not recursive and os.path.exists(destination):
         logging.info("File %s already downloaded." % destination)
     else:
@@ -192,7 +201,7 @@ def download(url, destination=None, recursive=False, check_cert=True):
             raise e
 
 
-def download_curl(url, destination=None, recursive=False, check_cert=True):
+def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None):
     '''
     Downloads a file with cURL
 
@@ -200,12 +209,20 @@ def download_curl(url, destination=None, recursive=False, check_cert=True):
     @type: str
     @param destination: destination where the file will be saved
     @type destination: str
+    @param user: the username to use when connecting
+    @type user: str
+    @param password: the password to use when connecting
+    @type password: str
     '''
     path = None
     if recursive:
         raise FatalError(_("cURL doesn't support recursive downloads"))
 
     cmd = "curl -L "
+    if user:
+        cmd += " --user=%s" % user
+        if password:
+            cmd += ":%s" % password
     if not check_cert:
         cmd += " -k "
     if destination is not None:
