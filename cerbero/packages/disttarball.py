@@ -71,14 +71,24 @@ class DistTarball(PackagerBase):
             filenames.append(devel)
         return filenames
 
-    def _get_name(self, package_type, ext='tar.bz2'):
+    def get_name(self, package_type, ext='tar.bz2'):
+        '''
+        Get the name of the package file
+
+        @cvar package_type: the type of the package to get the name from
+        @type package_type: L{cerbero.packages.PackageType}
+        @cvar ext: the extension to append to the package name
+        @type ext: str
+        @return: name of the package
+        @rtype: str
+        '''
         return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name,
                 self.config.target_platform, self.config.target_arch,
                 self.package.version, package_type, ext)
 
     def _create_tarball(self, output_dir, package_type, files, force,
                         package_prefix):
-        filename = os.path.join(output_dir, self._get_name(package_type))
+        filename = os.path.join(output_dir, self.get_name(package_type))
         if os.path.exists(filename):
             if force:
                 os.remove(filename)

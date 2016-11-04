@@ -90,6 +90,6 @@ class BuildTools (BootstraperBase):
         cookbook = CookBook(config)
         recipes = self.BUILD_TOOLS
         recipes += self.PLAT_BUILD_TOOLS.get(self.config.platform, [])
-        oven = Oven(recipes, cookbook)
-        oven.start_cooking()
+        oven = Oven(cookbook)
+        oven.start_cooking(recipes)
         self.config.do_setup_env()

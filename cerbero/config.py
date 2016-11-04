@@ -90,7 +90,8 @@ class Config (object):
                    'build_tools_cache', 'home_dir', 'recipes_commits',
                    'ios_platform', 'extra_build_tools', 'target_arch_flags',
                    'extra_bootstrap_packages', 'binary_commits',
-                   'ignore_runtime_deps']
+                   'ignore_runtime_deps', 'binaries', 'binary_repo',
+                   'binary_repo_username', 'binary_repo_password']
 
     def __init__(self):
         self._check_uninstalled()
@@ -309,6 +310,10 @@ class Config (object):
         self.set_property('extra_build_tools', {})
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('ignore_runtime_deps', False)
+        self.set_property('binaries', None)
+        self.set_property('binary_repo', None)
+        self.set_property('binary_repo_username', None)
+        self.set_property('binary_repo_password', None)
 
     def set_property(self, name, value, force=False):
         if name not in self._properties:
@@ -437,6 +442,8 @@ class Config (object):
         self.set_property('build_tools_sources',
                 os.path.join(self.home_dir, 'sources', 'build-tools'))
         self.set_property('build_tools_cache', 'build-tools-cache')
+        self.set_property('binaries', os.path.join(self.home_dir, "binaries",
+            "%s_%s" % (self.target_platform, self.target_arch)))
 
     def _find_data_dir(self):
         if self.uninstalled:
