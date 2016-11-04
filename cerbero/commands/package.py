@@ -43,7 +43,7 @@ class Package(Command):
                 help=_('Creates a tarball instead of a native package')),
             ArgparseArgument('-f', '--force', action='store_true',
                 default=False, help=_('Delete any existing package file')),
-            ArgparseArgument('-d', '--no-devel', action='store_false',
+            ArgparseArgument('-d', '--no-devel', action='store_true',
                 default=False, help=_('Do not create the development version '
                     'of this package')),
             ArgparseArgument('-s', '--skip-deps-build', action='store_true',
