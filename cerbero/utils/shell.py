@@ -248,9 +248,11 @@ def upload_curl(source, url, user=None, password=None):
     path = None
     cmd = "curl -T "
     if user:
-        cmd += " --user=%s" % user
+        cmd += " --user %s" % user
         if password:
-            cmd += ":%s" % password
+            cmd += ":%s " % password
+        else:
+            cmd += " "
 
     cmd += "%s %s" % (source, url)
 
