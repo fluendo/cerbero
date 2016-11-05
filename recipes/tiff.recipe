@@ -11,7 +11,7 @@ class Recipe(recipe.Recipe):
     configure_options = ' --disable-cxx'
 
     files_libs = ['libtiff']
-    files_bins = ['tiffcrop', 'bmp2tiff', 'gif2tiff', 'ppm2tiff'
+    files_bins = ['tiffcrop', 'bmp2tiff', 'gif2tiff', 'ppm2tiff',
         'tiffdump', 'tiffsplit', 'tiffmedian', 'ras2tiff', 'tiff2ps',
         'tiff2pdf', 'tiffset', 'tiffcp', 'tiff2rgba', 'tiffinfo', 'tiff2bw',
         'raw2tiff', 'fax2tiff', 'tiffdither', 'tiffcmp']
