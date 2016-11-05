@@ -13,7 +13,7 @@ class Recipe(recipe.Recipe):
     deps = ['cairo', 'fontconfig', 'freetype', 'gtk-doc-lite', 'harfbuzz']
 
     files_libs = ['libpangocairo-1.0', 'libpango-1.0', 'libpangoft2-1.0']
-    files_bins = ['pango-querymodules', 'pango-view']
+    files_bins = ['pango-querymodules']
     files_devel = ['include/pango-1.0',
         'lib/pkgconfig/pangoft2.pc', 'lib/pkgconfig/pango.pc',
         'lib/pkgconfig/pangocairo.pc']
