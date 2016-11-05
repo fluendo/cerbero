@@ -24,11 +24,6 @@ class Recipe(recipe.Recipe):
         Platform.WINDOWS: ['lib/pkgconfig/pangowin32.pc'],
         Platform.LINUX: ['lib/pkgconfig/pango.pc'],
     }
-    files_typelibs = [
-        'Pango-1.0',
-        'PangoCairo-1.0',
-        'PangoFT2-1.0'
-        ]
 
     def configure(self):
         super(Recipe, self).configure()
