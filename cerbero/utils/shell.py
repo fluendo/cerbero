@@ -220,11 +220,13 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
 
     cmd = "curl -L "
     if user:
-        cmd += " --user=%s" % user
+        cmd += "--user %s" % user
         if password:
-            cmd += ":%s" % password
+            cmd += ":%s " % password
+        else:
+            cmd += " "
     if not check_cert:
-        cmd += " -k "
+        cmd += "-k "
     if destination is not None:
         cmd += "%s -o %s " % (url, destination)
     else:
@@ -247,14 +249,13 @@ def upload_curl(source, url, user=None, password=None):
 
     path = None
     cmd = "curl -T "
+    cmd += "%s %s" % (source, url)
     if user:
         cmd += " --user %s" % user
         if password:
             cmd += ":%s " % password
         else:
             cmd += " "
-
-    cmd += "%s %s" % (source, url)
 
     logging.info("Uploading %s to %s", source, url)
     call(cmd, path)
