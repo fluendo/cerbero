@@ -27,10 +27,12 @@ class Recipe(recipe.Recipe):
     remotes = {'github': 'https://github.com/fluendo/couchbase-lite-net.git'}
     commit = 'github/release/1.3.1'
     files_cli = [
-      'lib/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll',
-      'lib/cli/Couchbase.Lite-1.0/SQLitePCL.raw.dll',
-      'lib/cli/Couchbase.Lite-1.0/SQLitePCL.ugly.dll'
+      'lib/cli/Couchbase.Lite-1.3/Couchbase.Lite.dll',
+      'lib/cli/Couchbase.Lite-1.3/Couchbase.Lite.Storage.SystemSQLite.dll',
+      'lib/cli/Couchbase.Lite-1.3/websocket-sharp.dll',
     ]
+
+    files_devel = ['lib/pkgconfig/couchbase-lite.pc']
 
     def prepare(self):
         super(Recipe, self).prepare()
