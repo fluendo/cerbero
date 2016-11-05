@@ -16,7 +16,6 @@ class Recipe(recipe.Recipe):
     files_libs = ['libgailutil']
     files_bins = ['gtk-update-icon-cache', 'gtk-query-immodules-2.0']
     files_devel = [
-        'bin/gtk-demo%(bext)s',
         'bin/gtk-builder-convert',
         'lib/gtk-2.0/include',
         'lib/pkgconfig/gtk+-2.0.pc',
