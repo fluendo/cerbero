@@ -44,7 +44,13 @@ class Build(Command):
                     help=_('only print commands instead of running them ')),
                 ArgparseArgument('--use-binaries', action='store_true',
                     default=False,
-                    help=_('try to use binaries from the repo before building'))]
+                    help=_('use binaries from the repo before building')),
+                ArgparseArgument('--upload-binaries', action='store_true',
+                    default=False,
+                    help=_('after a recipe is built upload the corresponding binary package')),
+                ArgparseArgument('--build-missing', action='store_true',
+                    default=False,
+                    help=_('in case a binary package is missing try to build it'))]
             if force is None:
                 args.append(
                     ArgparseArgument('--force', action='store_true',
@@ -68,10 +74,13 @@ class Build(Command):
             self.no_deps = args.no_deps
         self.runargs(config, args.recipe, args.missing_files, self.force,
                      self.no_deps, dry_run=args.dry_run,
-                     use_binaries=args.use_binaries)
+                     use_binaries=args.use_binaries,
+                     upload_binaries=args.upload_binaries,
+                     build_missing=args.build_missing)
 
     def runargs(self, config, recipes, missing_files=False, force=False,
-                no_deps=False, store=None, dry_run=False, use_binaries=False):
+                no_deps=False, store=None, dry_run=False, use_binaries=False,
+                upload_binaries=False, build_missing=False):
         if not store:
             store = PackagesStore(config)
         cookbook = store.cookbook
@@ -87,15 +96,24 @@ class Build(Command):
         else:
             ordered_recipes = cookbook.list_recipes_deps(recipes)
 
-        if use_binaries:
+        if use_binaries or upload_binaries:
             fridge = Fridge(store, force=self.force, dry_run=dry_run)
             i = 1
             for recipe in ordered_recipes:
-                try:
-                    fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
-                except BuildStepError:
+                if use_binaries:
+                    try:
+                        fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
+                    except BuildStepError as e:
+                        if build_missing:
+                            oven.cook_recipe(recipe, i, len(ordered_recipes))
+                            if upload_binaries:
+                                fridge.freeze_recipe(recipe, i, len(ordered_recipes))
+                        else:
+                            raise e
+                else:
                     oven.cook_recipe(recipe, i, len(ordered_recipes))
-                    fridge.freeze_recipe(recipe, i, len(ordered_recipes))
+                    if upload_binaries:
+                       fridge.freeze_recipe(recipe, i, len(ordered_recipes))
                 i += 1
         else:
             oven.start_cooking(ordered_recipes)
