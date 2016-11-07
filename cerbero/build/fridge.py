@@ -78,7 +78,7 @@ class Fridge (object):
         for filename in packages_names.itervalues():
             if filename:
                 tar = tarfile.open(os.path.join(self.config.binaries,
-                                   filename, 'r:bz2'))
+                                   filename), 'r:bz2')
                 tar.extractall(self.config.prefix)
                 tar.close()
 
