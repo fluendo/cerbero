@@ -51,7 +51,7 @@ class Recipe(recipe.Recipe):
     def compile(self):
         logging.info('Compiling Couchbase')
         shell.call("mono src/.nuget/NuGet.exe restore " \
-                   "src/Couchbase.Lite.Net45.sln", self.build_dir)
+                   "src/Couchbase.Lite.Net45.sln -source 'https://www.nuget.org/api/v2/'", self.build_dir)
         shell.call('xbuild src/Couchbase.Lite.Net45/Couchbase.Lite.Net45.csproj '
                    ' /property:SolutionDir=' + self.build_dir + '/src/'
                    ' /property:Configuration=Release /property:Archive=true', self.build_dir)
@@ -68,7 +68,7 @@ class Recipe(recipe.Recipe):
         logging.info('Compiling iOS / Android')
         try:
             shell.call("mono src/.nuget/NuGet.exe restore " \
-                    "src/Couchbase.Lite.Android.sln",
+                    "src/Couchbase.Lite.Android.sln -source 'https://www.nuget.org/api/v2/'",
                     self.build_dir)
             shell.call('xbuild src/Couchbase.Lite.Android.sln '
                    '/property:Configuration=Release /property:Archive=true',
@@ -80,7 +80,7 @@ class Recipe(recipe.Recipe):
             logging.info('Exception compiling Android')
         try:
             shell.call("mono src/.nuget/NuGet.exe restore " \
-                    "src/Couchbase.Lite.iOS.sln",
+                    "src/Couchbase.Lite.iOS.sln -source 'https://www.nuget.org/api/v2/'",
                     self.build_dir)
             shell.call('xbuild src/Couchbase.Lite.iOS.sln '
                    '/property:Configuration=Release /property:Archive=true',
