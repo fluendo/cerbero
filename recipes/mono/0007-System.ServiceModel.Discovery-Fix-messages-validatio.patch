@@ -1,0 +1,42 @@
+From c908feca4df2648f71eaf2c806b8df3ef0049ad5 Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Wed, 12 Oct 2016 19:51:09 +0200
+Subject: [PATCH 7/7] [System.ServiceModel.Discovery] Fix messages validation
+
+The current validations are not correct and throws an exception calling
+GetVideoSources API in an ONVIF media client. This API
+is a combination of a first message with an input parameter and
+a second message with the reply that is not void.
+Removing this checks makes the client work correctly.
+
+Fixes #46917
+---
+ .../System.ServiceModel.Dispatcher/BaseMessagesFormatter.cs          | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/mcs/class/System.ServiceModel/System.ServiceModel.Dispatcher/BaseMessagesFormatter.cs b/mcs/class/System.ServiceModel/System.ServiceModel.Dispatcher/BaseMessagesFormatter.cs
+index db1c496..ee46c7d 100644
+--- a/mcs/class/System.ServiceModel/System.ServiceModel.Dispatcher/BaseMessagesFormatter.cs
++++ b/mcs/class/System.ServiceModel/System.ServiceModel.Dispatcher/BaseMessagesFormatter.cs
+@@ -70,17 +70,14 @@ namespace System.ServiceModel.Dispatcher
+ 
+ 		internal static void Validate (OperationDescription od, bool isRpc, bool isEncoded)
+ 		{
+-			bool hasParameter = false, hasVoid = false;
++			bool hasVoid = false;
+ 			foreach (var md in od.Messages) {
+ 				if (md.IsTypedMessage || md.IsUntypedMessage) {
+ 					if (isRpc && !isEncoded)
+ 						throw new InvalidOperationException ("Message with action {0} is either strongly-typed or untyped, but defined as RPC and encoded.");
+-					if (hasParameter && !md.IsVoid)
+-						throw new InvalidOperationException (String.Format ("Operation '{0}' contains a message with parameters. Strongly-typed or untyped message can be paired only with strongly-typed, untyped or void message.", od.Name));
+ 					if (isRpc && hasVoid)
+ 						throw new InvalidOperationException (String.Format ("This operation '{0}' is defined as RPC and contains a message with void, which is not allowed.", od.Name));
+ 				} else {
+-					hasParameter |= !md.IsVoid;
+ 					hasVoid |= md.IsVoid;
+ 				}
+ 			}
+-- 
+2.8.4 (Apple Git-73)
+
