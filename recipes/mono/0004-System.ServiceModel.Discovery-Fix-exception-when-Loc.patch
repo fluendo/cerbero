@@ -1,0 +1,28 @@
+From 9917b7dbc5e37b209e1f3fdcb8bcffa0ad156b2c Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Mon, 29 Aug 2016 10:53:49 +0200
+Subject: [PATCH 4/7] [System.ServiceModel.Discovery] Fix exception when
+ LocalAddress is null
+
+---
+ .../System.ServiceModel.Discovery.Udp/UdpDuplexChannel.cs             | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/mcs/class/System.ServiceModel.Discovery/System.ServiceModel.Discovery.Udp/UdpDuplexChannel.cs b/mcs/class/System.ServiceModel.Discovery/System.ServiceModel.Discovery.Udp/UdpDuplexChannel.cs
+index 28181d1..9baf40f 100644
+--- a/mcs/class/System.ServiceModel.Discovery/System.ServiceModel.Discovery.Udp/UdpDuplexChannel.cs
++++ b/mcs/class/System.ServiceModel.Discovery/System.ServiceModel.Discovery.Udp/UdpDuplexChannel.cs
+@@ -200,7 +200,9 @@ namespace System.ServiceModel.Discovery.Udp
+ 				if (message_ids.Count >= binding_element.TransportSettings.DuplicateMessageHistoryLength)
+ 					message_ids.Dequeue ();
+ 			}
+-			msg.Properties.Add ("Via", LocalAddress.Uri);
++			if (LocalAddress != null) {
++				msg.Properties.Add ("Via", LocalAddress.Uri);
++			}
+ 			msg.Properties.Add ("Encoder", message_encoder);
+ 			msg.Properties.Add (RemoteEndpointMessageProperty.Name, new RemoteEndpointMessageProperty (ip.Address.ToString (), ip.Port));
+ 
+-- 
+2.8.4 (Apple Git-73)
+

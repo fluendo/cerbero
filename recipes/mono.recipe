@@ -16,6 +16,16 @@ class Recipe(recipe.Recipe):
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+    patches = [
+        'mono/0001-System.ServiceModel-Fix-DuplexClient-initialization-.patch',
+        'mono/0002-System.ServiceMode-Fix-XML-parsing-of-EndpointAddres.patch',
+        'mono/0003-System.ServiceModel.Discovery-Fix-deadlock-receiving.patch',
+        'mono/0004-System.ServiceModel.Discovery-Fix-exception-when-Loc.patch',
+        'mono/0005-System.ServiceModel.Discovery-Add-integration-test-f.patch',
+        'mono/0006-System.ServiceMode-Create-unit-test-for-46971.patch',
+        'mono/0007-System.ServiceModel.Discovery-Fix-messages-validatio.patch',
+    ]
+
     deps = ['libgdiplus']
 
     def prepare(self):

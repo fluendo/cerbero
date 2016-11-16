@@ -363,7 +363,10 @@ def file_hash(path):
     '''
     Get the file md5 hash
     '''
-    return hashlib.md5(open(path, 'rb').read()).digest()
+    try:
+        return hashlib.md5(open(path, 'rb').read()).digest()
+    except:
+        return None
 
 
 def which(pgm, path=None):

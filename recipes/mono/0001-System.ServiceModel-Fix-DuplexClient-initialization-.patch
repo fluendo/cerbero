@@ -1,0 +1,60 @@
+From f9d1edc956cc9ebd29627d059920c3d5fb7d82aa Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Mon, 29 Aug 2016 10:30:25 +0200
+Subject: [PATCH 1/7] [System.ServiceModel] Fix DuplexClient initialization
+ from ServiceEndpoint
+
+When using the constructor that takes a ServiceEndpoint, the DuplexClient
+wasn't using a DuplexChannelFactory so protocols expecting a reply
+were not receiving it.
+---
+ mcs/class/System.ServiceModel/System.ServiceModel/ClientBase.cs   | 8 +++++++-
+ .../System.ServiceModel/System.ServiceModel/DuplexClientBase.cs   | 5 +++++
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/mcs/class/System.ServiceModel/System.ServiceModel/ClientBase.cs b/mcs/class/System.ServiceModel/System.ServiceModel/ClientBase.cs
+index 09f7279..885e88a 100644
+--- a/mcs/class/System.ServiceModel/System.ServiceModel/ClientBase.cs
++++ b/mcs/class/System.ServiceModel/System.ServiceModel/ClientBase.cs
+@@ -135,8 +135,8 @@ namespace System.ServiceModel
+ 		}
+ 
+ 		protected ClientBase (InstanceContext instance, ServiceEndpoint endpoint)
+-			: this (instance, new ChannelFactory<TChannel> (endpoint))
+ 		{
++			Initialize (instance, endpoint);
+ 		}
+ 
+ 		internal ClientBase (ChannelFactory<TChannel> factory)
+@@ -150,6 +150,12 @@ namespace System.ServiceModel
+ 			ChannelFactory = factory;
+ 		}
+ 
++		internal virtual void Initialize (InstanceContext instance, ServiceEndpoint endpoint)
++		{
++			// FIXME: use instance
++			ChannelFactory = new ChannelFactory<TChannel> (endpoint);
++		}
++
+ 		internal virtual void Initialize (InstanceContext instance,
+ 			string endpointConfigurationName, EndpointAddress remoteAddress)
+ 		{
+diff --git a/mcs/class/System.ServiceModel/System.ServiceModel/DuplexClientBase.cs b/mcs/class/System.ServiceModel/System.ServiceModel/DuplexClientBase.cs
+index 64ce858..868ccc4 100644
+--- a/mcs/class/System.ServiceModel/System.ServiceModel/DuplexClientBase.cs
++++ b/mcs/class/System.ServiceModel/System.ServiceModel/DuplexClientBase.cs
+@@ -106,6 +106,11 @@ namespace System.ServiceModel
+ 			get { return (IDuplexContextChannel) base.InnerChannel; }
+ 		}
+ 
++		internal override void Initialize (InstanceContext instance, ServiceEndpoint endpoint)
++		{
++			ChannelFactory = new DuplexChannelFactory<TChannel> (instance, endpoint);
++		}
++
+ 		internal override void Initialize (InstanceContext instance,
+ 			string endpointConfigurationName, EndpointAddress remoteAddress)
+ 		{
+-- 
+2.8.4 (Apple Git-73)
+

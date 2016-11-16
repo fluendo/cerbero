@@ -3,13 +3,12 @@ import shutil
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
-    version = '2.12.10'
+    version = '2.12.42'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
     deps = ['gtk+', 'libglade', 'mono']
-    url = 'http://ftp.gnome.org/pub/gnome/sources/gtk-sharp/2.12/gtk-sharp-2.12.10.tar.gz'
-    patches = ['0001-fix_glib_imports.patch']
-    strip = '1'
+    url = 'https://github.com/mono/gtk-sharp/archive/2.12.42.tar.gz'
+    config_sh = 'sh bootstrap-2.12'
 
     files_glue = [
             '%(sdir)s/libatksharpglue-2%(mext)s',

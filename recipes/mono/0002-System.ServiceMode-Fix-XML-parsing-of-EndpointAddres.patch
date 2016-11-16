@@ -1,0 +1,118 @@
+From 66bb0e8cd0dcbf12626c40837d0d70dadecdb12d Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Mon, 29 Aug 2016 11:55:19 +0200
+Subject: [PATCH 2/7] [System.ServiceMode] Fix XML parsing of EndpointAddress
+
+---
+ .../System.ServiceModel/EndpointAddress.cs         | 61 +++++++++++++---------
+ .../System.ServiceModel/EndpointAddressTest.cs     | 18 +++++++
+ 2 files changed, 54 insertions(+), 25 deletions(-)
+
+diff --git a/mcs/class/System.ServiceModel/System.ServiceModel/EndpointAddress.cs b/mcs/class/System.ServiceModel/System.ServiceModel/EndpointAddress.cs
+index 1535677..1b7b102 100644
+--- a/mcs/class/System.ServiceModel/System.ServiceModel/EndpointAddress.cs
++++ b/mcs/class/System.ServiceModel/System.ServiceModel/EndpointAddress.cs
+@@ -284,35 +284,46 @@ namespace System.ServiceModel
+ 		{
+ 			Uri uri = null;
+ 			EndpointIdentity identity = null;
+-			reader.MoveToContent ();
+-			if (reader.LocalName == "Address" && 
+-			    reader.NamespaceURI == addressingVersion.Namespace &&
+-			    reader.NodeType == XmlNodeType.Element &&
+-			    !reader.IsEmptyElement)
+-				uri = new Uri (reader.ReadElementContentAsString ());
+-			else
+-				throw new XmlException (String.Format (
+-					"Expecting 'Address' from namespace '{0}', but found '{1}' from namespace '{2}'",
+-					addressingVersion.Namespace, reader.LocalName, reader.NamespaceURI));
++#if !MOBILE
++			MetadataSet metadata = null;
++#endif
+ 
+ 			reader.MoveToContent ();
+-#if !NET_2_1
+-			MetadataSet metadata = null;
+-			if (reader.LocalName == "Metadata" &&
+-			    reader.NamespaceURI == addressingVersion.Namespace &&
+-			    !reader.IsEmptyElement) {
+-				reader.Read ();
+-				metadata = (MetadataSet) new XmlSerializer (typeof (MetadataSet)).Deserialize (reader);
+-				reader.MoveToContent ();
+-				reader.ReadEndElement ();
++			while (reader.NodeType != XmlNodeType.EndElement) {
++				if (reader.LocalName == "Address" &&
++					reader.NamespaceURI == addressingVersion.Namespace &&
++					reader.NodeType == XmlNodeType.Element &&
++					!reader.IsEmptyElement) {
++					uri = new Uri (reader.ReadElementContentAsString ());
++					reader.MoveToContent ();
++				}
++#if !MOBILE
++				else if (reader.LocalName == "Metadata" &&
++					reader.NamespaceURI == addressingVersion.Namespace &&
++					!reader.IsEmptyElement) {
++					reader.Read ();
++					metadata = (MetadataSet) new XmlSerializer (typeof (MetadataSet)).Deserialize (reader);
++					reader.MoveToContent ();
++					reader.ReadEndElement ();
++				}
++
++				else if (reader.LocalName == "Identity" &&
++					reader.NamespaceURI == Constants.WsaIdentityUri) {
++					// FIXME: implement
++					reader.Skip ();
++				}
++#endif
++				else {
++					reader.Skip ();
++				}
+ 			}
+-			reader.MoveToContent ();
+-			if (reader.LocalName == "Identity" &&
+-			    reader.NamespaceURI == Constants.WsaIdentityUri) {
+-				// FIXME: implement
+-				reader.Skip ();
++
++			if (uri == null) {
++				throw new XmlException (String.Format (
++					"'Address' from namespace '{0}' not found in child nodes",
++					addressingVersion.Namespace));
+ 			}
+-#endif
++
+ 
+ 			if (addressingVersion == AddressingVersion.WSAddressing10 && uri == w3c_anonymous)
+ 				uri = anonymous_role;
+diff --git a/mcs/class/System.ServiceModel/Test/System.ServiceModel/EndpointAddressTest.cs b/mcs/class/System.ServiceModel/Test/System.ServiceModel/EndpointAddressTest.cs
+index 6b21f81..3c56904 100644
+--- a/mcs/class/System.ServiceModel/Test/System.ServiceModel/EndpointAddressTest.cs
++++ b/mcs/class/System.ServiceModel/Test/System.ServiceModel/EndpointAddressTest.cs
+@@ -401,6 +401,24 @@ namespace MonoTests.System.ServiceModel
+ 			Assert.AreEqual (C14N ("<root><Address xmlns=\"http://www.w3.org/2005/08/addressing\">http://localhost:8080/</Address>" + identity1 + "</root>"), C14N (sw.ToString ()), "#2");
+ 		}
+ 
++		[Test]
++		public void ReadFromFull ()
++		{
++			string xml = @"<a:ReplyTo xmlns:a='http://www.w3.org/2005/08/addressing'>
++				<a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
++				<a:PortType>Foo</a:PortType>
++				<a:ServiceName>Bar</a:ServiceName>
++				<a:ReferenceProperties></a:ReferenceProperties>
++				<a:ReferenceParameters></a:ReferenceParameters></a:ReplyTo>";
++			XmlReader src = XmlReader.Create (new StringReader (xml));
++			XmlDictionaryReader reader =
++				XmlDictionaryReader.CreateDictionaryReader (src);
++			EndpointAddress a = EndpointAddress.ReadFrom (reader);
++			Assert.IsNotNull (a, "#1");
++			Assert.AreEqual ("http://schemas.microsoft.com/2005/12/ServiceModel/Addressing/Anonymous", a.Uri.AbsoluteUri, "#2");
++			Assert.IsTrue (a.IsAnonymous, "#3");
++		}
++
+ /* GetSchema() does not exist anymore
+ 		[Test]
+ 		public void GetSchemaTest ()
+-- 
+2.8.4 (Apple Git-73)
+
