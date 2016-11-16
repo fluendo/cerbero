@@ -5,7 +5,7 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '4.2.1'
+    version = '4.6.1'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
@@ -25,9 +25,10 @@ class Recipe(recipe.Recipe):
         'bin/zlib1.dll',
         'etc/mono',
         'lib/mono/gac',
-        'lib/mono/2.0',
-        'lib/mono/4.0',
+        'lib/mono/2.0-api',
+        'lib/mono/4.0-api',
         'lib/mono/4.5',
+        'lib/mono/4.5-api',
         'lib/mono/xbuild',
         'lib/mono/xbuild-frameworks',
         'include/mono-2.0',
