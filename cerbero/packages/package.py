@@ -600,6 +600,7 @@ class App(PackageBase):
     deps = None
     commands = []  # list of tuples ('CommandName', path/to/binary')
     wrapper = 'app_wrapper.tpl'
+    resources_wix_bundle = None
     resources_wix_installer = None
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
