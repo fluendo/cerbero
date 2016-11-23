@@ -29,6 +29,7 @@ from cerbero.packages.package import Package, SDKPackage, App,\
 
 WIX_SCHEMA = "http://schemas.microsoft.com/wix/2006/wi"
 UTIL_SCHEMA = "http://schemas.microsoft.com/wix/UtilExtension"
+BAL_SCHEMA = 'http://schemas.microsoft.com/wix/BalExtension'
 
 
 class VSTemplatePackage(Package):
@@ -270,13 +271,18 @@ class WixConfig(WixBase):
             self.ui_type = 'WixUI_Minimal'
         else:
             self.ui_type = 'WixUI_Mondo'
+        self._init_replacements()
 
     def write(self, output_dir):
         config_out_path = os.path.join(output_dir,
                 os.path.basename(self.wix_config))
         shutil.copy(self.config_path, os.path.join(output_dir,
                     os.path.basename(self.wix_config)))
-        replacements = {
+        shell.replace(config_out_path, self.replacements)
+        return config_out_path
+
+    def _init_replacements(self):
+        self.replacements = {
             "@ProductID@": '*',
             "@UpgradeCode@": self.package.get_wix_upgrade_code(),
             "@Language@": '1033',
@@ -291,9 +297,7 @@ class WixConfig(WixBase):
             "@UIType@": self.ui_type,
             "@CerberoPackageDir@": self.package.package_dir(),
             "@CerberoPrefixDir@": self.prefix,
-            }
-        shell.replace(config_out_path, replacements)
-        return config_out_path
+        }
 
     def _product_name(self):
         return '%s' % self.package.shortdesc
@@ -571,3 +575,45 @@ class MSI(WixBase):
     def _add_vs_properties(self):
         etree.SubElement(self.product, 'PropertyRef', Id='VS2010DEVENV')
         etree.SubElement(self.product, 'PropertyRef', Id='VC2010EXPRESS_IDE')
+
+class Burn(WixBase):
+    '''Creates an installer package from a
+       L{cerbero.packages.package.Package} with a burn bundle
+    '''
+    def __init__(self, config, package, packages_deps, wix_config, store, paths):
+        WixBase.__init__(self, config, package)
+        self.packages_deps = packages_deps
+        self.store = store
+        self.wix_config = wix_config
+        self.paths = paths
+        self._parse_sources()
+        self._add_include()
+
+    def _parse_sources(self):
+        sources_path = self.package.resources_wix_bundle
+        etree.register_namespace('bal', BAL_SCHEMA)
+        etree.register_namespace('util', UTIL_SCHEMA)
+        tree = etree.parse(sources_path)
+        self.root = tree.getroot()
+        for element in self.root.iter():
+            tag = element.tag[element.tag.index('}') + 1:]
+            if UTIL_SCHEMA in element.tag:
+                tag = 'util:' + tag
+            elif BAL_SCHEMA in element.tag:
+                tag = 'bal:' + tag
+            element.tag = tag
+        self.root.set('xmlns', WIX_SCHEMA)
+        self.root.set('xmlns:util', UTIL_SCHEMA)
+        self.root.set('xmlns:bal', BAL_SCHEMA)
+        self.product = self.bundle = self.root.find(".//Bundle")
+
+    def _add_include(self):
+        if self._with_wine:
+            self.wix_config = to_winepath(self.wix_config)
+        inc = etree.PI('include %s' % self.wix_config)
+        self.root.insert(0, inc)
+
+    def _fill(self):
+        chain_element = self.root.find(".//Chain")
+        for path in self.paths:
+            etree.SubElement(chain_element, 'MsiPackage', SourceFile=path)
