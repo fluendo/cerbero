@@ -164,6 +164,13 @@ class PackageBase(object):
     def post_package(self, paths):
         pass
 
+    def sign(self, path):
+        '''
+        Sign the specified path.
+        It's expected to sign in-place
+        '''
+        pass
+
     def set_mode(self, package_type):
         self.package_mode = package_type
 

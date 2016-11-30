@@ -258,10 +258,12 @@ class BurnPackager(MSIPackager):
     def pack(self, output_dir, devel=False, force=False, keep_temp=False):
         # Create Msi package
         paths = super(BurnPackager, self).pack(output_dir, devel, force, keep_temp)
+        self.package.sign(paths)
         # Create Burn package from the Msi package
         config_path = self._create_config()
         bundled_path = self._create_bundle(config_path, paths)
-        return [bundled_path]
+        bundled_path = self._sign_bundle(bundled_path)
+        return [bundled_path] # post_package will sign the whole bundled path
 
     def _create_config(self):
         config = WixConfig(self.config, self.package)
@@ -304,6 +306,17 @@ class BurnPackager(MSIPackager):
             os.remove(config_path)
 
         return path
+
+    def _sign_bundle(self, bundle):
+        insignia = Insignia(self.wix_prefix, self._with_wine)
+        engine = insignia.extract_engine(bundle, self.output_dir)
+        self.package.sign([engine])
+        bundled_path = insignia.attach_engine(bundle, self.output_dir, engine)
+
+        if not self.keep_temp:
+            os.remove(engine)
+
+        return bundled_path
 
 class Packager(object):
 
@@ -369,6 +382,39 @@ class Light(object):
         shell.call(self.cmd % self.options, output_dir)
         return os.path.join(output_dir, '%(msi)s.%(ext)s' % self.options)
 
+class Insignia(object):
+    """
+    Sign bundle with WiX insignia
+
+    Insignia extracts the Burn engine
+    to allow signing apart from the main bundle
+    """
+
+    cmd_extract = '%(wine)s %(q)s%(prefix)s/insignia.exe%(q)s -ib %(bundle)s -o %(engine)s'
+
+    cmd_attach = '%(wine)s %(q)s%(prefix)s/insignia.exe%(q)s -ab %(engine)s %(bundle)s -o %(bundle)s'
+
+    def __init__(self, wix_prefix, with_wine):
+        self.options = {}
+        self.options['prefix'] = wix_prefix
+        if with_wine:
+            self.options['wine'] = 'wine'
+            self.options['q'] = '"'
+        else:
+            self.options['wine'] = ''
+            self.options['q'] = ''
+
+    def extract_engine(self, bundle, output_dir, engine='engine.exe'):
+        self.options['bundle'] = bundle
+        self.options['engine'] = engine
+        shell.call(self.cmd_extract % self.options, output_dir)
+        return os.path.join(output_dir, '%(engine)s' % self.options)
+
+    def attach_engine(self, bundle, output_dir, engine):
+        self.options['bundle'] = bundle
+        self.options['engine'] = engine
+        shell.call(self.cmd_attach % self.options, output_dir)
+        return bundle
 
 def register():
     from cerbero.packages.packager import register_packager
