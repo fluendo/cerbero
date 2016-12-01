@@ -294,7 +294,7 @@ def get_wix_prefix():
     if 'WIX' in os.environ:
         wix_prefix = os.path.join(os.environ['WIX'], 'bin')
     else:
-        wix_prefix = 'C:/Program Files%s/Windows Installer XML v3.5/bin'
+        wix_prefix = 'C:/Program Files%s/WiX Toolset v3.6/bin'
         if not os.path.exists(wix_prefix):
             wix_prefix = wix_prefix % ' (x86)'
     if not os.path.exists(wix_prefix):

@@ -25,9 +25,9 @@ from cerbero.errors import EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.packages.package import Package, App, AppExtensionPackage
 from cerbero.utils import messages as m
-from cerbero.utils import shell, to_winepath, get_wix_prefix
+from cerbero.utils import shell, to_winepath, get_wix_prefix, etree
 from cerbero.tools import strip
-from cerbero.packages.wix import MergeModule, VSMergeModule, MSI, WixConfig
+from cerbero.packages.wix import MergeModule, VSMergeModule, MSI, WixConfig, Burn
 from cerbero.packages.wix import VSTemplatePackage
 from cerbero.config import Platform
 
@@ -247,6 +247,76 @@ class MSIPackager(PackagerBase):
 
         return path
 
+class BurnPackager(MSIPackager):
+    """Packager for Burn bundles"""
+    BURN_EXT = '-ext WixBalExtension'
+    UTIL_EXT = '-ext WixUtilExtension'
+
+    def __init__(self, config, package, store):
+        super(BurnPackager, self).__init__(config, package, store)
+
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
+        # Create Msi package
+        paths = super(BurnPackager, self).pack(output_dir, devel, force, keep_temp)
+        self.package.sign(paths)
+        # Create Burn package from the Msi package
+        config_path = self._create_config()
+        bundled_path = self._create_bundle(config_path, paths)
+        bundled_path = self._sign_bundle(bundled_path)
+        return [bundled_path] # post_package will sign the whole bundled path
+
+    def _create_config(self):
+        config = WixConfig(self.config, self.package)
+        config_path = config.write(self.output_dir)
+        return config_path
+
+    def _create_bundle(self, config_path, paths):
+        sources = [os.path.join(self.output_dir, "burn_%s.wxs" %
+                   self._package_name())]
+        burn = Burn(self.config, self.package, self.packagedeps, config_path,
+                  self.store, paths)
+        burn.write(sources[0])
+
+        wixobjs = ["%s.wixobj" % p.rsplit('.',1)[0] for p in sources]
+        for x in ['utils']:
+            wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
+            sources.append(os.path.join(os.path.abspath(self.config.data_dir),
+                           'wix/%s.wxs' % x))
+
+        if self._with_wine:
+            wixobjs = [to_winepath(x) for x in wixobjs]
+            sources = [to_winepath(x) for x in sources]
+
+        candle = Candle(self.wix_prefix, self._with_wine,
+                        "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
+        candle.compile(' '.join(sources), self.output_dir)
+        light = Light(self.wix_prefix, self._with_wine,
+                      "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
+        path = light.compile(wixobjs, self._package_name(), self.output_dir, extension='exe')
+
+        # Clean up
+        if not self.keep_temp:
+            os.remove(sources[0])
+            for f in wixobjs:
+                os.remove(f)
+                try:
+                    os.remove(f.replace('.wixobj', '.wixpdb'))
+                except:
+                    pass
+            os.remove(config_path)
+
+        return path
+
+    def _sign_bundle(self, bundle):
+        insignia = Insignia(self.wix_prefix, self._with_wine)
+        engine = insignia.extract_engine(bundle, self.output_dir)
+        self.package.sign([engine])
+        bundled_path = insignia.attach_engine(bundle, self.output_dir, engine)
+
+        if not self.keep_temp:
+            os.remove(engine)
+
+        return bundled_path
 
 class Packager(object):
 
@@ -255,6 +325,8 @@ class Packager(object):
                 isinstance(package, AppExtensionPackage):
             return MergeModulePackager(config, package, store)
         else:
+            if hasattr(package, 'resources_wix_bundle') and package.resources_wix_bundle:
+                return BurnPackager(config, package, store)
             return MSIPackager(config, package, store)
 
 
@@ -297,16 +369,52 @@ class Light(object):
             self.options['wine'] = ''
             self.options['q'] = ''
 
-    def compile(self, objects, msi_file, output_dir, merge_module=False):
+    def compile(self, objects, msi_file, output_dir, merge_module=False, extension=None):
         self.options['objects'] = ' '.join(objects)
         self.options['msi'] = msi_file
-        if merge_module:
-            self.options['ext'] = 'msm'
+        if extension:
+            self.options['ext'] = extension
         else:
-            self.options['ext'] = 'msi'
+            if merge_module:
+                self.options['ext'] = 'msm'
+            else:
+                self.options['ext'] = 'msi'
         shell.call(self.cmd % self.options, output_dir)
         return os.path.join(output_dir, '%(msi)s.%(ext)s' % self.options)
 
+class Insignia(object):
+    """
+    Sign bundle with WiX insignia
+
+    Insignia extracts the Burn engine
+    to allow signing apart from the main bundle
+    """
+
+    cmd_extract = '%(wine)s %(q)s%(prefix)s/insignia.exe%(q)s -ib %(bundle)s -o %(engine)s'
+
+    cmd_attach = '%(wine)s %(q)s%(prefix)s/insignia.exe%(q)s -ab %(engine)s %(bundle)s -o %(bundle)s'
+
+    def __init__(self, wix_prefix, with_wine):
+        self.options = {}
+        self.options['prefix'] = wix_prefix
+        if with_wine:
+            self.options['wine'] = 'wine'
+            self.options['q'] = '"'
+        else:
+            self.options['wine'] = ''
+            self.options['q'] = ''
+
+    def extract_engine(self, bundle, output_dir, engine='engine.exe'):
+        self.options['bundle'] = bundle
+        self.options['engine'] = engine
+        shell.call(self.cmd_extract % self.options, output_dir)
+        return os.path.join(output_dir, '%(engine)s' % self.options)
+
+    def attach_engine(self, bundle, output_dir, engine):
+        self.options['bundle'] = bundle
+        self.options['engine'] = engine
+        shell.call(self.cmd_attach % self.options, output_dir)
+        return bundle
 
 def register():
     from cerbero.packages.packager import register_packager
