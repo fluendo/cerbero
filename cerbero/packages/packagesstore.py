@@ -169,12 +169,14 @@ class PackagesStore (object):
         # Add a package for every recipe
         for recipe in self.cookbook.get_recipes_list():
             p = self._package_from_recipe(recipe)
-            if p.name not in self._packages.keys():
+            if p.name in self._packages.keys():
+                m.warning("Package with name '%s' already exists, not including it", p.name)
+            else:
                 self._packages[p.name] = p
 
     def _package_from_recipe(self, recipe):
         p = package.Package(self._config, self, self.cookbook)
-        p.name = recipe.name
+        p.name = '%s-pkg' % recipe.name
         p.license = recipe.licenses
         if recipe.built_version():
             version = recipe.built_version()
