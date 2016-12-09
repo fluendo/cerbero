@@ -37,6 +37,7 @@ DEFAULT_ALLOW_PARALLEL_BUILD = False
 DEFAULT_PACKAGER = "Default <default@change.me>"
 CERBERO_UNINSTALLED = 'CERBERO_UNINSTALLED'
 CERBERO_PREFIX = 'CERBERO_PREFIX'
+CERBERO_VARIANTS = 'CERBERO_VARIANTS'
 
 
 Platform = enums.Platform
@@ -71,6 +72,17 @@ class Variants(object):
         except Exception:
             raise AttributeError("%s is not a known variant" % name)
 
+    def __iter__(self):
+        for attr, value in self.__dict__.iteritems():
+            yield attr, value
+
+    def list_all(self):
+        ret = []
+        for v, val in self:
+            if not val:
+                v = 'no%s' % v
+            ret.append(v)
+        return ret
 
 class Config (object):
 
@@ -234,6 +246,7 @@ class Config (object):
         monopath = self._join_path (os.path.join(libdir, 'mono', '4.5'),
             os.path.join(libdir, 'mono', '4.5', 'Facades'))
 
+        variants = ':'.join(self.variants.list_all())
 
         # Most of these variables are extracted from jhbuild
         env = {'LD_LIBRARY_PATH': ld_library_path,
@@ -261,7 +274,8 @@ class Config (object):
                'PYTHONPATH': pythonpath,
                'MONO_PATH': monopath,
                'MONO_GAC_PREFIX': prefix,
-               'GSTREAMER_SDK_ROOT': prefix
+               'GSTREAMER_SDK_ROOT': prefix,
+               CERBERO_VARIANTS: variants
                }
         return env
 
