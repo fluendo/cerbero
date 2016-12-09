@@ -183,7 +183,7 @@ class PackagesStore (object):
         else:
             version = recipe.version
         p.version = '%s-%s' % (version, self.cookbook.recipe_file_hash(recipe.name))
-        p.files = ['%s' % p.name]
+        p.files = ['%s' % recipe.name]
         p.load_files()
         return p
 
