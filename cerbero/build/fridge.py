@@ -100,7 +100,7 @@ class Fridge (object):
 
     def _get_packages_names(self, recipe):
         ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
-        p = self.store.get_package(recipe.name)
+        p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         # use the package (not the packager) to avoid the warnings
         if p.files_list():
