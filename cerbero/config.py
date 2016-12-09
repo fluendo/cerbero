@@ -19,6 +19,7 @@
 import os
 import sys
 import copy
+import hashlib
 
 from cerbero import enums
 from cerbero.errors import FatalError, ConfigurationError
@@ -371,6 +372,15 @@ class Config (object):
         return self.target_platform != self.platform or \
                 self.target_arch != self.arch or \
                 self.target_distro_version != self.distro_version
+
+    def get_md5(self):
+        md5 = hashlib.md5()
+        for e in sorted(self.env.iterkeys()):
+            md5.update(e)
+            # Remove the prefix
+            v = self.env[e].replace(self.prefix, "{prefix}")
+            md5.update(v)
+        return md5.hexdigest()
 
     def _parse(self, filename, reset=True):
         config = {'os': os, '__file__': filename}
