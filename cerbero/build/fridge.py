@@ -45,21 +45,22 @@ class Fridge (object):
         self.config = self.cookbook.get_config()
         self.force = force
         shell.DRY_RUN = dry_run
-        if not os.path.exists(self.config.binaries):
-            os.makedirs(self.config.binaries)
-
-    def unfreeze_recipe(self, recipe_name, count, total):
+        if not self.config.binaries:
+           raise FatalError(_('Configuration without binaries path'))
+        self.binaries = os.path.join(self.config.binaries, self.config.get_md5())
         if not self.config.binary_repo:
            raise FatalError(_('Configuration without binary repo'))
+        self.binary_repo = os.path.join(self.config.binary_repo, self.config.get_md5())
+        m.message('Using config MD5: %s' % self.config.get_md5())
+        if not os.path.exists(self.binaries):
+            os.makedirs(self.binaries)
 
+    def unfreeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe_name, count, total):
-        if not self.config.binary_repo:
-           raise FatalError(_('Configuration without binary repo'))
-
         recipe = self.cookbook.get_recipe(recipe_name)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
@@ -68,8 +69,8 @@ class Fridge (object):
         packages_names = self._get_packages_names(recipe)
         for filename in packages_names.itervalues():
             if filename:
-                download_curl(os.path.join(self.config.binary_repo, filename),
-                            os.path.join(self.config.binaries, filename),
+                download_curl(os.path.join(self.binary_repo, filename),
+                            os.path.join(self.binaries, filename),
                             user=self.config.binary_repo_username,
                             password=self.config.binary_repo_password)
 
@@ -77,7 +78,7 @@ class Fridge (object):
         packages_names = self._get_packages_names(recipe)
         for filename in packages_names.itervalues():
             if filename:
-                tar = tarfile.open(os.path.join(self.config.binaries,
+                tar = tarfile.open(os.path.join(self.binaries,
                                    filename), 'r:bz2')
                 tar.extractall(self.config.prefix)
                 tar.close()
@@ -86,15 +87,15 @@ class Fridge (object):
         p = self.store.get_package(recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
-        paths = tar.pack(self.config.binaries, True, self.force, False)
+        paths = tar.pack(self.binaries, True, self.force, False)
         p.post_package(paths)
 
     def upload_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
         for filename in packages_names.itervalues():
             if filename:
-                upload_curl(os.path.join(self.config.binaries, filename),
-                            os.path.join(self.config.binary_repo, filename),
+                upload_curl(os.path.join(self.binaries, filename),
+                            os.path.join(self.binary_repo, filename),
                             user=self.config.binary_repo_username,
                             password=self.config.binary_repo_password)
 
