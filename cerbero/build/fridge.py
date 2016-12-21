@@ -90,7 +90,7 @@ class Fridge (object):
                 tar.close()
 
     def generate_binary(self, recipe):
-        p = self.store.get_package(recipe.name)
+        p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
         paths = tar.pack(self.binaries, True, self.force, False)
