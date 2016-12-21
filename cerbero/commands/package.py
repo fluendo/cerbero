@@ -54,6 +54,15 @@ class Package(Command):
                     'create this package (conflicts with --skip-deps-build)')),
             ArgparseArgument('-k', '--keep-temp', action='store_true',
                 default=False, help=_('Keep temporary files for debug')),
+            ArgparseArgument('-u', '--use-binaries', action='store_true',
+                default=False,
+                help=_('use binaries from the repo before building')),
+            ArgparseArgument('-p', '--upload-binaries', action='store_true',
+                default=False,
+                help=_('after a recipe is built upload the corresponding binary package')),
+            ArgparseArgument('-m', '--build-missing', action='store_true',
+                default=False,
+                help=_('in case a binary package is missing try to build it')),
             ])
 
     def run(self, config, args):
@@ -65,7 +74,7 @@ class Package(Command):
                     "--only-build-deps"))
 
         if not args.skip_deps_build:
-            self._build_deps(config, p)
+            self._build_deps(config, p, args)
 
         if args.only_build_deps:
             return
@@ -100,10 +109,12 @@ class Package(Command):
             with open('%s.sha1' % p, 'w+') as sha1file:
                 sha1file.write(sha1sum)
 
-    def _build_deps(self, config, package):
+    def _build_deps(self, config, package, args):
         build_command = build.Build()
         build_command.runargs(config, package.recipes_dependencies(),
-            store=self.store)
+            store=self.store, use_binaries=args.use_binaries,
+            upload_binaries=args.upload_binaries,
+            build_missing=args.build_missing)
 
 
 register_command(Package)
