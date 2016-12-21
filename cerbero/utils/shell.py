@@ -257,6 +257,7 @@ def upload_curl(source, url, user=None, password=None):
         else:
             cmd += " "
 
+    cmd += " --ftp-create-dirs "
     logging.info("Uploading %s to %s", source, url)
     call(cmd, path)
 
