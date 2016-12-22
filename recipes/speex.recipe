@@ -11,7 +11,6 @@ class Recipe(recipe.Recipe):
     allow_parallel_build = False
 
     files_libs = ['libspeex']
-    files_bins = ['speexdec', 'speexenc']
     files_devel = ['include/speex', 'lib/pkgconfig/speex.pc']
 
     def prepare(self):
