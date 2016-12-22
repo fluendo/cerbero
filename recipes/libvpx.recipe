@@ -27,7 +27,6 @@ class Recipe(recipe.Recipe):
                ]
 
     files_libs = ['libvpx']
-    files_bins = ['vpxenc', 'vpxdec']
     files_devel = ['include/vpx', 'lib/pkgconfig/vpx.pc']
 
     # libvpx does not have check target
