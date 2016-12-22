@@ -53,6 +53,9 @@ class Fridge (object):
            raise FatalError(_('Configuration without binary repo'))
 
         recipe = self.cookbook.get_recipe(recipe_name)
+        if not recipe.allow_package_creation:
+            m.warning(_("The recipe does not allow a package creation"))
+            return
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
@@ -61,6 +64,9 @@ class Fridge (object):
            raise FatalError(_('Configuration without binary repo'))
 
         recipe = self.cookbook.get_recipe(recipe_name)
+        if not recipe.allow_package_creation:
+            m.warning(_("The recipe does not allow a package creation"))
+            return
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 

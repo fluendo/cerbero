@@ -168,6 +168,8 @@ class PackagesStore (object):
             self._packages.update(packages[key])
         # Add a package for every recipe
         for recipe in self.cookbook.get_recipes_list():
+            if not recipe.allow_package_creation:
+                continue
             p = self._package_from_recipe(recipe)
             if p.name not in self._packages.keys():
                 self._packages[p.name] = p
