@@ -5,4 +5,5 @@ class Recipe(recipe.Recipe):
     version = '2.18'
     licenses = [License.GPLv1Plus]
     btype = BuildType.MAKEFILE
+    allow_package_creation = False
     configure_tpl = 'perl Makefile.PL PREFIX=$CERBERO_PREFIX'

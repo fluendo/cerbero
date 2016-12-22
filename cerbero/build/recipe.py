@@ -122,6 +122,7 @@ class Recipe(FilesProvider):
     platform_deps = None
     force = False
     runtime_dep = False
+    allow_package_creation = True
     _default_steps = BuildSteps()
 
     def __init__(self, config):
