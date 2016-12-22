@@ -1,0 +1,33 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+NUGET_TPL='''\
+#!/bin/sh
+exec mono $MONO_OPTIONS %s "$@"
+'''
+
+
+class Recipe(recipe.Recipe):
+    name = 'nuget'
+    version = '3.0'
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+
+    files_nuget = [
+        'bin/nuget',
+        'lib/mono/nuget/NuGet.exe'
+    ]
+
+    def install(self):
+        nuget_dest = os.path.join(self.config.prefix, 'lib/mono/nuget/NuGet.exe')
+        destdir = os.path.split(nuget_dest)[0]
+        if not os.path.exists(destdir):
+            shell.call('mkdir -p %s' % destdir)
+        try:
+            shell.download('http://nuget.org/nuget.exe', nuget_dest, check_cert=False)
+        except:
+            shell.download_curl('http://nuget.org/nuget.exe', nuget_dest, check_cert=False)
+        nuget_bin = os.path.join(self.config.prefix, 'bin/nuget')
+        with open(nuget_bin, 'w+') as f:
+            f.write(NUGET_TPL % (nuget_dest))
+        shell.call('chmod +x %s' % nuget_bin)
