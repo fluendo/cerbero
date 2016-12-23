@@ -11,6 +11,10 @@ class Recipe(recipe.Recipe):
     btype = BuildType.CUSTOM
     commit = 'origin/master'
     remotes = {'origin': 'git@github.com:ylatuya/Fody.git'}
+    files_devel = [
+        'share/nuget/Fody.1.29.4.nupkg',
+        'share/nuget/FodyCecil.1.29.4.nupkg',
+        ]
 
     def compile(self):
         for conf in ['NuGet/packages.config']:
