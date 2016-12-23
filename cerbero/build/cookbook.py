@@ -54,16 +54,19 @@ class RecipeStatus (object):
     @type built_version: str
     @ivar file_hash: hash of the file with the recipe description
     @type file_hash: int
+    @ivar config_hash: hash of the configuration
+    @type config_hash: int
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version=None, file_hash=0):
+                 mtime=time.time(), built_version=None, file_hash=0, config_hash=0):
         self.steps = steps
         self.needs_build = needs_build
         self.mtime = mtime
         self.filepath = filepath
         self.built_version = built_version
         self.file_hash = file_hash
+        self.config_hash = config_hash
 
     def touch(self):
         ''' Touches the recipe updating its modification time '''
@@ -355,7 +358,8 @@ class CookBook (object):
             if hasattr(recipe, '__file__'):
                 filepath = recipe.__file__
             self.status[recipe_name] = RecipeStatus(filepath, steps=[],
-                    file_hash=shell.file_hash(filepath))
+                    file_hash=shell.file_hash(filepath),
+                    config_hash=self.get_config().get_md5())
         return self.status[recipe_name]
 
     def _load_recipes(self):
@@ -390,6 +394,12 @@ class CookBook (object):
                     st.touch()
                 else:
                     self.reset_recipe_status(recipe.name)
+            # check that we use the same config md5
+            # Use getattr as config_hash was added later
+            saved_config_hash = getattr(st, 'config_hash', 0)
+            current_config_hash = self.get_config().get_md5()
+            if saved_config_hash != current_config_hash:
+                self.reset_recipe_status(recipe.name)
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}
