@@ -57,11 +57,17 @@ class Fridge (object):
 
     def unfreeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
+        if not recipe.allow_package_creation:
+            m.warning(_("The recipe does not allow a package creation"))
+            return
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
+        if not recipe.allow_package_creation:
+            m.warning(_("The recipe does not allow a package creation"))
+            return
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
