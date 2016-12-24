@@ -41,7 +41,6 @@ class Recipe(recipe.Recipe):
         if self.config.platform == Platform.DARWIN:
             self.append_env = {}
             self.new_env =  {'MONO_PATH' : None}
-            self.new_env["PATH"] = os.environ["PATH"].replace('%s/build-tools/bin:%s/dist/darwin_x86_64/bin:' % (self.config.home_dir, self.config.home_dir), '')
 
     def extract(self):
         super(recipe.Recipe, self).extract()
