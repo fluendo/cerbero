@@ -380,7 +380,9 @@ class CookBook (object):
             # filepath attribute was added afterwards
             if not hasattr(st, 'filepath') or not getattr(st, 'filepath'):
                 st.filepath = recipe.__file__
-            rmtime = os.path.getmtime(recipe.__file__)
+            elif st.filepath != recipe.__file__:
+                st.filepath = recipe.__file__
+            rmtime = os.path.getmtime(st.filepath)
             if rmtime > st.mtime:
                 # The mtime is different, check the file hash now
                 # Use getattr as file_hash we added later
