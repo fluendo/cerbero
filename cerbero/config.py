@@ -379,6 +379,10 @@ class Config (object):
             md5.update(e)
             # Remove the prefix
             v = self.env[e].replace(self.prefix, "{prefix}")
+            # Remove the cerbero's home dir
+            v = v.replace(self.home_dir, "{home}")
+            # Remove the user's home dir
+            v = v.replace(os.path.expanduser('~'), "{user}")
             md5.update(v)
         return md5.hexdigest()
 
