@@ -45,6 +45,7 @@ class Recipe(recipe.Recipe):
         if self.config.platform == Platform.DARWIN:
             self.append_env = {}
             self.new_env =  {'MONO_PATH' : None}
+            self.new_env["PATH"] = "/Library/Frameworks/Mono.framework/Commands/:" + os.environ["PATH"]
 
     def extract(self):
         super(recipe.Recipe, self).extract()
