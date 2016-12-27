@@ -32,7 +32,11 @@ class Recipe(recipe.Recipe):
       'lib/cli/Couchbase.Lite-1.3/websocket-sharp.dll',
     ]
 
-    files_devel = ['lib/pkgconfig/couchbase-lite.pc']
+    files_devel = [
+        'lib/pkgconfig/couchbase-lite.pc',
+        'share/nuget/Couchbase.Lite.LM.1.3.1.1.nupkg',
+        'share/nuget/Couchbase.Lite.Storage.SystemSQLite.LM.1.3.1.1.nupkg'
+    ]
 
     def prepare(self):
         super(Recipe, self).prepare()
