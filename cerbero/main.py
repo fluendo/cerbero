@@ -52,6 +52,7 @@ class Main(object):
         self.load_commands()
         self.parse_arguments(args)
         self.load_config()
+        self.print_config()
         self.run_command()
 
     def check_in_cerbero_shell(self):
@@ -98,6 +99,14 @@ class Main(object):
             self.config.load(self.args.config)
         except ConfigurationError, exc:
             self.log_error(exc, False)
+
+    def print_config(self):
+        ''' Print the configuration '''
+        m.message("Environment:")
+        sanitized_env = self.config.get_sanitized_env()
+        for e in sorted(sanitized_env.iterkeys()):
+            m.message("[%s] = %s" % (e, sanitized_env[e]))
+        m.message("MD5: %s" % self.config.get_md5())
 
     def run_command(self):
         command = self.args.command
