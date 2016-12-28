@@ -7,7 +7,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
     url = 'http://ftp.gnome.org/pub/gnome/sources/libglade/2.6/libglade-2.6.4.tar.bz2'
-    deps = ['gtk+']
+    deps = ['gtk+', 'libxml2']
     append_env = {'LDFLAGS': '-lgmodule-2.0'}
 
     files_libs = ['libglade-2.0']
