@@ -23,7 +23,7 @@ class Recipe(recipe.Recipe):
             'bin/gapi2-codegen',
             'lib/gtk-sharp-2.0/gapi2xml.pl',
             'lib/gtk-sharp-2.0/gapi_pp.pl',
-        ]
+        ],
         Platform.DARWIN: [
             'bin/gapi2-parser',
             'bin/gapi2-fixup',
