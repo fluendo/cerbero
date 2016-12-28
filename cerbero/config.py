@@ -373,17 +373,24 @@ class Config (object):
                 self.target_arch != self.arch or \
                 self.target_distro_version != self.distro_version
 
-    def get_md5(self):
-        md5 = hashlib.md5()
-        for e in sorted(self.env.iterkeys()):
-            md5.update(e)
+    def get_sanitized_env(self):
+        ret_env = {}
+        for e in self.env.iterkeys():
             # Remove the prefix
             v = self.env[e].replace(self.prefix, "{prefix}")
             # Remove the cerbero's home dir
             v = v.replace(self.home_dir, "{home}")
             # Remove the user's home dir
             v = v.replace(os.path.expanduser('~'), "{user}")
-            md5.update(v)
+            ret_env[e] = v
+        return ret_env
+
+    def get_md5(self):
+        md5 = hashlib.md5()
+        sanitized_env = self.get_sanitized_env()
+        for e in sorted(sanitized_env.iterkeys()):
+            md5.update(e)
+            md5.update(sanitized_env[e])
         return md5.hexdigest()
 
     def _parse(self, filename, reset=True):
