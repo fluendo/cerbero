@@ -11,23 +11,28 @@ class Recipe(recipe.Recipe):
     config_sh = 'sh bootstrap-2.12'
 
     files_gapi = [
-        'bin/gapi2-parser',
-        'bin/gapi2-fixup',
-        'bin/gapi2-codegen',
-        'lib/gtk-sharp-2.0/gapi_pp.pl',
         'lib/gtk-sharp-2.0/gapi_codegen.exe',
-        'lib/gtk-sharp-2.0/gapi2xml.pl',
         'lib/gtk-sharp-2.0/gapi-parser.exe',
         'lib/gtk-sharp-2.0/gapi-fixup.exe'
     ]
 
-    files_glue = [
-            '%(sdir)s/libatksharpglue-2%(mext)s',
-            '%(sdir)s/libgdksharpglue-2%(mext)s',
-            '%(sdir)s/libglibsharpglue-2%(mext)s',
-            '%(sdir)s/libgtksharpglue-2%(mext)s',
-            '%(sdir)s/libpangosharpglue-2%(mext)s',
-            '%(sdir)s/libgladesharpglue-2%(mext)s',
+    platform_files_gapi = {
+        Platform.LINUX: [
+            'bin/gapi2-parser',
+            'bin/gapi2-fixup',
+            'bin/gapi2-codegen',
+            'lib/gtk-sharp-2.0/gapi2xml.pl',
+            'lib/gtk-sharp-2.0/gapi_pp.pl',
+        ]
+    }
+
+    files_libs = [
+        'libatksharpglue-2',
+        'libgdksharpglue-2',
+        'libglibsharpglue-2',
+        'libgtksharpglue-2',
+        'libpangosharpglue-2',
+        'libgladesharpglue-2',
     ]
 
     files_mono = [
