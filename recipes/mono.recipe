@@ -16,6 +16,16 @@ class Recipe(recipe.Recipe):
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+    files_devel = [
+        'include/mono-2.0',
+        'lib/mono/2.0-api',
+        'lib/mono/4.0-api',
+        'lib/mono/4.5',
+        'lib/mono/4.5-api',
+        'lib/pkgconfig/mono-2.pc',
+        'lib/pkgconfig/mono.pc',
+    ]
+
     patches = [
         'mono/0001-System.ServiceModel-Fix-DuplexClient-initialization-.patch',
         'mono/0002-System.ServiceMode-Fix-XML-parsing-of-EndpointAddres.patch',

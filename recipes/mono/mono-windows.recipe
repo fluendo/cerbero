@@ -44,6 +44,15 @@ class Recipe(recipe.Recipe):
                  'bin/monosgen-2.0.dll']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+    files_devel = [
+        'include/mono-2.0',
+        'lib/mono/2.0-api',
+        'lib/mono/4.0-api',
+        'lib/mono/4.5',
+        'lib/mono/4.5-api',
+        'lib/pkgconfig/mono-2.pc',
+        'lib/pkgconfig/mono.pc',
+    ]
 
     def prepare(self):
         if self.config.target_platform != Platform.WINDOWS:
