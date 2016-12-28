@@ -10,6 +10,17 @@ class Recipe(recipe.Recipe):
     url = 'https://github.com/mono/gtk-sharp/archive/2.12.42.tar.gz'
     config_sh = 'sh bootstrap-2.12'
 
+    files_gapi = [
+        'bin/gapi2-parser',
+        'bin/gapi2-fixup',
+        'bin/gapi2-codegen',
+        'lib/gtk-sharp-2.0/gapi_pp.pl',
+        'lib/gtk-sharp-2.0/gapi_codegen.exe',
+        'lib/gtk-sharp-2.0/gapi2xml.pl',
+        'lib/gtk-sharp-2.0/gapi-parser.exe',
+        'lib/gtk-sharp-2.0/gapi-fixup.exe'
+    ]
+
     files_glue = [
             '%(sdir)s/libatksharpglue-2%(mext)s',
             '%(sdir)s/libgdksharpglue-2%(mext)s',
@@ -33,6 +44,13 @@ class Recipe(recipe.Recipe):
         'lib/mono/gtk-sharp-2.0/glib-sharp.dll.config',
         'lib/mono/gtk-sharp-2.0/glade-sharp.dll.config',
        ]
+
+    files_devel = [
+        'lib/pkgconfig/glade-sharp-2.0.pc',
+        'lib/pkgconfig/glib-sharp-2.0.pc',
+        'lib/pkgconfig/gtk-sharp-2.0.pc',
+        'lib/pkgconfig/gapi-2.0.pc',
+    ]
 
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
