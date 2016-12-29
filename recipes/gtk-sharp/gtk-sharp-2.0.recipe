@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 import shutil
+import os
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
@@ -72,5 +73,8 @@ class Recipe(recipe.Recipe):
 
     def post_install(self):
         for x in ['atk', 'gtk', 'gdk', 'pango', 'glib', 'glade']:
+            os.remove(os.path.join(self.config.prefix, 'lib', 'mono', 'gtk-sharp-2.0', "%s-sharp.dll" % x))
+            shutil.copy(os.path.join(self.build_dir, x, "%s-sharp.dll" % x),
+                       os.path.join(self.config.prefix, 'lib', 'mono', 'gtk-sharp-2.0'))
             shutil.copy(os.path.join(self.build_dir, x, "%s-sharp.dll.config" % x),
                        os.path.join(self.config.prefix, 'lib', 'mono', 'gtk-sharp-2.0'))
