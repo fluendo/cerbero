@@ -9,7 +9,6 @@ class Recipe(recipe.Recipe):
     deps = ['jpeg']
 
     files_libs = ['libjasper']
-    files_bins = ['jasper']
     files_devel = ['include/jasper']
 
     def prepare(self):
