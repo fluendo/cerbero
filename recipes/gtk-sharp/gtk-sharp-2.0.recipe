@@ -33,13 +33,15 @@ class Recipe(recipe.Recipe):
         ]
     }
 
-    files_libs = [
-        'libatksharpglue-2',
-        'libgdksharpglue-2',
-        'libglibsharpglue-2',
-        'libgtksharpglue-2',
-        'libpangosharpglue-2',
-        'libgladesharpglue-2',
+    # When cross compiling on Windows the glue files
+    # are not installed on bin (not the %(sdir) var)
+    files_glue = [
+        'lib/libatksharpglue-2%(mext)s',
+        'lib/libgdksharpglue-2%(mext)s',
+        'lib/libglibsharpglue-2%(mext)s',
+        'lib/libgtksharpglue-2%(mext)s',
+        'lib/libpangosharpglue-2%(mext)s',
+        'lib/libgladesharpglue-2%(mext)s',
     ]
 
     files_mono = [
