@@ -68,7 +68,7 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
-        if self.config.target_platform == Platform.WINDOWS:
+        if self.config.target_platform == self.config.platform and self.config.target_platform == Platform.WINDOWS:
             raise InvalidRecipeError()
 
     def post_install(self):
