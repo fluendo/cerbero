@@ -23,7 +23,11 @@ class Recipe(recipe.Recipe):
             shutil.copy(os.path.join(self.build_dir, f), fonts_dir)
 
         if self.config.target_platform == Platform.WINDOWS:
-            pango_aliases_filename = os.path.join(self.config.prefix, 'etc', 'pango', 'pango.aliases')
+            pango_path = os.path.join(self.config.prefix, 'etc', 'pango')
+            if not os.path.exists(pango_path):
+                os.makedirs(pango_path)
+
+            pango_aliases_filename = os.path.join(pango_path, 'pango.aliases')
             with open(pango_aliases_filename,'w') as f:
                 f.write('ubuntu = ubuntu\n')
                 # Simplified Chinese fonts
