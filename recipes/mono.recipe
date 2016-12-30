@@ -36,11 +36,13 @@ class Recipe(recipe.Recipe):
         'mono/0007-System.ServiceModel.Discovery-Fix-messages-validatio.patch',
     ]
 
-    deps = ['libgdiplus']
-
     def prepare(self):
-        if self.config.target_platform == Platform.WINDOWS:
+        if self.config.target_platform == self.config.platform and self.config.target_platform == Platform.WINDOWS:
             raise InvalidRecipeError()
+        if self.config.target_platform == Platform.WINDOWS:
+            self.configure_options += ' --without-x --enable-win32-dllmain=yes --with-libgc-threads=win32'
+        else:
+            self.deps = ['libgdiplus']
         if self.config.target_platform == Platform.DARWIN:
             self.append_env = {'LDFLAGS': ' -lcharset -lintl'}
             self.configure_options += ' --without-x'
