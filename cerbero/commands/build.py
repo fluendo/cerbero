@@ -100,7 +100,7 @@ class Build(Command):
             fridge = Fridge(store, force=self.force, dry_run=dry_run)
             i = 1
             for recipe in ordered_recipes:
-                if use_binaries:
+                if use_binaries and recipe.allow_package_creation:
                     try:
                         fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
                     except BuildStepError as e:
