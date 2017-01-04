@@ -90,7 +90,7 @@ class Fridge (object):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
-        paths = tar.pack(self.binaries, True, True, False)
+        paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True)
         p.post_package(paths)
 
     def upload_binary(self, recipe):

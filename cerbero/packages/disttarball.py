@@ -37,7 +37,7 @@ class DistTarball(PackagerBase):
             self.package_prefix = '%s-' % self.config.packages_prefix
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             split=True, package_prefix=''):
+             split=True, package_prefix='', force_empty=False):
         try:
             dist_files = self.files_list(PackageType.RUNTIME, force)
         except EmptyPackageError:
@@ -60,12 +60,12 @@ class DistTarball(PackagerBase):
             raise EmptyPackageError(self.package.name)
 
         filenames = []
-        if dist_files:
+        if dist_files or force_empty:
             runtime = self._create_tarball(output_dir, PackageType.RUNTIME,
                                            dist_files, force, package_prefix)
             filenames.append(runtime)
 
-        if split and devel and len(devel_files) != 0:
+        if split and devel and (devel_files or force_empty):
             devel = self._create_tarball(output_dir, PackageType.DEVEL,
                                          devel_files, force, package_prefix)
             filenames.append(devel)
