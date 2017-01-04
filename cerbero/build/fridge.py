@@ -20,9 +20,8 @@ import os
 import traceback
 import tarfile
 
-from cerbero.errors import PackageNotFoundError, BuildStepError, FatalError
+from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
-from cerbero.build.recipe import Recipe
 from cerbero.utils import messages as m
 from cerbero.utils.shell import upload_curl, download_curl
 from cerbero.packages.disttarball import DistTarball
@@ -58,16 +57,14 @@ class Fridge (object):
     def unfreeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
         if not recipe.allow_package_creation:
-            m.warning(_("The recipe does not allow a package creation"))
-            return
+            raise RecipeNotFreezableError(recipe_name)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
         if not recipe.allow_package_creation:
-            m.warning(_("The recipe does not allow a package creation"))
-            return
+            raise RecipeNotFreezableError(recipe_name)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 

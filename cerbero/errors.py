@@ -58,6 +58,12 @@ class RecipeNotFoundError(CerberoException):
         CerberoException.__init__(self, _("Recipe '%s' not found") % recipe)
 
 
+class RecipeNotFreezableError(CerberoException):
+
+    def __init__(self, recipe):
+        CerberoException.__init__(self, _("Recipe '%s' is not freezable") % recipe)
+
+
 class PackageNotFoundError(CerberoException):
 
     def __init__(self, package):

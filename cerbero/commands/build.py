@@ -19,7 +19,7 @@
 
 #from cerbero.oven import Oven
 from cerbero.commands import Command, register_command
-from cerbero.errors import BuildStepError
+from cerbero.errors import BuildStepError, RecipeNotFreezableError
 from cerbero.build.cookbook import CookBook
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.build.fridge import Fridge
@@ -96,24 +96,28 @@ class Build(Command):
         else:
             ordered_recipes = cookbook.list_recipes_deps(recipes)
 
+        def _build(recipe, i, length):
+            oven.cook_recipe(recipe, i, length)
+            if upload_binaries:
+                try:
+                    fridge.freeze_recipe(recipe, i, length)
+                except RecipeNotFreezableError:
+                    pass
+
         if use_binaries or upload_binaries:
             fridge = Fridge(store, force=self.force, dry_run=dry_run)
             i = 1
             for recipe in ordered_recipes:
-                if use_binaries and recipe.allow_package_creation:
+                if use_binaries:
                     try:
                         fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
-                    except BuildStepError as e:
-                        if build_missing:
-                            oven.cook_recipe(recipe, i, len(ordered_recipes))
-                            if upload_binaries:
-                                fridge.freeze_recipe(recipe, i, len(ordered_recipes))
+                    except (RecipeNotFreezableError, BuildStepError) as e:
+                        if build_missing or isinstance(e, RecipeNotFreezableError):
+                            _build(recipe, i, len(ordered_recipes))
                         else:
                             raise e
                 else:
-                    oven.cook_recipe(recipe, i, len(ordered_recipes))
-                    if upload_binaries:
-                       fridge.freeze_recipe(recipe, i, len(ordered_recipes))
+                    _build(recipe, i, len(ordered_recipes))
                 i += 1
         else:
             oven.start_cooking(ordered_recipes)
