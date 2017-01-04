@@ -107,10 +107,8 @@ class Fridge (object):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         # use the package (not the packager) to avoid the warnings
-        if p.files_list():
-            ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
-        if p.devel_files_list():
-            ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
+        ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
+        ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
         return ret
 
     def _apply_steps(self, recipe, steps, count, total):
