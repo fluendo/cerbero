@@ -10,19 +10,23 @@ class Recipe(recipe.Recipe):
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
 
-    _mono = [
+    files_bin = [
+        'bin/intl.dll',
+        'bin/mono-sgen.exe',
+        'bin/monosgen-2.0.dll'
+        'bin/zlib1.dll',
+    ]
+    files_posix_helper = ['bin/libMonoPosixHelper.dll']
+    files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+
+    files_devel = [
         'bin/al',
         'bin/mcs',
         'bin/mcs.bat',
         'bin/dmcs',
         'bin/gacutil',
-        'bin/intl.dll',
-        'bin/monosgen-2.0.dll',
-        'bin/mono-sgen.exe',
-        'bin/libMonoPosixHelper.dll',
         'bin/resgen',
         'bin/xbuild',
-        'bin/zlib1.dll',
         'etc/mono',
         'lib/mono/gac',
         'lib/mono/2.0-api',
@@ -38,22 +42,6 @@ class Recipe(recipe.Recipe):
         'lib/pkgconfig/mono.pc',
     ]
 
-    files_bins = ['mono-sgen']
-    files_bin = ['bin/zlib1.dll',
-                 'bin/intl.dll',
-                 'bin/monosgen-2.0.dll']
-    files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
-    files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
-    files_devel = [
-        'include/mono-2.0',
-        'lib/mono/2.0-api',
-        'lib/mono/4.0-api',
-        'lib/mono/4.5',
-        'lib/mono/4.5-api',
-        'lib/pkgconfig/mono-2.pc',
-        'lib/pkgconfig/mono.pc',
-    ]
-
     def prepare(self):
         if self.config.target_platform != self.config.platform or self.config.target_platform != Platform.WINDOWS:
             raise InvalidRecipeError()
@@ -64,7 +52,8 @@ class Recipe(recipe.Recipe):
         if not os.path.exists(mono_prefix_dir):
             m.error("ERROR: Mono not found!")
             raise FatalError("Mono not found!")
-        for f in self._mono:
+        for f in self.files_bin + self.files_config +\
+                self.files_posix_helper + self.files_devel:
             src = os.path.join(mono_prefix_dir, f)
             dest = os.path.join(self.config.prefix, f)
             if os.path.isdir(src):
