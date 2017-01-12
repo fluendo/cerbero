@@ -201,7 +201,7 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
             raise e
 
 
-def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None):
+def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False):
     '''
     Downloads a file with cURL
 
@@ -213,6 +213,8 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
     @type user: str
     @param password: the password to use when connecting
     @type password: str
+    @param overwrite: in case the file exists overwrite it
+    @type overwrite: bool
     '''
     path = None
     if recursive:
@@ -232,7 +234,7 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
     else:
         cmd += "-O %s " % url
 
-    if os.path.exists(destination):
+    if not overwrite and os.path.exists(destination):
         logging.info("File %s already downloaded." % destination)
     else:
         logging.info("Downloading %s", url)

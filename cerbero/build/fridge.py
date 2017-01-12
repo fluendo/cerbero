@@ -70,12 +70,16 @@ class Fridge (object):
 
     def fetch_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
+        # TODO we need to fetch the ${filename}.md5 file first
+        # compare the md5 with the current md5 and then download
+        # or not
         for filename in packages_names.itervalues():
             if filename:
                 download_curl(os.path.join(self.binary_repo, filename),
                             os.path.join(self.binaries, filename),
                             user=self.config.binary_repo_username,
-                            password=self.config.binary_repo_password)
+                            password=self.config.binary_repo_password,
+                            overwrite=True)
 
     def extract_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
@@ -95,6 +99,7 @@ class Fridge (object):
 
     def upload_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
+        # TODO we need to upload the .md5 files too for a smart cache system
         for filename in packages_names.itervalues():
             if filename:
                 upload_curl(os.path.join(self.binaries, filename),
