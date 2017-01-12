@@ -132,5 +132,6 @@ class Fridge (object):
                 stepfunc(recipe)
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
-            except Exception:
+            except Exception as e:
+                m.warning(str(e))
                 raise BuildStepError(recipe, step, traceback.format_exc())
