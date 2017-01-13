@@ -15,6 +15,7 @@ class Recipe(recipe.Recipe):
     files_bins = ['mono-sgen']
     files_libs = ['libmonosgen-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
+    files_certmgr = ['lib/mono/4.5/certmgr.exe']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
     files_devel = [
         'include/mono-2.0',
