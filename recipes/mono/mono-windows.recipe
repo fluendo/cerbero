@@ -39,17 +39,31 @@ class Recipe(recipe.Recipe):
     ]
 
     files_bins = ['mono-sgen']
-    files_bin = ['bin/zlib1.dll',
-                 'bin/intl.dll',
-                 'bin/monosgen-2.0.dll']
+    files_bin = [
+        'bin/intl.dll',
+        'bin/monosgen-2.0.dll',
+        'bin/zlib1.dll',
+    ]
+
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
     files_devel = [
-        'include/mono-2.0',
+        'bin/al',
+        'bin/mcs',
+        'bin/mcs.bat',
+        'bin/dmcs',
+        'bin/gacutil',
+        'bin/resgen',
+        'bin/xbuild',
+        'lib/mono/gac',
         'lib/mono/2.0-api',
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/xbuild-frameworks',
+        'include/mono-2.0',
+        'lib/mono-2.0.lib',
+        'lib/monosgen-2.0.lib',
         'lib/pkgconfig/mono-2.pc',
         'lib/pkgconfig/mono.pc',
     ]
