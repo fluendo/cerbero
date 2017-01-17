@@ -19,6 +19,8 @@
 import os
 import traceback
 import tarfile
+import tempfile
+import shutil
 
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
@@ -88,13 +90,18 @@ class Fridge (object):
                 tar = tarfile.open(os.path.join(self.binaries,
                                    filename), 'r:bz2')
                 tar.extractall(self.config.prefix)
+                for member in tar.getmembers():
+                    # Simple sed for .la and .pc files
+                    if os.path.splitext(member.name)[1] in ['.la', '.pc']:
+                        shell.replace(os.path.join(self.config.prefix, member.name),
+                            {"CERBERO_PREFIX": self.config.prefix})
                 tar.close()
 
     def generate_binary(self, recipe):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
-        paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True)
+        paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True, relocatable=True)
         p.post_package(paths)
 
     def upload_binary(self, recipe):
