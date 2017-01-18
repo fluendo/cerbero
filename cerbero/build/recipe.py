@@ -28,6 +28,7 @@ from cerbero.config import Platform
 from cerbero.errors import FatalError
 from cerbero.ide.vs.genlib import GenLib
 from cerbero.tools.osxuniversalgenerator import OSXUniversalGenerator
+from cerbero.tools.osxrelocator import OSXRelocator
 from cerbero.utils import N_, _
 from cerbero.utils import shell
 from cerbero.utils import messages as m
@@ -77,6 +78,7 @@ class BuildSteps(object):
     CHECK = (N_('Check'), 'check')
     GEN_LIBFILES = (N_('Gen Library File'), 'gen_library_file')
     MERGE = (N_('Merge universal binaries'), 'merge')
+    RELOCATE_OSX_LIBRARIES = (N_('Relocate OSX libraries'), 'relocate_osx_libraries')
 
     def __new__(klass):
         return [BuildSteps.FETCH, BuildSteps.EXTRACT,
@@ -147,6 +149,8 @@ class Recipe(FilesProvider):
         self._steps = self._default_steps[:]
         if self.config.target_platform == Platform.WINDOWS:
             self._steps.append(BuildSteps.GEN_LIBFILES)
+        if self.config.target_platform == Platform.DARWIN:
+            self._steps.append(BuildSteps.RELOCATE_OSX_LIBRARIES)
         FilesProvider.__init__(self, config)
         try:
             self.stype.__init__(self)
@@ -232,6 +236,15 @@ class Recipe(FilesProvider):
                 logging.debug('Created %s' % implib)
             except:
                 m.warning("Could not create .lib, gendef might be missing")
+
+    def relocate_osx_libraries(self):
+        '''
+        Make OSX libraries relocatable
+        '''
+        relocator = OSXRelocator(self.config.prefix, self.config.prefix, True)
+        for f in self.files_list():
+            if f.split('/')[0] in ['lib', 'bin', 'libexec']:
+                relocator.relocate_file(os.path.join(self.config.prefix, f))
 
     def recipe_dir(self):
         '''

@@ -19,6 +19,8 @@
 import os
 import traceback
 import tarfile
+import tempfile
+import shutil
 
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
@@ -70,12 +72,16 @@ class Fridge (object):
 
     def fetch_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
+        # TODO we need to fetch the ${filename}.md5 file first
+        # compare the md5 with the current md5 and then download
+        # or not
         for filename in packages_names.itervalues():
             if filename:
                 download_curl(os.path.join(self.binary_repo, filename),
                             os.path.join(self.binaries, filename),
                             user=self.config.binary_repo_username,
-                            password=self.config.binary_repo_password)
+                            password=self.config.binary_repo_password,
+                            overwrite=True)
 
     def extract_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
@@ -84,17 +90,23 @@ class Fridge (object):
                 tar = tarfile.open(os.path.join(self.binaries,
                                    filename), 'r:bz2')
                 tar.extractall(self.config.prefix)
+                for member in tar.getmembers():
+                    # Simple sed for .la and .pc files
+                    if os.path.splitext(member.name)[1] in ['.la', '.pc']:
+                        shell.replace(os.path.join(self.config.prefix, member.name),
+                            {"CERBERO_PREFIX": self.config.prefix})
                 tar.close()
 
     def generate_binary(self, recipe):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
-        paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True)
+        paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True, relocatable=True)
         p.post_package(paths)
 
     def upload_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
+        # TODO we need to upload the .md5 files too for a smart cache system
         for filename in packages_names.itervalues():
             if filename:
                 upload_curl(os.path.join(self.binaries, filename),
@@ -127,5 +139,6 @@ class Fridge (object):
                 stepfunc(recipe)
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
-            except Exception:
+            except Exception as e:
+                m.warning(str(e))
                 raise BuildStepError(recipe, step, traceback.format_exc())

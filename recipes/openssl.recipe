@@ -106,7 +106,11 @@ class Recipe(recipe.Recipe):
 
     def post_install(self):
         # Fix permissions for installed libs
-        for lib in self.libraries():
+        libs_to_fix = self.libraries()
+        # In case of windows we have one more file
+        if self.config.target_platform == Platform.WINDOWS:
+            libs_to_fix.append('lib/libcrypto.dll.a')
+        for lib in libs_to_fix:
             shell.call("chmod 666 %s" % os.path.join(self.config.prefix, lib))
 
         # XXX: Don't forget to update this when the soname is bumped!

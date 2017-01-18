@@ -376,6 +376,9 @@ class Config (object):
     def get_sanitized_env(self):
         ret_env = {}
         for e in self.env.iterkeys():
+            # envvars to avoid
+            if e in ['PATH']:
+                continue
             # Remove the prefix
             v = self.env[e].replace(self.prefix, "{prefix}")
             # Remove the cerbero's home dir

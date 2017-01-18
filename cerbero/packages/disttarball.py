@@ -18,6 +18,7 @@
 
 import os
 import tarfile
+import tempfile
 
 import cerbero.utils.messages as m
 from cerbero.utils import _
@@ -37,7 +38,7 @@ class DistTarball(PackagerBase):
             self.package_prefix = '%s-' % self.config.packages_prefix
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             split=True, package_prefix='', force_empty=False):
+             split=True, package_prefix='', force_empty=False, relocatable=False):
         try:
             dist_files = self.files_list(PackageType.RUNTIME, force)
         except EmptyPackageError:
@@ -62,12 +63,14 @@ class DistTarball(PackagerBase):
         filenames = []
         if dist_files or force_empty:
             runtime = self._create_tarball(output_dir, PackageType.RUNTIME,
-                                           dist_files, force, package_prefix)
+                                           dist_files, force, package_prefix,
+                                           relocatable)
             filenames.append(runtime)
 
         if split and devel and (devel_files or force_empty):
             devel = self._create_tarball(output_dir, PackageType.DEVEL,
-                                         devel_files, force, package_prefix)
+                                         devel_files, force, package_prefix,
+                                         relocatable)
             filenames.append(devel)
         return filenames
 
@@ -87,7 +90,7 @@ class DistTarball(PackagerBase):
                 self.package.version, package_type, ext)
 
     def _create_tarball(self, output_dir, package_type, files, force,
-                        package_prefix):
+                        package_prefix, relocatable=False):
         filename = os.path.join(output_dir, self.get_name(package_type))
         if os.path.exists(filename):
             if force:
@@ -99,7 +102,22 @@ class DistTarball(PackagerBase):
 
         for f in files:
             filepath = os.path.join(self.prefix, f)
-            tar.add(filepath, os.path.join(package_prefix, f))
+            arcname = os.path.join(package_prefix, f)
+            if relocatable and os.path.splitext(f)[1] in ['.la', '.pc']:
+                with open(filepath, 'r') as fo:
+                    content = fo.read()
+                    content = content.replace(self.config.prefix, "CERBERO_PREFIX")
+                    rewritten = tempfile.NamedTemporaryFile()
+                    rewritten.write(content)
+                    rewritten.flush()
+                    rewritten.seek(0)
+                    tinfo = tar.gettarinfo(arcname=arcname, fileobj=fo)
+                    tinfo.size = len(content)
+                    tinfo.name = os.path.join(package_prefix, f)
+                    tar.addfile(tinfo, rewritten)
+                    rewritten.close()
+            else:
+                tar.add(filepath, arcname)
         tar.close()
 
         return filename
