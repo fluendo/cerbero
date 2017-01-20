@@ -13,6 +13,8 @@ class Recipe(recipe.Recipe):
             Platform.DARWIN:  ['libiconv', 'sed'],
             Platform.WINDOWS: ['libiconv', 'mingw-runtime'],}
     configure_options = ' --disable-java --disable-csharp --disable-native-java --without-csv'
+    files_libs = ['libintl']
+    files_devel = ['include/libintl.h']
 
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
