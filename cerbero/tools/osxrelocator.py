@@ -52,7 +52,7 @@ class OSXRelocator(object):
         self.change_libs_path(object_file)
 
     def change_id(self, object_file, id=None):
-        id = id or object_file.replace(self.lib_prefix, self.new_lib_prefix)
+        id = id or object_file.replace(self.lib_prefix, '@rpath')
         filename = os.path.basename(object_file)
         if not (filename.endswith('so') or filename.endswith('dylib')):
             return
