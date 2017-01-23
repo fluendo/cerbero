@@ -245,7 +245,6 @@ class Recipe(FilesProvider):
         for f in self.files_list():
             if f.split('/')[0] in ['lib', 'bin', 'libexec']:
                 relocator.relocate_file(os.path.join(self.config.prefix, f))
-                relocator.change_id(os.path.join(self.config.prefix, f))
 
     def recipe_dir(self):
         '''
