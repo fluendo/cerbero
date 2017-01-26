@@ -204,7 +204,7 @@ class MakeBundle {
 			sw.WriteLine (
 				"\t.section __TEXT,__text,regular,pure_instructions\n" + 
 				"\t.globl _{0}\n" +
-				"\t.data\n" +
+				"\t.text\n" +
 				"\t.align 4\n" +
 				"_{0}:\n",
 				name, size);
