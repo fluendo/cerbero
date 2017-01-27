@@ -1,0 +1,11 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'gst-fluendo-timeshift'
+    version = 'git-master'
+    commit = 'origin/master'
+    licenses = [License.LGPLv2Plus]
+    config_sh = 'sh ./autogen.sh --noconfigure && ./configure'
+    remotes = {'origin': 'git@bitbucket.org:fluendo/gst-fluendo-timeshift.git'}
+    deps = ['gstreamer', 'gst-plugins-base']
+
