@@ -68,7 +68,7 @@ class InfoPlist(object):
         properties = {'id': self.identifier, 'name': self.name,
                 'desc': self.info, 'ptype': self.package_type,
                 'icon': self.icon, 'version_str': self.version,
-                'version': self.version.replace('.', ''),
+                'version': self.version,
                 'minosxversion': self.minosxversion, 'extra':''}
         if self.icon:
             properties['extra'] = '<key>CFBundleIconFile</key>\n' \
