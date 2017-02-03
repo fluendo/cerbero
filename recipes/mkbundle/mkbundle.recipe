@@ -20,5 +20,8 @@ class Recipe(recipe.Recipe):
         shell.call('make', self.build_dir)
 
     def install(self):
+        cli = os.path.join(self.config.prefix, 'lib', 'cli')
+        if not os.path.exists(cli):
+            os.makedirs(cli)
         shutil.copy(os.path.join(self.build_dir, 'mkbundle.exe'),
             os.path.join(self.config.prefix, 'lib', 'cli'))
