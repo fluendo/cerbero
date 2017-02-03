@@ -595,6 +595,8 @@ class App(PackageBase):
     @type resources_info_plist: string
     @cvar resources_distribution: Distribution XML template file
     @type resources_distribution: Distribution XML template file
+    @cvar osx_resources: Extra files to include in the bundle's Resources
+    @type osx_resources: list
     @cvar osx_create_dmg: Packages the app in a dmg
     @type osx_create_dmg: bool
     @cvar osx_create_pkg: Packages the app in a pkg
@@ -614,6 +616,7 @@ class App(PackageBase):
     resources_distribution = 'distribution.xml'
     osx_create_dmg = True
     osx_create_pkg = True
+    osx_resources = None
 
     def __init__(self, config, store, cookbook):
         PackageBase.__init__(self, config, store)
@@ -623,6 +626,8 @@ class App(PackageBase):
             self.app_version = self.version
         if self.commands is None:
             self.commands = []
+        if self.osx_resources is None:
+            self.osx_resources = []
         self.cookbook = cookbook
         self._app_recipe = self.cookbook.get_recipe(self.app_recipe)
         self.title = self.name
