@@ -26,6 +26,7 @@ from cerbero.errors import PackageNotFoundError, UsageError
 from cerbero.packages.packager import Packager
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.packages.disttarball import DistTarball
+from cerbero.packages.distzip import DistZip
 from cerbero.utils import shell
 
 class Package(Command):
@@ -41,6 +42,9 @@ class Package(Command):
             ArgparseArgument('-t', '--tarball', action='store_true',
                 default=False,
                 help=_('Creates a tarball instead of a native package')),
+            ArgparseArgument('-z', '--zip', action='store_true',
+                default=False,
+                help=_('Creates a zip instead of a native package')),
             ArgparseArgument('-f', '--force', action='store_true',
                 default=False, help=_('Delete any existing package file')),
             ArgparseArgument('-d', '--no-devel', action='store_true',
@@ -83,6 +87,8 @@ class Package(Command):
             raise PackageNotFoundError(args.package[0])
         if args.tarball:
             pkg = DistTarball(config, p, self.store)
+        if args.zip:
+            pkg = DistZip(config, p, self.store)
         else:
             pkg = Packager(config, p, self.store)
         m.action(_("Creating package for %s") % p.name)
