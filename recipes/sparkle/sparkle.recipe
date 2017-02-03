@@ -1,0 +1,55 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+import logging
+from cerbero.build.build import modify_environment
+import cerbero.utils.messages as m
+
+
+class Recipe(recipe.Recipe):
+    name = 'Sparkle'
+    version = '1.16.0'
+    licenses = [License.MIT]
+    btype = BuildType.CUSTOM
+    remotes = {'origin' : "git@github.com:fluendo/SparkleSharp.git"}
+    commit = 'origin/master'
+
+    files_nuget = [
+            ]
+    files_framework = [
+            "frameworks/Sparkle.framework"
+    ]
+
+    def prepare(self):
+        super(Recipe, self).prepare()
+        if self.config.platform != Platform.DARWIN:
+            raise InvalidRecipeError ()
+        self.files_nuget.append('share/nuget/Sparkle.%s.nupkg' % self.version)
+        # ld does not understand -isysroot so use cc instead for linking
+        self.new_env['LD'] = 'cc'
+
+    @modify_environment
+    def compile(self):
+        shell.call('xcodebuild -configuration Release -target Sparkle',
+                os.path.join(self.build_dir, 'Sparkle/3rdparty/Sparkle'))
+        shell.call("xbuild Sparkle.sln /p:Configuration=Release", self.build_dir)
+        nuspec = os.path.join(self.build_dir, "sparkle.nuspec")
+
+        shutil.copy(self.relative_path ('sparkle.nuspec.tpl'),
+                nuspec)
+        replacements = {'{VERSION}': self.version}
+        shell.replace(nuspec, replacements)
+
+        shell.call('nuget pack sparkle.nuspec', self.build_dir)
+
+    def install(self):
+        frameworks_dir = os.path.join(self.config.prefix, 'frameworks')
+        if not os.path.exists(frameworks_dir):
+            os.mkdir(frameworks_dir)
+        shell.copy_dir(os.path.join(self.build_dir,
+            'Sparkle/3rdparty/Sparkle/build/Release/Sparkle.framework'),
+                os.path.join(frameworks_dir, 'Sparkle.framework'))
+        nuget_dir = os.path.join(self.config.prefix, 'share', 'nuget')
+        if not os.path.exists(nuget_dir):
+            os.mkdir(nuget_dir)
+        shutil.copy(os.path.join(self.build_dir, 'Sparkle.%s.nupkg' % self.version),
+                nuget_dir)
