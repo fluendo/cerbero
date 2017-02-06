@@ -58,6 +58,11 @@ class Distro:
     IOS = 'ios'
     ANDROID = 'android'
 
+class ArchiveType:
+    ''' Enumeration of supported archives '''
+    TARBALL = 'tarball'
+    ZIP = 'zip'
+
 
 class DistroVersion:
     ''' Enumeration of supported distribution versions '''

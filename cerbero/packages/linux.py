@@ -22,7 +22,8 @@ import os
 from cerbero.config import DEFAULT_PACKAGER
 from cerbero.errors import EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
-from cerbero.packages.disttarball import DistTarball
+from cerbero.packages.distarchive import DistArchive
+from cerbero.enum import ArchiveType
 from cerbero.packages.package import MetaPackage, App
 from cerbero.utils import _
 from cerbero.utils import messages as m
@@ -58,8 +59,8 @@ class LinuxPackager(PackagerBase):
 
         if not isinstance(self.package, MetaPackage):
             # create a tarball with all the package's files
-            tarball_packager = DistTarball(self.config, self.package,
-                    self.store)
+            tarball_packager = DistArchive(self.config, self.package,
+                                           self.store, ArchiveType.TARBALL)
             tarball = tarball_packager.pack(tmpdir, devel, True,
                     split=False, package_prefix=self.full_package_name)[0]
             tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)

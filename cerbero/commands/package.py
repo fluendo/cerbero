@@ -25,8 +25,8 @@ from cerbero.utils import messages as m
 from cerbero.errors import PackageNotFoundError, UsageError
 from cerbero.packages.packager import Packager
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.packages.disttarball import DistTarball
-from cerbero.packages.distzip import DistZip
+from cerbero.packages.distarchive import DistArchive
+from cerbero.enums import ArchiveType
 from cerbero.utils import shell
 
 class Package(Command):
@@ -39,12 +39,9 @@ class Package(Command):
                              help=_('name of the package to create')),
             ArgparseArgument('-o', '--output-dir', default='.',
                              help=_('Output directory for the tarball file')),
-            ArgparseArgument('-t', '--tarball', action='store_true',
-                default=False,
-                help=_('Creates a tarball instead of a native package')),
-            ArgparseArgument('-z', '--zip', action='store_true',
-                default=False,
-                help=_('Creates a zip instead of a native package')),
+            ArgparseArgument('-t', '--type', type=str, default='native',
+                choices=['native', ArchiveType.TARBALL , ArchiveType.ZIP],
+                help=_('Choose a package type, native or archive')),
             ArgparseArgument('-f', '--force', action='store_true',
                 default=False, help=_('Delete any existing package file')),
             ArgparseArgument('-d', '--no-devel', action='store_true',
@@ -85,12 +82,11 @@ class Package(Command):
 
         if p is None:
             raise PackageNotFoundError(args.package[0])
-        if args.tarball:
-            pkg = DistTarball(config, p, self.store)
-        if args.zip:
-            pkg = DistZip(config, p, self.store)
-        else:
+        if args.type == 'native':
             pkg = Packager(config, p, self.store)
+        else:
+            pkg = DistArchive(config, p, self.store, args.type)
+
         m.action(_("Creating package for %s") % p.name)
         p.pre_package()
         paths = pkg.pack(os.path.abspath(args.output_dir), not args.no_devel,

@@ -21,15 +21,16 @@ import tarfile
 import zipfile
 
 from cerbero.packages import PackageType
-from cerbero.packages.disttarball import DistTarball
+from cerbero.packages.distarchive import DistArchive
+from cerbero.enum import ArchiveType
 from cerbero.errors import UsageError
 
 
-class AndroidPackager(DistTarball):
+class AndroidPackager(DistArchive):
     ''' Creates a distribution tarball for Android '''
 
     def __init__(self, config, package, store):
-        DistTarball.__init__(self, config, package, store)
+        DistArchive.__init__(self, config, package, store, ArchiveType.TARBALL)
 
     def _create_tarball(self, output_dir, package_type, files, force,
                         package_prefix):

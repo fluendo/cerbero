@@ -26,7 +26,8 @@ from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
 from cerbero.utils import messages as m
 from cerbero.utils.shell import upload_curl, download_curl
-from cerbero.packages.disttarball import DistTarball
+from cerbero.packages.distarchive import DistArchive
+from cerbero.enum import ArchiveType
 from cerbero.packages import PackageType
 
 class Fridge (object):
@@ -99,7 +100,7 @@ class Fridge (object):
 
     def generate_binary(self, recipe):
         p = self.store.get_package('%s-pkg' % recipe.name)
-        tar = DistTarball(self.config, p, self.store)
+        tar = DistArchive(self.config, p, self.store, ArchiveType.TARBALL)
         p.pre_package()
         paths = tar.pack(self.binaries, devel=True, force=True, force_empty=True, relocatable=True)
         p.post_package(paths)
@@ -117,7 +118,7 @@ class Fridge (object):
     def _get_packages_names(self, recipe):
         ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
         p = self.store.get_package('%s-pkg' % recipe.name)
-        tar = DistTarball(self.config, p, self.store)
+        tar = DistArchive(self.config, p, self.store, ArchiveType.TARBALL)
         # use the package (not the packager) to avoid the warnings
         ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
         ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)

@@ -19,23 +19,33 @@
 import os
 import tarfile
 import tempfile
+import zipfile
 
 import cerbero.utils.messages as m
 from cerbero.utils import _
 from cerbero.errors import UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
+from cerbero.enums import ArchiveType
 
+class DistArchive(PackagerBase):
+    ''' Creates a distribution archive '''
 
-class DistTarball(PackagerBase):
-    ''' Creates a distribution tarball '''
-
-    def __init__(self, config, package, store):
+    def __init__(self, config, package, store, archive_type):
         PackagerBase.__init__(self, config, package, store)
         self.package = package
         self.prefix = config.prefix
         self.package_prefix = ''
         if self.config.packages_prefix is not None:
             self.package_prefix = '%s-' % self.config.packages_prefix
+
+        if archive_type == ArchiveType.TARBALL:
+            self.ext = 'tar.bz2'
+            self.archive_func = self._create_tarball
+        elif archive_type == ArchiveType.ZIP:
+            self.ext = 'zip'
+            self.archive_func = self._create_zip
+        else:
+            raise UsageError("Unsupported archive_type %s" % archive_type)
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
              split=True, package_prefix='', force_empty=False, relocatable=False):
@@ -62,19 +72,19 @@ class DistTarball(PackagerBase):
 
         filenames = []
         if dist_files or force_empty:
-            runtime = self._create_tarball(output_dir, PackageType.RUNTIME,
+            runtime = self._create_archive(output_dir, PackageType.RUNTIME,
                                            dist_files, force, package_prefix,
                                            relocatable)
             filenames.append(runtime)
 
         if split and devel and (devel_files or force_empty):
-            devel = self._create_tarball(output_dir, PackageType.DEVEL,
+            devel = self._create_archive(output_dir, PackageType.DEVEL,
                                          devel_files, force, package_prefix,
                                          relocatable)
             filenames.append(devel)
         return filenames
 
-    def get_name(self, package_type, ext='tar.bz2'):
+    def get_name(self, package_type, ext=None):
         '''
         Get the name of the package file
 
@@ -85,18 +95,14 @@ class DistTarball(PackagerBase):
         @return: name of the package
         @rtype: str
         '''
+        if not ext:
+            ext = self.ext
+
         return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name,
                 self.config.target_platform, self.config.target_arch,
                 self.package.version, package_type, ext)
 
-    def _create_tarball(self, output_dir, package_type, files, force,
-                        package_prefix, relocatable=False):
-        filename = os.path.join(output_dir, self.get_name(package_type))
-        if os.path.exists(filename):
-            if force:
-                os.remove(filename)
-            else:
-                raise UsageError("File %s already exists" % filename)
+    def _create_tarball(self, filename, files, package_prefix, relocatable):
 
         tar = tarfile.open(filename, "w:bz2")
 
@@ -119,5 +125,32 @@ class DistTarball(PackagerBase):
             else:
                 tar.add(filepath, arcname)
         tar.close()
+
+    def _create_zip(self, filename, files, package_prefix, relocatable):
+
+        zip_file = zipfile.ZipFile(filename, "w")
+
+        for f in files:
+            filepath = os.path.join(self.prefix, f)
+            arcname = os.path.join(package_prefix, f)
+            if relocatable and os.path.splitext(f)[1] in ['.la', '.pc']:
+                with open(filepath, 'r') as fo:
+                    content = fo.read()
+                    content = content.replace(self.config.prefix, "CERBERO_PREFIX")
+                    zip_file.writestr(arcname, content)
+            else:
+                zip_file.write(filepath, arcname)
+        zip_file.close()
+
+    def _create_archive(self, output_dir, package_type, files, force,
+                        package_prefix, relocatable=False):
+        filename = os.path.join(output_dir, self.get_name(package_type))
+        if os.path.exists(filename):
+            if force:
+                os.remove(filename)
+            else:
+                raise UsageError("File %s already exists" % filename)
+
+        self.archive_func(filename, files, package_prefix, relocatable)
 
         return filename
