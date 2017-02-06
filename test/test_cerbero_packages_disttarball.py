@@ -21,7 +21,8 @@ import shutil
 import tarfile
 import tempfile
 
-from cerbero.packages.disttarball import DistTarball
+from cerbero.packages.distarchive import DistArchive
+from cerbero.enums import ArchiveType
 from test.test_packages_common import create_store
 from test.test_common import DummyConfig
 from test.test_build_common import add_files
@@ -35,7 +36,8 @@ class DistTarballTest(unittest.TestCase):
         self.config.prefix = self.tmp
         self.store =  create_store(self.config)
         self.package = self.store.get_package('gstreamer-runtime')
-        self.packager = DistTarball(self.config, self.package, self.store)
+        self.packager = DistArchive(self.config, self.package, self.store,
+                                    ArchiveType.TARBALL)
         add_files(self.tmp)
 
     def tearDown(self):
