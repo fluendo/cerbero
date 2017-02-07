@@ -445,7 +445,12 @@ class DebianPackager(LinuxPackager):
             args['dh_strip'] = DH_STRIP_TPL % args
         else:
             args['dh_strip'] = ''
-        return RULES_TPL % args
+
+        if self.package.resources_debian_rules:
+            rules = open(self.package.resources_debian_rules).read()
+        else:
+            rules = RULES_TPL
+        return rules % args
 
 
 class Packager(object):

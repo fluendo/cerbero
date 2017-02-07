@@ -110,6 +110,7 @@ class PackageBase(object):
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
     conflicts = ''
+    resources_debian_rules = None
 
     def __init__(self, config, store):
         if self.sys_deps is None:
