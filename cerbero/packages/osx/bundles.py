@@ -202,6 +202,10 @@ class ApplicationBundlePackager(object):
         # Copy app icon to Resources
         shutil.copy(self.package.resources_icon_icns, resources)
 
+        for f in self.package.osx_resources:
+            f = self.package.relative_path(f)
+            shutil.copy(f, resources)
+
         # Link or create a wrapper for the executables in Contents/MacOS
         for name, path, use_wrapper, wrapper in self.package.get_commands():
             filename = os.path.join(macos, name)

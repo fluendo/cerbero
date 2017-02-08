@@ -1,0 +1,31 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+import logging
+from cerbero.build.build import modify_environment
+import cerbero.utils.messages as m
+
+
+class Recipe(recipe.Recipe):
+    name = 'WinSparkle'
+    version = '0.5.3'
+    licenses = [License.MIT]
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+    url = "https://github.com/vslavik/winsparkle/releases/download/v0.5.3/WinSparkle-0.5.3.zip"
+
+    files_lib = [
+            "bin/libsparkle.dll"
+    ]
+
+    def prepare(self):
+        super(Recipe, self).prepare()
+        if self.config.platform != Platform.WINDOWS:
+            raise InvalidRecipeError ()
+
+    @modify_environment
+    def compile(self):
+        pass
+
+    def install(self):
+        shutil.copy(os.path.join(self.build_dir, 'Release', 'WinSparkle.dll'),
+                os.path.join(self.config.prefix, 'bin', 'libsparkle.dll'))
