@@ -19,9 +19,20 @@ class Recipe(recipe.Recipe):
             "frameworks/Sparkle.framework"
     ]
 
+    def fetch(self):
+        if self.config.platform == Platform.DARWIN:
+            super(Recipe, self).fetch()
+
+    def extract(self):
+        if self.config.platform == Platform.DARWIN:
+            super(Recipe, self).extract()
+        elif self.config.platform == Platform.WINDOWS:
+            if not os.path.exists(self.build_dir):
+                os.mkdir(self.build_dir)
+
     def prepare(self):
         super(Recipe, self).prepare()
-        if self.config.platform != Platform.DARWIN:
+        if self.config.platform != Platform.WINDOWS and self.config.platform != Platform.DARWIN:
             raise InvalidRecipeError ()
         self.files_nuget.append('share/nuget/Sparkle.%s.nupkg' % self.version)
         # ld does not understand -isysroot so use cc instead for linking
@@ -29,25 +40,33 @@ class Recipe(recipe.Recipe):
 
     @modify_environment
     def compile(self):
-        shell.call('xcodebuild -configuration Release -target Sparkle',
-                os.path.join(self.build_dir, 'Sparkle/3rdparty/Sparkle'))
-        shell.call("xbuild Sparkle.sln /p:Configuration=Release", self.build_dir)
         nuspec = os.path.join(self.build_dir, "sparkle.nuspec")
+        if self.config.platform == Platform.DARWIN:
+            shell.call('xcodebuild -configuration Release -target Sparkle',
+                    os.path.join(self.build_dir, 'Sparkle/3rdparty/Sparkle'))
+            shell.call("xbuild Sparkle.sln /p:Configuration=Release", self.build_dir)
 
-        shutil.copy(self.relative_path ('sparkle.nuspec.tpl'),
-                nuspec)
+            shutil.copy(self.relative_path ('sparkle.nuspec.tpl'),
+                    nuspec)
+            
+        elif self.config.platform == Platform.WINDOWS:
+            shutil.copy(self.relative_path ('sparkle.nuspec.win.tpl'),
+                    nuspec)
+
         replacements = {'{VERSION}': self.version}
         shell.replace(nuspec, replacements)
 
         shell.call('nuget pack sparkle.nuspec', self.build_dir)
 
     def install(self):
-        frameworks_dir = os.path.join(self.config.prefix, 'frameworks')
-        if not os.path.exists(frameworks_dir):
-            os.mkdir(frameworks_dir)
-        shell.copy_dir(os.path.join(self.build_dir,
-            'Sparkle/3rdparty/Sparkle/build/Release/Sparkle.framework'),
-                os.path.join(frameworks_dir, 'Sparkle.framework'))
+        if self.config.platform == Platform.DARWIN:
+            frameworks_dir = os.path.join(self.config.prefix, 'frameworks')
+            if not os.path.exists(frameworks_dir):
+                os.mkdir(frameworks_dir)
+            shell.copy_dir(os.path.join(self.build_dir,
+                'Sparkle/3rdparty/Sparkle/build/Release/Sparkle.framework'),
+                    os.path.join(frameworks_dir, 'Sparkle.framework'))
+
         nuget_dir = os.path.join(self.config.prefix, 'share', 'nuget')
         if not os.path.exists(nuget_dir):
             os.mkdir(nuget_dir)
