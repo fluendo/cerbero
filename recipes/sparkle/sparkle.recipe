@@ -26,14 +26,11 @@ class Recipe(recipe.Recipe):
     def extract(self):
         if self.config.platform == Platform.DARWIN:
             super(Recipe, self).extract()
-        elif self.config.platform == Platform.WINDOWS:
-            if not os.path.exists(self.build_dir):
-                os.mkdir(self.build_dir)
+        elif not os.path.exists(self.build_dir):
+            os.mkdir(self.build_dir)
 
     def prepare(self):
         super(Recipe, self).prepare()
-        if self.config.platform != Platform.WINDOWS and self.config.platform != Platform.DARWIN:
-            raise InvalidRecipeError ()
         self.files_nuget.append('share/nuget/Sparkle.%s.nupkg' % self.version)
         # ld does not understand -isysroot so use cc instead for linking
         self.new_env['LD'] = 'cc'
@@ -41,21 +38,16 @@ class Recipe(recipe.Recipe):
     @modify_environment
     def compile(self):
         nuspec = os.path.join(self.build_dir, "sparkle.nuspec")
+        nuspec_tpl = 'sparkle.nuspec.empty.tpl'
         if self.config.platform == Platform.DARWIN:
             shell.call('xcodebuild -configuration Release -target Sparkle',
                     os.path.join(self.build_dir, 'Sparkle/3rdparty/Sparkle'))
             shell.call("xbuild Sparkle.sln /p:Configuration=Release", self.build_dir)
+            nuspec_tpl = 'sparkle.nuspec.tpl'
 
-            shutil.copy(self.relative_path ('sparkle.nuspec.tpl'),
-                    nuspec)
-            
-        elif self.config.platform == Platform.WINDOWS:
-            shutil.copy(self.relative_path ('sparkle.nuspec.win.tpl'),
-                    nuspec)
-
+        shutil.copy(self.relative_path (nuspec_tpl), nuspec)
         replacements = {'{VERSION}': self.version}
         shell.replace(nuspec, replacements)
-
         shell.call('nuget pack sparkle.nuspec', self.build_dir)
 
     def install(self):
