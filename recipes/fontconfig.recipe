@@ -20,6 +20,7 @@ class Recipe(recipe.Recipe):
                ]
 
     files_libs = ['libfontconfig']
+    files_bins = ['fc-cache']
     files_etc = [
         'etc/fonts/conf.d',
         'etc/fonts/fonts.conf',
