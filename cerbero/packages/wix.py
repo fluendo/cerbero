@@ -617,4 +617,7 @@ class Burn(WixBase):
     def _fill(self):
         chain_element = self.root.find(".//Chain")
         for path in self.paths:
-            etree.SubElement(chain_element, 'MsiPackage', SourceFile=path)
+            msipackage = etree.SubElement(chain_element, 'MsiPackage', SourceFile=path)
+            etree.SubElement(msipackage, 'MsiProperty', Name='INSTALLDESKTOPSHORTCUT', Value='[InstallDesktopShortcut]')
+            etree.SubElement(msipackage, 'MsiProperty', Name='LAUNCHAPPLICATION', Value='[LaunchApplication]')
+
