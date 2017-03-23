@@ -93,6 +93,7 @@ class PackageBase(object):
     license = License.GPL
     vendor = 'default'
     url = 'default'
+    usermanual_url = 'default'
     ignore_package_prefix = False
     sys_deps = None
     sys_deps_devel = None

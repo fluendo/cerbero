@@ -291,6 +291,7 @@ class WixConfig(WixBase):
             "@PackageComments@": self.package.longdesc,
             "@Description@": self.package.shortdesc,
             "@ProjectURL": self.package.url,
+            "@UserManualURL": self.package.usermanual_url,
             "@ProductName@": self._product_name(),
             "@ProgramFilesFolder@": self._program_folder(),
             "@Platform@": self._platform(),
