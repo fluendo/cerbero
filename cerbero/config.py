@@ -106,6 +106,8 @@ class Config (object):
                    'ignore_runtime_deps', 'binaries', 'binary_repo',
                    'binary_repo_username', 'binary_repo_password', 'custom_cflags']
 
+    cookbook = None
+
     def __init__(self):
         self._check_uninstalled()
 
