@@ -34,8 +34,12 @@ class BuildTools (BootstraperBase):
         Platform.LINUX: ['intltool-m4'],
     }
 
-    def __init__(self, config):
+    def __init__(self, config, use_binaries=False, upload_binaries=False,
+            build_missing=False):
         BootstraperBase.__init__(self, config)
+        self.use_binaries = use_binaries
+        self.upload_binaries = upload_binaries
+        self.build_missing = build_missing
         if self.config.platform == Platform.WINDOWS:
             self.BUILD_TOOLS.remove('m4')
             self.BUILD_TOOLS.append('gperf')
@@ -80,6 +84,9 @@ class BuildTools (BootstraperBase):
         config.external_recipes = self.config.external_recipes
         config.home_dir = self.config.home_dir
         config.local_sources = self.config.local_sources
+        config.binary_repo = self.config.binary_repo
+        config.binary_repo_username = self.config.binary_repo_username
+        config.binary_repo_password = self.config.binary_repo_password
 
         if not os.path.exists(config.prefix):
             os.makedirs(config.prefix)
@@ -92,5 +99,6 @@ class BuildTools (BootstraperBase):
         recipes += self.PLAT_BUILD_TOOLS.get(self.config.platform, [])
         oven = Oven(cookbook)
         ordered_recipes = cookbook.list_recipes_deps(recipes)
-        oven.start_cooking(ordered_recipes)
+        oven.start_cooking(ordered_recipes, self.use_binaries,
+                self.upload_binaries, self.build_missing)
         self.config.do_setup_env()
