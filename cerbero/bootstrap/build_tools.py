@@ -18,7 +18,7 @@
 
 import os
 
-from cerbero.config import Config, DEFAULT_HOME, Platform, DistroVersion
+from cerbero.config import Config, Platform, DistroVersion
 from cerbero.bootstrap import BootstraperBase
 from cerbero.build.oven import Oven
 from cerbero.build.cookbook import CookBook
@@ -84,7 +84,9 @@ class BuildTools (BootstraperBase):
         config.external_recipes = self.config.external_recipes
         config.home_dir = self.config.home_dir
         config.local_sources = self.config.local_sources
-        config.binary_repo = self.config.binary_repo
+        # We use a different repo to prevent clashes between the same recipe
+        # compiled with different prefixes
+        config.binary_repo = self.config.binary_repo + '/build-tools'
         config.binary_repo_username = self.config.binary_repo_username
         config.binary_repo_password = self.config.binary_repo_password
 
