@@ -19,10 +19,7 @@
 
 #from cerbero.oven import Oven
 from cerbero.commands import Command, register_command
-from cerbero.errors import BuildStepError, RecipeNotFreezableError
-from cerbero.build.cookbook import CookBook
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.build.fridge import Fridge
 from cerbero.build.oven import Oven
 from cerbero.utils import _, N_, ArgparseArgument
 
@@ -86,7 +83,7 @@ class Build(Command):
         cookbook = store.cookbook
 
         oven = Oven(cookbook, force=self.force, missing_files=missing_files,
-                    dry_run=dry_run)
+                    dry_run=dry_run, store=store)
 
         if isinstance(recipes, str):
             recipes = [recipes]
@@ -95,32 +92,8 @@ class Build(Command):
             ordered_recipes = recipes
         else:
             ordered_recipes = cookbook.list_recipes_deps(recipes)
-
-        def _build(recipe, i, length):
-            oven.cook_recipe(recipe, i, length)
-            if upload_binaries:
-                try:
-                    fridge.freeze_recipe(recipe, i, length)
-                except RecipeNotFreezableError:
-                    pass
-
-        if use_binaries or upload_binaries:
-            fridge = Fridge(store, force=self.force, dry_run=dry_run)
-            i = 1
-            for recipe in ordered_recipes:
-                if use_binaries:
-                    try:
-                        fridge.unfreeze_recipe(recipe, i, len(ordered_recipes))
-                    except (RecipeNotFreezableError, BuildStepError) as e:
-                        if build_missing or isinstance(e, RecipeNotFreezableError):
-                            _build(recipe, i, len(ordered_recipes))
-                        else:
-                            raise e
-                else:
-                    _build(recipe, i, len(ordered_recipes))
-                i += 1
-        else:
-            oven.start_cooking(ordered_recipes)
+        oven.start_cooking(ordered_recipes, use_binaries, upload_binaries,
+                build_missing)
 
 
 class BuildOne(Build):

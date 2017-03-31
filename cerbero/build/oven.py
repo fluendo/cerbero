@@ -20,8 +20,10 @@ import tempfile
 import shutil
 import traceback
 
-from cerbero.errors import BuildStepError, FatalError
-from cerbero.build.recipe import Recipe, BuildSteps
+from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
+from cerbero.build.fridge import Fridge
+from cerbero.build.recipe import BuildSteps
+from cerbero.packages.packagesstore import PackagesStore
 from cerbero.utils import _, shell
 from cerbero.utils import messages as m
 
@@ -43,13 +45,15 @@ class Oven (object):
     STEP_TPL = '[(%s/%s) %s -> %s ]'
 
     def __init__(self, cookbook, force=False,
-                 missing_files=False, dry_run=False):
+                 missing_files=False, dry_run=False, store=None):
         self.cookbook = cookbook
         self.force = force
         self.missing_files = missing_files
-        shell.DRY_RUN = dry_run
+        self.store = store
+        self.dry_run = shell.DRY_RUN = dry_run
 
-    def start_cooking(self, recipes):
+    def start_cooking(self, recipes, use_binaries=False, upload_binaries=False,
+            build_missing=True):
         '''
         Cooks the provided recipe names
         '''
@@ -59,10 +63,36 @@ class Oven (object):
         m.message(_("Building the following recipes: %s") %
                   ' '.join([x for x in recipes]))
 
-        i = 1
-        for recipe in recipes:
-            self.cook_recipe(recipe, i, len(recipes))
-            i += 1
+        if use_binaries or upload_binaries:
+            def _build(recipe, i, length):
+                self.cook_recipe(recipe, i, length)
+                if upload_binaries:
+                    try:
+                        fridge.freeze_recipe(recipe, i, length)
+                    except RecipeNotFreezableError:
+                        pass
+
+            if not self.store:
+                self.store = PackagesStore(self.cookbook.get_config())
+            fridge = Fridge(self.store, force=self.force, dry_run=self.dry_run)
+            i = 1
+            for recipe in recipes:
+                if use_binaries:
+                    try:
+                        fridge.unfreeze_recipe(recipe, i, len(recipes))
+                    except (RecipeNotFreezableError, BuildStepError) as e:
+                        if build_missing or isinstance(e, RecipeNotFreezableError):
+                            _build(recipe, i, len(recipes))
+                        else:
+                            raise e
+                else:
+                    _build(recipe, i, len(recipes))
+                i += 1
+        else:
+            i = 1
+            for recipe in recipes:
+                self.cook_recipe(recipe, i, len(recipes))
+                i += 1
 
     def cook_recipe(self, recipe_name, count, total):
         '''

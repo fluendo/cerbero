@@ -19,8 +19,6 @@
 import os
 import traceback
 import tarfile
-import tempfile
-import shutil
 
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
