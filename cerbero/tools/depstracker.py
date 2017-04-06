@@ -59,7 +59,15 @@ class LinuxObjdumpLister(RecursiveLister):
         files = shell.check_call('objdump -x %s' % path).split('\n')
         files = [x.split(' ')[17] for x in files if 'NEEDED ' in x]
         files = [os.path.join(prefix, 'lib', x) for x in files]
-        return [os.path.realpath(x) for x in files if os.path.exists(x)]
+        final_files = []
+        for f in files:
+            if os.path.exists(f):
+                final_files.append(f)
+                real_f = os.path.realpath(f)
+                if real_f != f:
+                    final_files.append (real_f);
+
+        return final_files
 
 class OtoolLister(RecursiveLister):
 
