@@ -50,6 +50,7 @@ class OSXRelocator(object):
 
     def relocate_file(self, object_file, id=None):
         self.change_libs_path(object_file)
+        self.change_id(object_file, id)
 
     def change_id(self, object_file, id=None):
         id = id or object_file.replace(self.lib_prefix, '@rpath')
