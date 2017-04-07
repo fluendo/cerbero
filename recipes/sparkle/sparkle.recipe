@@ -12,6 +12,9 @@ class Recipe(recipe.Recipe):
     btype = BuildType.CUSTOM
     remotes = {'origin' : "git@github.com:fluendo/SparkleSharp.git"}
     commit = 'origin/master'
+    platform_deps = {
+            Platform.DARWIN: ['mono']
+            }
 
     files_nuget = [
             ]
