@@ -48,9 +48,8 @@ class OSXRelocator(object):
     def relocate_dir(self, dirname):
         self.parse_dir(os.path.join(self.root, dirname))
 
-    def relocate_file(self, object_file, id=None):
+    def relocate_file(self, object_file):
         self.change_libs_path(object_file)
-        self.change_id(object_file, id)
 
     def change_id(self, object_file, id=None):
         id = id or object_file.replace(self.lib_prefix, '@rpath')
