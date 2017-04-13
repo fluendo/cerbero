@@ -105,9 +105,7 @@ class OSXRelocator(object):
     @staticmethod
     def library_id_name(object_file):
         cmd = '%s -D %s' % (OTOOL_CMD, object_file)
-        res = shell.check_call(cmd).split('\n')[0]
-        # the library name ends with ':'
-        lib_name = res[:-1]
+        res = shell.check_call(cmd).split('\n')[1]
         return lib_name
 
     def _fix_path(self, path):
