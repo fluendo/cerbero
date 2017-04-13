@@ -20,6 +20,7 @@ import os
 import traceback
 import tarfile
 
+from cerbero.config import Platform
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell
 from cerbero.utils import messages as m
@@ -27,6 +28,7 @@ from cerbero.utils.shell import upload_curl, download_curl
 from cerbero.packages.distarchive import DistArchive
 from cerbero.enums import ArchiveType
 from cerbero.packages import PackageType
+from cerbero.tools.osxrelocator import OSXRelocator
 
 class Fridge (object):
     '''
@@ -94,6 +96,11 @@ class Fridge (object):
                     if os.path.splitext(member.name)[1] in ['.la', '.pc']:
                         shell.replace(os.path.join(self.config.prefix, member.name),
                             {"CERBERO_PREFIX": self.config.prefix})
+                    if os.path.splitext(member.name)[1] in ['.dylib'] and self.config.target_platform == Platform.DARWIN:
+                        extracted_object = os.path.join(self.config.prefix, member.name)
+                        relocator = OSXRelocator(self.config.prefix, self.config.prefix, True)
+                        # When extracting, we change the install_name of the library to match the path
+                        relocator.change_id(extracted_object, extracted_object)
                 tar.close()
 
     def generate_binary(self, recipe):
