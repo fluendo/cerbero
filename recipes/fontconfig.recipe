@@ -1,6 +1,7 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 
 import os
+import shutil
 
 class Recipe(recipe.Recipe):
     name = 'fontconfig'
@@ -24,6 +25,7 @@ class Recipe(recipe.Recipe):
     files_etc = [
         'etc/fonts/conf.d',
         'etc/fonts/fonts.conf',
+        'etc/fonts/fonts.conf.tpl',
         'share/fontconfig'
         ]
     files_devel = ['lib/pkgconfig/fontconfig.pc', 'include/fontconfig']
@@ -62,3 +64,9 @@ class Recipe(recipe.Recipe):
                     continue
                 os.remove(os.path.join(confddir, f))
                 os.symlink(os.path.join(linksrc, f), os.path.join(confddir, f))
+
+        # Add a template file to overwrite the cachedir
+        fontconfig_src = os.path.join(self.config.prefix, 'etc', 'fonts', 'fonts.conf')
+        fontconfig_dst = os.path.join(self.config.prefix, 'etc', 'fonts', 'fonts.conf.tpl')
+        shutil.copy(fontconfig_src, fontconfig_dst)
+        shell.replace(fontconfig_dst, {'<cachedir>' + self.config.prefix : '<cachedir>{PREFIX}'})
