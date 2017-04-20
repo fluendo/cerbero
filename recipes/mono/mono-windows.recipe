@@ -61,6 +61,7 @@ class Recipe(recipe.Recipe):
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/xbuild',
         'lib/mono/xbuild-frameworks',
         'include/mono-2.0',
         'lib/mono-2.0.lib',
