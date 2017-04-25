@@ -112,7 +112,7 @@ class DistArchive(PackagerBase):
         for f in files:
             filepath = os.path.join(self.prefix, f)
             arcname = os.path.join(package_prefix, f)
-            if relocatable:
+            if relocatable and not os.islink(filepath):
                 if os.path.splitext(f)[1] in ['.la', '.pc']:
                     with open(filepath, 'r') as fo:
                         content = fo.read()
