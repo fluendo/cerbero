@@ -12,7 +12,7 @@ class Recipe(recipe.Recipe):
                         ' --disable-dtrace ' \
                         ' --with-mcs-docs=no '
     config_sh = 'sh autogen.sh'
-    files_bins = ['mono-sgen']
+    files_bins = ['mono-sgen', 'mono', 'xbuild']
     files_libs = ['libmonosgen-2.0', 'libmono-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
