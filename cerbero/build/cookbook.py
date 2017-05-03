@@ -112,6 +112,7 @@ class CookBook (object):
         @type config: L{cerbero.config.Config}
         '''
         self._config = config
+        config.cookbook = self
 
     def get_config(self):
         '''
