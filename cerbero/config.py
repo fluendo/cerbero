@@ -220,6 +220,7 @@ class Config (object):
                                    'cerbero-registry-%s' % self.target_arch)
         gstregistry = os.path.expanduser(gstregistry)
         gstregistry10 = os.path.expanduser(gstregistry10)
+        gstpluginscanner = os.path.join(prefix, 'libexec', 'gstreamer-0.10', 'gst-plugin-scanner')
         pythonpath = os.path.join(prefix, py_prefix, 'site-packages')
 
         if self.platform == Platform.LINUX:
@@ -272,6 +273,7 @@ class Config (object):
                'GST_PLUGIN_PATH_1_0': gstpluginpath10,
                'GST_REGISTRY': gstregistry,
                'GST_REGISTRY_1_0': gstregistry10,
+               'GST_PLUGIN_SCANNER': gstpluginscanner,
                'PYTHONPATH': pythonpath,
                'MONO_PATH': monopath,
                'MONO_GAC_PREFIX': prefix,
