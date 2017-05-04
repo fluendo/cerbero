@@ -20,12 +20,15 @@ import os
 import tarfile
 import tempfile
 import zipfile
+import shutil
 
 import cerbero.utils.messages as m
 from cerbero.utils import _
+from cerbero.config import Platform
 from cerbero.errors import UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.enums import ArchiveType
+from cerbero.tools.osxrelocator import OSXRelocator
 
 class DistArchive(PackagerBase):
     ''' Creates a distribution archive '''
@@ -109,19 +112,31 @@ class DistArchive(PackagerBase):
         for f in files:
             filepath = os.path.join(self.prefix, f)
             arcname = os.path.join(package_prefix, f)
-            if relocatable and os.path.splitext(f)[1] in ['.la', '.pc']:
-                with open(filepath, 'r') as fo:
-                    content = fo.read()
-                    content = content.replace(self.config.prefix, "CERBERO_PREFIX")
-                    rewritten = tempfile.NamedTemporaryFile()
-                    rewritten.write(content)
-                    rewritten.flush()
-                    rewritten.seek(0)
-                    tinfo = tar.gettarinfo(arcname=arcname, fileobj=fo)
-                    tinfo.size = len(content)
-                    tinfo.name = os.path.join(package_prefix, f)
-                    tar.addfile(tinfo, rewritten)
-                    rewritten.close()
+            if relocatable and not os.path.islink(filepath):
+                if os.path.splitext(f)[1] in ['.la', '.pc']:
+                    with open(filepath, 'r') as fo:
+                        content = fo.read()
+                        content = content.replace(self.config.prefix, "CERBERO_PREFIX")
+                        rewritten = tempfile.NamedTemporaryFile()
+                        rewritten.write(content)
+                        rewritten.flush()
+                        rewritten.seek(0)
+                        tinfo = tar.gettarinfo(arcname=arcname, fileobj=fo)
+                        tinfo.size = len(content)
+                        tinfo.name = os.path.join(package_prefix, f)
+                        tar.addfile(tinfo, rewritten)
+                        rewritten.close()
+                elif os.path.splitext(f)[1] in ['.dylib'] and self.config.target_platform == Platform.DARWIN:
+                    tempdir = tempfile.mkdtemp()
+                    os.makedirs(os.path.join(tempdir, os.path.dirname(f)))
+                    rewritten = os.path.join(tempdir, f)
+                    shutil.copy(filepath, rewritten)
+                    relocator = OSXRelocator(self.config.prefix, tempdir, True)
+                    relocator.change_id(rewritten)
+                    tar.add(rewritten, arcname)
+                    shutil.rmtree(tempdir)
+                else:
+                    tar.add(filepath, arcname)
             else:
                 tar.add(filepath, arcname)
         tar.close()

@@ -9,6 +9,7 @@
 <?define PackageComments = "@PackageComments@" ?>
 <?define Description = "@Description@" ?>
 <?define WebSiteName = "@ProjectURL" ?>
+<?define UserManualURL = "@UserManualURL" ?>
 <?define ProductName = "@ProductName@" ?>
 <?define PlatformProgramFilesFolder = "@ProgramFilesFolder@" ?>
 <?define Platform = "@Platform@" ?>

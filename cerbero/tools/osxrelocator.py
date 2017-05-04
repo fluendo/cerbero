@@ -48,7 +48,7 @@ class OSXRelocator(object):
     def relocate_dir(self, dirname):
         self.parse_dir(os.path.join(self.root, dirname))
 
-    def relocate_file(self, object_file, id=None):
+    def relocate_file(self, object_file):
         self.change_libs_path(object_file)
 
     def change_id(self, object_file, id=None):
@@ -104,9 +104,7 @@ class OSXRelocator(object):
     @staticmethod
     def library_id_name(object_file):
         cmd = '%s -D %s' % (OTOOL_CMD, object_file)
-        res = shell.check_call(cmd).split('\n')[0]
-        # the library name ends with ':'
-        lib_name = res[:-1]
+        res = shell.check_call(cmd).split('\n')[1]
         return lib_name
 
     def _fix_path(self, path):

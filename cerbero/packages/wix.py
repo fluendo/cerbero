@@ -291,6 +291,7 @@ class WixConfig(WixBase):
             "@PackageComments@": self.package.longdesc,
             "@Description@": self.package.shortdesc,
             "@ProjectURL": self.package.url,
+            "@UserManualURL": self.package.usermanual_url,
             "@ProductName@": self._product_name(),
             "@ProgramFilesFolder@": self._program_folder(),
             "@Platform@": self._platform(),
@@ -616,4 +617,7 @@ class Burn(WixBase):
     def _fill(self):
         chain_element = self.root.find(".//Chain")
         for path in self.paths:
-            etree.SubElement(chain_element, 'MsiPackage', SourceFile=path)
+            msipackage = etree.SubElement(chain_element, 'MsiPackage', SourceFile=path)
+            etree.SubElement(msipackage, 'MsiProperty', Name='INSTALLDESKTOPSHORTCUT', Value='[InstallDesktopShortcut]')
+            etree.SubElement(msipackage, 'MsiProperty', Name='LAUNCHAPPLICATION', Value='[LaunchApplication]')
+

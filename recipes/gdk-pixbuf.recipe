@@ -14,7 +14,7 @@ class Recipe(recipe.Recipe):
             'gdk-pixbuf/gdk-pixbuf-strncasecmp-prefix.diff'
             ]
     configure_options = '--with-included-loaders --enable-static --enable-gio-sniffing=no '
-    deps = ['glib', 'libpng', 'tiff', 'zlib' ]
+    deps = ['glib', 'libpng', 'tiff', 'zlib', 'jpeg']
     autoreconf = True
     append_env = {'CFLAGS': '-DGDK_PIXBUF_RELOCATABLE'}
 

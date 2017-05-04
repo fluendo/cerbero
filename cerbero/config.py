@@ -106,6 +106,8 @@ class Config (object):
                    'ignore_runtime_deps', 'binaries', 'binary_repo',
                    'binary_repo_username', 'binary_repo_password', 'custom_cflags']
 
+    cookbook = None
+
     def __init__(self):
         self._check_uninstalled()
 
@@ -377,12 +379,15 @@ class Config (object):
 
     def get_sanitized_env(self):
         ret_env = {}
+        unixpath = to_unixpath(self.libdir)
         for e in self.env.iterkeys():
             # envvars to avoid
             if e in ['PATH']:
                 continue
             # Remove the prefix
             v = self.env[e].replace(self.prefix, "{prefix}")
+            # Remove the prefix in unix format, used in windows for PERL5LIB
+            v = self.env[e].replace(unixpath, "{prefix}")
             # Remove the cerbero's home dir
             v = v.replace(self.home_dir, "{home}")
             # Remove the user's home dir

@@ -63,6 +63,8 @@ class Recipe(recipe.Recipe):
                 self.openssl_platform = 'linux-x86_64'
             elif self.config.target_arch == Architecture.ARM:
                 self.openssl_platform = 'linux-armv4'
+            elif self.config.target_arch == Architecture.ARMv7:
+                self.openssl_platform = 'linux-armv4'
             else:
                 raise NotImplementedError
         elif self.config.target_platform == Platform.WINDOWS:
@@ -89,6 +91,9 @@ class Recipe(recipe.Recipe):
             self.files_devel.append('lib/libcrypto.a')
             self.files_devel.append('lib/libcrypto.dll.a')
             self.files_devel.append('lib/libcrypto.la')
+            self.files_devel.append('lib/libssl.a')
+            self.files_devel.append('lib/libssl.dll.a')
+            self.files_devel.append('lib/libssl.la')
         self.make += ' build_libs openssl.pc libssl.pc libcrypto.pc'
         #self.make_install = 'make install_sw'
         self.make_install = 'make install_libs'

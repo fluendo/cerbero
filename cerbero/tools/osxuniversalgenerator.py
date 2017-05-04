@@ -102,8 +102,8 @@ class OSXUniversalGenerator(object):
                                       False)
             # since we are using a temporary file, we must force the library id
             # name to real one and not based on the filename
-            relocator.relocate_file(tmp.name,
-                    id=f.replace(prefix_to_replace, self.output_root))
+            relocator.relocate_file(tmp.name)
+            relocator.change_id(tmp.name, id=f.replace(prefix_to_replace, self.output_root))
         cmd = '%s -create %s -output %s' % (self.LIPO_CMD,
             ' '.join([f.name for f in tmp_inputs]), output)
         self._call(cmd)

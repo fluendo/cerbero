@@ -29,11 +29,22 @@ class Bootstrap(Command):
     def __init__(self):
         args = [
             ArgparseArgument('--build-tools-only', action='store_true',
-                default=False, help=_('only bootstrap the build tools'))]
+                default=False, help=_('only bootstrap the build tools')),
+            ArgparseArgument('--use-binaries', action='store_true',
+                default=False,
+                help=_('use binaries from the repo before building')),
+            ArgparseArgument('--upload-binaries', action='store_true',
+                default=False,
+                help=_('after a recipe is built upload the corresponding binary package')),
+            ArgparseArgument('--build-missing', action='store_true',
+                default=False,
+                help=_('in case a binary package is missing try to build it')),
+            ]
         Command.__init__(self, args)
 
     def run(self, config, args):
-        bootstrapers = Bootstraper(config, args.build_tools_only)
+        bootstrapers = Bootstraper(config, args.build_tools_only,
+                args.use_binaries, args.upload_binaries, args.build_missing)
         for bootstraper in bootstrapers:
             bootstraper.start()
 
