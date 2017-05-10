@@ -330,7 +330,7 @@ class Config (object):
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('ignore_runtime_deps', False)
         self.set_property('binaries', None)
-        self.set_property('binary_repo', None)
+        self.set_property('binary_repo', "")
         self.set_property('binary_repo_username', None)
         self.set_property('binary_repo_password', None)
 
