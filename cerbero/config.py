@@ -93,7 +93,7 @@ class Config (object):
                    'distro', 'target_distro', 'environ_dir', 'cache_file',
                    'toolchain_prefix', 'distro_version',
                    'target_distro_version', 'allow_system_libs',
-                   'packages_dir', 'py_prefix',
+                   'packages_dir', 'py_prefix', 'extra_properties',
                    'install_dir', 'allow_parallel_build', 'num_of_cpus',
                    'use_configure_cache', 'packages_prefix', 'packager',
                    'data_dir', 'min_osx_sdk_version', 'external_recipes',
@@ -333,6 +333,7 @@ class Config (object):
         self.set_property('binary_repo', "")
         self.set_property('binary_repo_username', None)
         self.set_property('binary_repo_password', None)
+        self.set_property('extra_properties', {})
 
     def set_property(self, name, value, force=False):
         if name not in self._properties:
