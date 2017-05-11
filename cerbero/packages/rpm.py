@@ -137,8 +137,8 @@ REQUIRE_TPL = 'Requires: %s\n'
 DEVEL_TPL = '%%files devel \n%s'
 URL_TPL = 'URL: %s\n'
 PRE_TPL = '%%pre\n%s\n'
-POST_TPL = '%%post\n%s\n'
-POSTUN_TPL = '%%postun\n%s\n'
+POST_TPL = '%%post\n'
+POSTUN_TPL = '%%postun\n'
 
 
 class RPMPackager(LinuxPackager):
@@ -192,15 +192,7 @@ class RPMPackager(LinuxPackager):
             licenses.extend(self.recipes_licenses())
             licenses = sorted(list(set(licenses)))
 
-        scripts = ''
-        if os.path.exists(self.package.resources_postinstall):
-            scripts += POST_TPL % \
-                open(self.package.resources_postinstall).read()
-        if os.path.exists(self.package.resources_postremove):
-            scripts += POSTUN_TPL % \
-                open(self.package.resources_postremove).read()
-
-        self._spec_str = template % {
+        template_dict = {
                 'name': self.package.name,
                 'p_prefix': self.package_prefix,
                 'version': self.package.version,
@@ -221,9 +213,23 @@ class RPMPackager(LinuxPackager):
                 'devel_files': devel_files,
                 'files': runtime_files,
                 'sources_dir': self.config.sources,
-                'scripts': scripts,
                 'ConflictTag':  'Conflicts:      %s' % self.package.conflicts if \
                         self.package.conflicts else ' '}
+
+        scripts = ''
+        if os.path.exists(self.package.resources_postinstall):
+            scripts += "{}{}\n".format(
+                POST_TPL,
+                open(self.package.resources_postinstall).read())
+        if os.path.exists(self.package.resources_postremove):
+            scripts += "{}{}\n".format(
+                POSTUN_TPL,
+                open(self.package.resources_postremove).read())
+        scripts = scripts % template_dict
+
+        template_dict.update({'scripts': scripts})
+
+        self._spec_str = template % template_dict
 
         self.spec_path = os.path.join(tmpdir, '%s.spec' % self.package.name)
         with open(self.spec_path, 'w') as f:
