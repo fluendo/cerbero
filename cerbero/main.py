@@ -97,7 +97,6 @@ class Main(object):
         try:
             self.config = config.Config()
             self.config.load(self.args.config)
-            self.config.cerbero_root_path = os.path.abspath(os.path.dirname(__file__) + '/../..')
         except ConfigurationError, exc:
             self.log_error(exc, False)
 
