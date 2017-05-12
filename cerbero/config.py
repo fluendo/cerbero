@@ -104,8 +104,7 @@ class Config (object):
                    'ios_platform', 'extra_build_tools', 'target_arch_flags',
                    'extra_bootstrap_packages', 'binary_commits',
                    'ignore_runtime_deps', 'binaries', 'binary_repo',
-                   'binary_repo_username', 'binary_repo_password', 'custom_cflags',
-                   'cerbero_root_path']
+                   'binary_repo_username', 'binary_repo_password', 'custom_cflags']
 
     cookbook = None
 
