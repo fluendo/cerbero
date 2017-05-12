@@ -10,7 +10,7 @@ class Recipe(recipe.Recipe):
     name = 'longomatch'
     version = 'git-master'
     licenses = [License.GPL]
-    remotes = {'github': 'https://github.com/ylatuya/longomatch.git'}
+    remotes = {'github': 'git@github.com:LongoMatch/longomatch-core.git'}
     commit = 'github/master'
     config_sh = 'sh autogen.sh'
     configure_options = '--without-multimedia-tools'
