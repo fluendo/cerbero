@@ -403,12 +403,11 @@ class Config (object):
             md5.update(sanitized_env[e])
         return md5.hexdigest()
 
-    def _parse(self, filename, reset=True):
+    def _parse(self, filename):
         config = {'os': os, '__file__': filename}
-        if not reset:
-            for prop in self._properties:
-                if hasattr(self, prop):
-                    config[prop] = getattr(self, prop)
+        for prop in self._properties:
+            if hasattr(self, prop):
+                config[prop] = getattr(self, prop)
 
         try:
             parse_file(filename, config)
@@ -456,7 +455,7 @@ class Config (object):
     def _load_cmd_config(self, filename):
         if filename is not None:
             if os.path.exists(filename):
-                self._parse(filename, reset=False)
+                self._parse(filename)
                 self.filename = DEFAULT_CONFIG_FILE
             else:
                 raise ConfigurationError(_("Configuration file %s doesn't "
@@ -470,7 +469,7 @@ class Config (object):
 
         for config_path in [platform_config, arch_config]:
             if os.path.exists(config_path):
-                self._parse(config_path, reset=False)
+                self._parse(config_path)
 
     def _load_last_defaults(self):
         self.set_property('prefix', os.path.join(self.home_dir, "dist",
