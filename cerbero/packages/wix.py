@@ -603,6 +603,8 @@ class Burn(WixBase):
             elif BAL_SCHEMA in element.tag:
                 tag = 'bal:' + tag
             element.tag = tag
+            if 'Variable' in element.tag:
+                element.set('bal:Overridable', 'yes')
         self.root.set('xmlns', WIX_SCHEMA)
         self.root.set('xmlns:util', UTIL_SCHEMA)
         self.root.set('xmlns:bal', BAL_SCHEMA)
