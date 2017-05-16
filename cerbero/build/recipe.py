@@ -107,6 +107,8 @@ class Recipe(FilesProvider):
     @type deps: list
     @cvar platform_deps: platform conditional depencies
     @type platform_deps: dict
+    @cvar library_name_override: library names to override
+    @type library_name_override dict
     @cvar runtime_dep: runtime dep common to all recipes
     @type runtime_dep: bool
     '''
@@ -123,6 +125,7 @@ class Recipe(FilesProvider):
     deps = None
     platform_deps = None
     force = False
+    library_name_override = None
     runtime_dep = False
     allow_package_creation = True
     _default_steps = BuildSteps()
@@ -135,6 +138,8 @@ class Recipe(FilesProvider):
             self.deps = []
         if self.platform_deps is None:
             self.platform_deps = {}
+        if self.library_name_override is None:
+            self.library_name_override = {}
 
         if self.package_name is None:
             self.package_name = "%s-%s" % (self.name, self.version)
@@ -232,7 +237,8 @@ class Recipe(FilesProvider):
                 implib = genlib.create(
                     os.path.join(self.config.prefix, dllpath),
                     self.config.target_arch,
-                    os.path.join(self.config.prefix, 'lib'))
+                    os.path.join(self.config.prefix, 'lib'),
+                    self.library_name_override.get(dllpath, None))
                 logging.debug('Created %s' % implib)
             except:
                 m.warning("Could not create .lib, gendef might be missing")
