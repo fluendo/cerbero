@@ -88,7 +88,13 @@ class Fridge (object):
 
     def extract_binary(self, recipe):
         packages_names = self._get_packages_names(recipe)
-        for filename in packages_names.itervalues():
+        # There is a weird bug where the links in the devel package are overwriting the
+        # file it's linking instaed of just creating the link.
+        # For example libmonosgen-2.0.dylib will be extracted creating # a link
+        # libmonosgen-2.0.dylib -> libmonosgen-2.0.1.dylib and copying
+        # libmonosgen-2.0.dylib to libmonosgen-2.0.1.dylib
+        # As a workaround we extract first the devel package and finally the runtime
+        for filename in [packages_names[PackageType.DEVEL], packages_names[PackageType.RUNTIME]]:
             if filename:
                 tar = tarfile.open(os.path.join(self.binaries,
                                    filename), 'r:bz2')
