@@ -7,6 +7,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2]
     deps = ['libcroco', 'libxml2']
     configure_options = '--enable-introspection=no'
+    allow_package_creation = False
 
     files_libs = ['librsvg-2']
     files_bins = ['rsvg-convert']

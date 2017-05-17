@@ -17,6 +17,7 @@ class Recipe(recipe.Recipe):
     deps = ['glib', 'libpng', 'tiff', 'zlib', 'jpeg']
     autoreconf = True
     append_env = {'CFLAGS': '-DGDK_PIXBUF_RELOCATABLE'}
+    allow_package_creation = False
 
     files_libs = ['libgdk_pixbuf-2.0']
     files_bins = ['gdk-pixbuf-query-loaders', 'gdk-pixbuf-csource']
