@@ -23,7 +23,9 @@ class Recipe(recipe.Recipe):
 
     def install(self):
         xamarinmac = "/Library/Frameworks/Xamarin.Mac.framework/Versions/Current/"
+        xm_dll = os.path.join(self.config.prefix, "lib", "mono", "4.5", "Xamarin.Mac.dll")
         shutil.copy(os.path.join(xamarinmac, "lib", "libxammac.dylib"),
                     os.path.join(self.config.prefix, 'lib', 'libxammac.dylib'))
         shutil.copy(os.path.join(xamarinmac, "lib", "mono", "4.5", "Xamarin.Mac.dll"),
-                    os.path.join(self.config.prefix, "lib", "mono", "4.5", "Xamarin.Mac.dll"))
+                xm_dll)
+        shell.call ("gacutil -i %s" % xm_dll)
