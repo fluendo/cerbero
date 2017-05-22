@@ -16,6 +16,9 @@ class Recipe(recipe.Recipe):
     files_cli = [
         'lib/mono/4.5/Xamarin.Mac.dll',
     ]
+    files_devel = [
+        'lib/mono/gac/Xamarin.Mac/0.0.0.0__84e04ff9cfb79065/Xamarin.Mac.dll',
+    ]
 
     def prepare(self):
         if self.config.platform != Platform.DARWIN:
