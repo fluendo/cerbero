@@ -17,6 +17,8 @@
 # Boston, MA 02111-1307, USA.
 
 import os
+import fileinput
+import re
 
 from cerbero.config import Architecture
 from cerbero.utils import shell, to_unixpath
@@ -32,7 +34,7 @@ class GenLib(object):
     DLLTOOL_TPL = '$DLLTOOL -d %s -l %s -D %s'
     LIB_TPL = '%s /DEF:%s /OUT:%s /MACHINE:%s'
 
-    def create(self, dllpath, arch, outputdir=None):
+    def create(self, dllpath, arch, outputdir=None, library_name=None):
         bindir, dllname = os.path.split(dllpath)
         if outputdir is None:
             outputdir = bindir
@@ -47,6 +49,12 @@ class GenLib(object):
             libname = dllname.rsplit('.', 1)[0]
 
         defname = dllname.replace('.dll', '.def')
+
+        # replace the library name in the def file
+        if library_name:
+            for line in fileinput.input(files=[os.path.join(outputdir, defname)], inplace=1):
+                line = re.sub('LIBRARY ".*\.dll"', 'LIBRARY "' + library_name + '"', line)
+                print line
         implib = '%s.lib' % libname[3:]
 
         # Create the import library
