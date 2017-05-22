@@ -60,24 +60,21 @@ class OSXRelocator(object):
         shell.call(cmd, fail=False)
 
     def change_libs_path(self, object_file):
-        try:
-            depth = len(object_file.split('/')) - len(self.root.split('/')) - 1
-            p_depth = '/..' * depth
-            rpaths = ['@loader_path' + p_depth, '@executable_path' + p_depth]
-            rpaths += ['@loader_path' + '/../lib', '@executable_path' + '/../lib']
-            if depth > 1:
-                rpaths += ['@loader_path/..', '@executable_path/..']
-            for p in rpaths:
-                cmd = '%s -add_rpath %s "%s"' % (INT_CMD, p, object_file)
-                shell.call(cmd)
-            for lib in self.list_shared_libraries(object_file):
-                if self.lib_prefix in lib:
-                    new_lib = lib.replace(self.lib_prefix, '@rpath')
-                    cmd = '%s -change "%s" "%s" "%s"' % (INT_CMD, lib, new_lib,
-                                                   object_file)
-                    shell.call(cmd)
-        except:
-            pass
+        depth = len(object_file.split('/')) - len(self.root.split('/')) - 1
+        p_depth = '/..' * depth
+        rpaths = ['@loader_path' + p_depth, '@executable_path' + p_depth]
+        rpaths += ['@loader_path' + '/../lib', '@executable_path' + '/../lib']
+        if depth > 1:
+            rpaths += ['@loader_path/..', '@executable_path/..']
+        for p in rpaths:
+            cmd = '%s -add_rpath %s "%s"' % (INT_CMD, p, object_file)
+            shell.call(cmd, fail=False)
+        for lib in self.list_shared_libraries(object_file):
+            if self.lib_prefix in lib:
+                new_lib = lib.replace(self.lib_prefix, '@rpath')
+                cmd = '%s -change "%s" "%s" "%s"' % (INT_CMD, lib, new_lib,
+                                               object_file)
+                shell.call(cmd, fail=False)
 
     def parse_dir(self, dir_path, filters=None):
         for dirpath, dirnames, filenames in os.walk(dir_path):
@@ -125,7 +122,7 @@ class Main(object):
         # might be run in OS X 10.6 or older, which do not provide the argparse
         # module
         import optparse
-        usage = "usage: %prog [options] directory old_prefix new_prefix"
+        usage = "usage: %prog [options] library_path old_prefix new_prefix"
         description = 'Rellocates object files changing the dependant '\
                       ' dynamic libraries location path with a new one'
         parser = optparse.OptionParser(usage=usage, description=description)
@@ -137,8 +134,8 @@ class Main(object):
         if len(args) != 3:
             parser.print_usage()
             exit(1)
-        relocator = OSXRelocator(args[0], args[1], args[2], options.recursive)
-        relocator.relocate()
+        relocator = OSXRelocator(args[1], args[2], options.recursive)
+        relocator.relocate_file(args[0])
         exit(0)
 
 
