@@ -11,7 +11,8 @@ class Recipe(recipe.Recipe):
     patches = [
             'gdk-pixbuf/0001-io-extened-support-for-relotations-to-OS-X-and-Linux.patch',
             'gdk-pixbuf/0002-nls-update-gettext-macros-for-0.18.patch',
-            'gdk-pixbuf/gdk-pixbuf-strncasecmp-prefix.diff'
+            'gdk-pixbuf/0003-pixbuf-Add-getter-setter-for-the-2x-variants.patch',
+            'gdk-pixbuf/0004-pixbuf-load-2x-variants-as-pixbuf-gobject-data.patch',
             ]
     configure_options = '--with-included-loaders --enable-static --enable-gio-sniffing=no '
     deps = ['glib', 'libpng', 'tiff', 'zlib', 'jpeg']
