@@ -93,6 +93,8 @@ class Package(Command):
                          args.force, args.keep_temp)
         if None in paths:
             paths.remove(None)
+        if '' in paths:
+            paths.remove('')
 
         paths = p.post_package(paths) or paths
         for p in paths:
