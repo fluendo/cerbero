@@ -23,6 +23,7 @@ class Package(package.Package):
     def files_list(self):
         r = package.Package.files_list(self)
         r += [
+            'lib/mono/4.5/Accessibility.dll',
             'lib/mono/4.5/mscorlib.dll',
             'lib/mono/4.5/Mono.Cairo.dll',
             'lib/mono/4.5/Mono.Data.Tds.dll',
@@ -30,6 +31,7 @@ class Package(package.Package):
             'lib/mono/4.5/Mono.Security.dll',
             'lib/mono/4.5/Mono.Security.dll',
             'lib/mono/4.5/Mono.CSharp.dll',
+            'lib/mono/4.5/Mono.WebBrowser.dll',
             'lib/mono/4.5/Microsoft.CSharp.dll',
             'lib/mono/4.5/System.dll',
             'lib/mono/4.5/System.ComponentModel.Composition.dll',
@@ -45,6 +47,7 @@ class Package(package.Package):
             'lib/mono/4.5/System.Net.Http.WebRequest.dll',
             'lib/mono/4.5/System.Numerics.dll',
             'lib/mono/4.5/System.Runtime.Serialization.dll',
+            'lib/mono/4.5/System.Runtime.Serialization.Formatters.Soap.dll',
             'lib/mono/4.5/System.Security.dll',
             'lib/mono/4.5/System.ServiceModel.Internals.dll',
             'lib/mono/4.5/System.Transactions.dll',
@@ -68,6 +71,7 @@ class Package(package.Package):
             'lib/mono/4.5/Facades/System.Text.RegularExpressions.dll',
             'lib/mono/4.5/Facades/System.Threading.dll',
             'lib/mono/4.5/Facades/System.Threading.Tasks.dll',
+            'lib/mono/4.5/Facades/System.Xml.ReaderWriter.dll',
         ]
         if self.config.target_platform == Platform.LINUX:
             prefix = self.config.prefix
