@@ -83,7 +83,7 @@ class Package(Command):
         if args.only_build_deps:
             return
 
-        for package in args.package:
+        for package in packages:
             self._create_package(config, package, args)
 
     def _create_package(self, config, p, args):
