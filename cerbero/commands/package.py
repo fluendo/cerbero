@@ -27,15 +27,15 @@ from cerbero.packages.packager import Packager
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.packages.distarchive import DistArchive
 from cerbero.enums import ArchiveType
-from cerbero.utils import shell
+
 
 class Package(Command):
-    doc = N_('Creates a distribution package')
+    doc = N_('Creates a distribution package for one or several packages')
     name = 'package'
 
     def __init__(self):
         Command.__init__(self,
-            [ArgparseArgument('package', nargs=1,
+            [ArgparseArgument('package', nargs='*',
                              help=_('name of the package to create')),
             ArgparseArgument('-o', '--output-dir', default='.',
                              help=_('Output directory for the tarball file')),
@@ -68,20 +68,25 @@ class Package(Command):
 
     def run(self, config, args):
         self.store = PackagesStore(config)
-        p = self.store.get_package(args.package[0])
+        packages = []
+        for name in args.package:
+            p = self.store.get_package(name)
+            if p is None:
+                raise PackageNotFoundError(name)
+            packages.append(p)
 
         if args.skip_deps_build and args.only_build_deps:
             raise UsageError(_("Cannot use --skip-deps-build together with "
                     "--only-build-deps"))
-
         if not args.skip_deps_build:
-            self._build_deps(config, p, args)
-
+            self._build_deps(config, packages, args)
         if args.only_build_deps:
             return
 
-        if p is None:
-            raise PackageNotFoundError(args.package[0])
+        for package in args.package:
+            self._create_package(config, package, args)
+
+    def _create_package(self, config, p, args):
         if args.type == 'native':
             pkg = Packager(config, p, self.store)
         else:
@@ -113,9 +118,12 @@ class Package(Command):
             with open('%s.sha1' % p, 'w+') as sha1file:
                 sha1file.write(sha1sum)
 
-    def _build_deps(self, config, package, args):
+    def _build_deps(self, config, packages, args):
+        recipes = []
+        for package in packages:
+            recipes += package.recipes_dependencies()
         build_command = build.Build()
-        build_command.runargs(config, package.recipes_dependencies(),
+        build_command.runargs(config, set(recipes),
             store=self.store, use_binaries=args.use_binaries,
             upload_binaries=args.upload_binaries,
             build_missing=args.build_missing)
