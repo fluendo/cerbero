@@ -188,11 +188,10 @@ class Recipe(FilesProvider):
         such as the commit hash for recipes using git and building against
         master: eg (1.2.0~git+2345435)
         '''
-        if hasattr(self.stype, 'built_version'):
-            try:
-                return self.stype.built_version(self)
-            except:
-                pass
+        try:
+            return self.stype.built_version(self)
+        except:
+            pass
         return None
 
     def list_deps(self):
