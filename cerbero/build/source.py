@@ -55,6 +55,16 @@ class Source (object):
         '''
         return string % {'name': self.name, 'version': self.version}
 
+    def built_version(self):
+        '''
+        Gets the current built version of the recipe, defaulting to the recipe
+        version.
+        Sources can override it to provide extended info in the version
+        such as the commit hash for recipes using git and building against
+        master: eg (1.2.0~git+2345435)
+        '''
+        return self.version
+
 
 class CustomSource (Source):
 
