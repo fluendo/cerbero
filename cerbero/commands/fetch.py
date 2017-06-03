@@ -64,6 +64,7 @@ class Fetch(Command):
                         to_rebuild.append(r)
                         cookbook.reset_recipe_status(r.name)
 
+        to_rebuild = sorted(set(to_rebuild))
         if to_rebuild:
             m.message(_("These recipes have been updated and will "
                         "be rebuilt:\n%s") %
