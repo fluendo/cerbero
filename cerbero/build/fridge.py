@@ -156,3 +156,7 @@ class Fridge (object):
             except Exception as e:
                 m.warning(str(e))
                 raise BuildStepError(recipe, step, traceback.format_exc())
+        # Update the recipe status
+        p = self.store.get_package('%s-pkg' % recipe.name)
+        v =p.version.rsplit('-')[0]
+        self.cookbook.update_build_status(recipe.name, v)
