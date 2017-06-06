@@ -22,7 +22,7 @@ import tarfile
 
 from cerbero.config import Platform
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
-from cerbero.utils import N_, _, shell
+from cerbero.utils import N_, _, shell, is_text_file
 from cerbero.utils import messages as m
 from cerbero.utils.shell import upload_curl, download_curl
 from cerbero.packages.distarchive import DistArchive
@@ -101,7 +101,7 @@ class Fridge (object):
                 tar.extractall(self.config.prefix)
                 for member in tar.getmembers():
                     # Simple sed for .la and .pc files
-                    if os.path.splitext(member.name)[1] in ['.la', '.pc']:
+                    if os.path.splitext(member.name)[1] in ['.la', '.pc'] or (os.path.splitext(f)[0] in ['bin'] and is_text_file(f)):
                         shell.replace(os.path.join(self.config.prefix, member.name),
                             {"CERBERO_PREFIX": self.config.prefix})
                     if os.path.splitext(member.name)[1] in ['.dylib'] and self.config.target_platform == Platform.DARWIN:
