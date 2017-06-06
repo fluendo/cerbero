@@ -420,24 +420,19 @@ class CookBook (object):
             # which can contain private classes to extend cerbero's recipes
             # and reuse them in our private repository
             try:
-                recipe = self._load_recipe_from_file(f, custom)
+                recipes_from_file = self._load_recipes_from_file(f, custom)
             except RecipeNotFoundError:
                 m.warning(_("Could not found a valid recipe in %s") % f)
-            if recipe is None:
+            if recipes_from_file is None:
                 continue
-            recipes[recipe.name] = recipe
+            for name in recipes_from_file:
+                recipes[name] = recipes_from_file[name]
         return recipes
 
-    def _load_recipe_from_file(self, filepath, custom=None):
+    def _load_recipes_from_file(self, filepath, custom=None):
+        recipes = {}
         mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
-        if self._config.target_arch == Architecture.UNIVERSAL:
-            if self._config.target_platform in [Platform.IOS, Platform.DARWIN]:
-                recipe = crecipe.UniversalFlatRecipe(self._config)
-            else:
-                recipe = crecipe.UniversalRecipe(self._config)
-        for c in self._config.arch_config.keys():
-            try:
-                d = {'Platform': Platform, 'Architecture': Architecture,
+        d = {'Platform': Platform, 'Architecture': Architecture,
                      'BuildType': BuildType, 'SourceType': SourceType,
                      'Distro': Distro, 'DistroVersion': DistroVersion,
                      'License': License, 'recipe': crecipe, 'os': os,
@@ -445,26 +440,34 @@ class CookBook (object):
                      'InvalidRecipeError': InvalidRecipeError,
                      'FatalError': FatalError,
                      'custom': custom, '_': _, 'shell': shell}
-                parse_file(filepath, d)
-                conf = self._config.arch_config[c]
-                if self._config.target_arch == Architecture.UNIVERSAL:
-                    if self._config.target_platform not in [Platform.IOS,
-                            Platform.DARWIN]:
-                        conf.prefix = os.path.join(self._config.prefix, c)
-                r = d['Recipe'](conf)
-                r.__file__ = os.path.abspath(filepath)
-                self._config.arch_config[c].do_setup_env()
-                r.prepare()
-                if self._config.target_arch == Architecture.UNIVERSAL:
-                    recipe.add_recipe(r)
+        parse_file(filepath, d)
+        for key in [x for x in d if x.startswith('Recipe')]:
+            if self._config.target_arch == Architecture.UNIVERSAL:
+                if self._config.target_platform in [Platform.IOS, Platform.DARWIN]:
+                    recipe = crecipe.UniversalFlatRecipe(self._config)
                 else:
-                    return r
-            except InvalidRecipeError:
-                pass
-            except Exception, ex:
-                m.warning("Error loading recipe in file %s %s" %
-                          (filepath, ex))
-        if self._config.target_arch == Architecture.UNIVERSAL:
-            if not recipe.is_empty():
-                return recipe
-        return None
+                    recipe = crecipe.UniversalRecipe(self._config)
+            for c in self._config.arch_config.keys():
+                try:
+                    conf = self._config.arch_config[c]
+                    if self._config.target_arch == Architecture.UNIVERSAL:
+                        if self._config.target_platform not in [Platform.IOS,
+                                Platform.DARWIN]:
+                            conf.prefix = os.path.join(self._config.prefix, c)
+                    r = d[key](conf)
+                    r.__file__ = os.path.abspath(filepath)
+                    self._config.arch_config[c].do_setup_env()
+                    r.prepare()
+                    if self._config.target_arch == Architecture.UNIVERSAL:
+                        recipe.add_recipe(r)
+                    else:
+                        recipes[r.name] = r
+                except InvalidRecipeError:
+                    pass
+                except Exception, ex:
+                    m.warning("Error loading recipe in file %s %s" %
+                              (filepath, ex))
+            if self._config.target_arch == Architecture.UNIVERSAL:
+                if not recipe.is_empty():
+                    recipes[recipe.name] = recipe
+        return recipes
