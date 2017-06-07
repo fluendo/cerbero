@@ -85,7 +85,7 @@ def to_odd_cased_unixpath(path):
             drive_letter = drive_letter.lower()
         else:
             drive_letter = drive_letter.upper()
-        path[0] = drive_letter
+        path = drive_letter + path[1:]
         path = to_unixpath(path)
     elif path[0] == '/':
         # from unixpath
@@ -94,7 +94,7 @@ def to_odd_cased_unixpath(path):
             drive_letter = drive_letter.lower()
         else:
             drive_letter = drive_letter.upper()
-        path[0] = drive_letter
+        path = path[0] + drive_letter + path[2:]
     return path
 
 
