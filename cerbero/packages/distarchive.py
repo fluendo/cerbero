@@ -113,7 +113,7 @@ class DistArchive(PackagerBase):
             filepath = os.path.join(self.prefix, f)
             arcname = os.path.join(package_prefix, f)
             if relocatable and not os.path.islink(filepath):
-                if os.path.splitext(f)[1] in ['.la', '.pc'] or (os.path.splitext(f)[0] in ['bin'] and is_text_file(f)):
+                if os.path.splitext(f)[1] in ['.la', '.pc'] or ('bin' in os.path.splitext(f)[0] and is_text_file(filepath)):
                     with open(filepath, 'r') as fo:
                         content = fo.read()
                         content = replace_prefix(self.config.prefix, content, "CERBERO_PREFIX")
