@@ -77,6 +77,27 @@ def to_unixpath(path):
     return path
 
 
+def to_odd_cased_unixpath(path):
+    if path[1] == ':':
+        # from winpath
+        drive_letter = path[0]
+        if drive_letter.isupper():
+            drive_letter = drive_letter.lower()
+        else:
+            drive_letter = drive_letter.upper()
+        path[0] = drive_letter
+        path = to_unixpath(path)
+    elif path[0] == '/':
+        # from unixpath
+        drive_letter = path[1]
+        if drive_letter.isupper():
+            drive_letter = drive_letter.lower()
+        else:
+            drive_letter = drive_letter.upper()
+        path[0] = drive_letter
+    return path
+
+
 def to_winepath(path):
         path = path.replace('/', '\\\\')
         # wine maps the filesystem root '/' to 'z:\'
@@ -300,3 +321,58 @@ def get_wix_prefix():
     if not os.path.exists(wix_prefix):
         raise FatalError("The required packaging tool 'WiX' was not found")
     return escape_path(to_unixpath(wix_prefix))
+
+
+def replace_prefix_infile(prefix, file, replacement='{PREFIX}'):
+    '''
+    Replace all possible ways of writing the prefix.
+    This function replaces in a file.
+
+    @cvar prefix: prefix to be replaced
+    @rtype: str
+    @cvar file: file name to be replaced
+    @rtype: str
+    @cvar replacement: the placeholder to put instead of the prefix
+    @rtype: str
+    '''
+    shell.replace(file, {
+        prefix: replacement,
+        to_unixpath(prefix): replacement,
+        to_winpath(prefix): replacement,
+        to_winepath(prefix): replacement,
+        to_odd_cased_unixpath(prefix): replacement,
+        os.path.normpath(prefix): replacement,
+    })
+
+
+def replace_prefix(prefix, string, replacement='{PREFIX}'):
+    '''
+    Replace all possible ways of writing the prefix.
+    This function replaces in a string.
+
+    @return: replaced string
+    @rtype: str
+
+    @cvar prefix: prefix to be replaced
+    @rtype: str
+    @cvar string: the original string
+    @rtype: str
+    @cvar replacement: the placeholder to put instead of the prefix
+    @rtype: str
+    '''
+    for p in [prefix, to_unixpath(prefix), to_winpath(prefix),
+              to_winepath(prefix), to_odd_cased_unixpath(prefix),
+              os.path.normpath(prefix)]:
+        string = string.replace(p, replacement)
+    return string
+
+
+def is_text_file(filename):
+    '''
+    Check if a file is text or binary.
+    This uses the same logic as file(1).
+    Adapted from https://stackoverflow.com/a/7392391/1324984.
+    '''
+    textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+    with open(filename, 'rb') as f:
+        return f.read(1024).translate(None, textchars) == ''

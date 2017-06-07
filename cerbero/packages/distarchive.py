@@ -23,7 +23,7 @@ import zipfile
 import shutil
 
 import cerbero.utils.messages as m
-from cerbero.utils import _
+from cerbero.utils import _, replace_prefix, is_text_file
 from cerbero.config import Platform
 from cerbero.errors import UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
@@ -113,10 +113,10 @@ class DistArchive(PackagerBase):
             filepath = os.path.join(self.prefix, f)
             arcname = os.path.join(package_prefix, f)
             if relocatable and not os.path.islink(filepath):
-                if os.path.splitext(f)[1] in ['.la', '.pc']:
+                if os.path.splitext(f)[1] in ['.la', '.pc'] or (os.path.splitext(f)[0] in ['bin'] and is_text_file(f)):
                     with open(filepath, 'r') as fo:
                         content = fo.read()
-                        content = content.replace(self.config.prefix, "CERBERO_PREFIX")
+                        content = replace_prefix(self.config.prefix, content, "CERBERO_PREFIX")
                         rewritten = tempfile.NamedTemporaryFile()
                         rewritten.write(content)
                         rewritten.flush()
