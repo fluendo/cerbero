@@ -2,7 +2,7 @@
 import os
 import shutil
 from cerbero.utils import shell
-from fluendo.custom import list_gstreamer_plugins_by_category
+from custom import list_gstreamer_plugins_by_category
 
 class Recipe(recipe.Recipe):
     name = 'gst-android'
