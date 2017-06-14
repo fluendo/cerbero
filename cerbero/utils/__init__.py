@@ -373,6 +373,6 @@ def is_text_file(filename):
     This uses the same logic as file(1).
     Adapted from https://stackoverflow.com/a/7392391/1324984.
     '''
-    textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+    textchars = bytearray(set([7,8,9,10,12,13,27]) | set(range(0x20, 0x100)) - set([0x7f]))
     with open(filename, 'rb') as f:
         return f.read(1024).translate(None, textchars) == ''
