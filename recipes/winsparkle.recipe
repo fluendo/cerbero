@@ -19,7 +19,7 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         super(Recipe, self).prepare()
-        if self.config.platform != Platform.WINDOWS:
+        if self.config.target_platform != Platform.WINDOWS:
             raise InvalidRecipeError ()
 
     @modify_environment
