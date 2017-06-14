@@ -7,6 +7,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.MIT]
     configure_options = '--without-python --without-crypto'
     deps = ['libxml2']
+    autoreconf = True
 
     files_libs = ['libxslt', 'libexslt']
     files_devel = ['bin/xsltproc%(bext)s', 'bin/xslt-config', 'include/libexslt', 'include/libxslt',
