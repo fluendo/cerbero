@@ -69,6 +69,8 @@ class DebianBootstraper (UnixBootstraper):
                     DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
                     DistroVersion.UBUNTU_NATTY, DistroVersion.UBUNTU_PRECISE]:
                   self.packages.append('ia32-libs')
+                elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL]:
+                  self.packages.append('libc6:i386 libncurses5:i386 libstdc++6:i386')
         if self.config.distro_version in [DistroVersion.DEBIAN_SQUEEZE,
                 DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID]:
             self.packages.remove('glib-networking')
