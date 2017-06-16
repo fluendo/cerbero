@@ -25,6 +25,7 @@ from datetime import datetime
 from fnmatch import fnmatch
 
 from cerbero.errors import EmptyPackageError
+from cerbero.config import Distro
 from cerbero.packages import PackageType
 from cerbero.packages.linux import LinuxPackager
 from cerbero.packages.package import MetaPackage, App
@@ -61,6 +62,9 @@ Pre-Depends: debconf (>= 0.2.17)
 Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Provides: %(provides)s
+Conflicts: %(conflicts)s
+Replaces: %(replaces)s
 Description: %(shortdesc)s
  %(longdesc)s
 
@@ -83,6 +87,9 @@ Architecture: any
 Depends: ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Provides: %(provides)s
+Conflicts: %(conflicts)s
+Replaces: %(replaces)s
 Description: %(shortdesc)s
  %(longdesc)s
 
@@ -362,6 +369,9 @@ class DebianPackager(LinuxPackager):
         args['shortdesc'] = self.package.shortdesc
         args['longdesc'] = self.package.longdesc \
                 if self.package.longdesc != 'default' else args['shortdesc']
+        args['provides'] = ''
+        args['conflicts'] = ''
+        args['replaces'] = ''
 
         try:
             runtime_files = self._files_string_list(PackageType.RUNTIME)
@@ -383,6 +393,17 @@ class DebianPackager(LinuxPackager):
         args['requires'] = ', ' + requires if requires else ''
         args['recommends'] = ''
         args['suggests'] = ''
+        provides = self.package.provides[Distro.DEBIAN][PackageType.RUNTIME]
+        conflicts = self.package.conflicts[Distro.DEBIAN][PackageType.RUNTIME]
+        replaces = self.package.replaces_obsoletes[Distro.DEBIAN][PackageType.RUNTIME]
+        if (not self.split and self.devel):
+            provides += [] + self.package.provides[Distro.DEBIAN][PackageType.DEVEL]
+            conflicts += [] + self.package.conflicts[Distro.DEBIAN][PackageType.DEVEL]
+            replaces += [] + self.package.replaces_obsoletes[Distro.DEBIAN][PackageType.DEVEL]
+        args['provides'] = ', '.join(provides)
+        args['conflicts'] = ', '.join(conflicts)
+        args['replaces'] = ', '.join(replaces)
+
         if runtime_files:
             return (CONTROL_TPL + CONTROL_RUNTIME_PACKAGE_TPL + CONTROL_DBG_PACKAGE_TPL) % \
                     args, runtime_files
@@ -395,6 +416,9 @@ class DebianPackager(LinuxPackager):
         args['shortdesc'] = 'Development files for %s' % \
                 self.package_prefix + self.package.name
         args['longdesc'] = args['shortdesc']
+        args['provides'] = ''
+        args['conflicts'] = ''
+        args['replaces'] = ''
 
         try:
             devel_files = self._files_string_list(PackageType.DEVEL)
@@ -418,6 +442,9 @@ class DebianPackager(LinuxPackager):
             args['requires'] += (', %(p_prefix)s%(name)s (= ${binary:Version})' % args)
         args['recommends'] = ''
         args['suggests'] = ''
+        args['provides'] = ', '.join(self.package.provides[Distro.DEBIAN][PackageType.DEVEL])
+        args['conflicts'] = ', '.join(self.package.conflicts[Distro.DEBIAN][PackageType.DEVEL])
+        args['replaces'] = ', '.join(self.package.replaces_obsoletes[Distro.DEBIAN][PackageType.DEVEL])
         if devel_files:
             return CONTROL_DEVEL_PACKAGE_TPL % args, devel_files
         return '', ''
@@ -462,5 +489,4 @@ class Packager(object):
 
 def register():
     from cerbero.packages.packager import register_packager
-    from cerbero.config import Distro
     register_packager(Distro.DEBIAN, Packager)
