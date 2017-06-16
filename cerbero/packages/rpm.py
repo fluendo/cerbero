@@ -45,6 +45,9 @@ Source:         %(source)s
 Group:          Applications/Internet
 License:        %(licenses)s
 Prefix:         %(prefix)s
+%(ConflictTag)s
+%(ObsoletesTag)s
+%(ProvidesTag)s
 Packager:       %(packager)s
 Vendor:         %(vendor)s
 %(url)s
@@ -231,7 +234,14 @@ class RPMPackager(LinuxPackager):
             'devel_package': devel_package,
             'devel_files': devel_files,
             'files': runtime_files,
-            'sources_dir': self.config.sources}
+            'sources_dir': self.config.sources,
+            'ConflictTag':  'Conflicts:      %s' % self.package.rpm_conflicts if \
+            self.package.rpm_conflicts else ' ',
+
+            'ObsoletesTag':  'Obsoletes:      %s' % self.package.rpm_obsoletes if \
+            self.package.rpm_obsoletes else ' ',
+            'ProvidesTag':  'Provides:      %s' % self.package.rpm_provides if \
+            self.package.rpm_provides else ' '}
 
         scripts = ''
 

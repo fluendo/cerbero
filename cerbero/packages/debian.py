@@ -61,6 +61,9 @@ Pre-Depends: debconf (>= 0.2.17)
 Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Conflicts: %(conflicts)s
+Replaces: %(replaces)s
+Provides: %(provides)s
 Description: %(shortdesc)s
  %(longdesc)s
 
@@ -83,6 +86,9 @@ Architecture: any
 Depends: ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
+Conflicts: %(conflicts)s
+Replaces: %(replaces)s
+Provides: %(provides)s
 Description: %(shortdesc)s
  %(longdesc)s
 
@@ -128,22 +134,22 @@ RULES_TPL = \
 
 build: build-stamp
 build-stamp:
-	dh_testdir
-	touch build-stamp
+        dh_testdir
+        touch build-stamp
 
 clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	dh_clean
+        dh_testdir
+        dh_testroot
+        rm -f build-stamp
+        dh_clean
 
 install: build
-	dh_testdir
-	dh_testroot
-	dh_prep
-	dh_installdirs
-	dh_installdocs
-	dh_install
+        dh_testdir
+        dh_testroot
+        dh_prep
+        dh_installdirs
+        dh_installdocs
+        dh_install
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -151,19 +157,19 @@ binary-indep: build install
 
 # Build architecture-dependent files here.
 binary-arch: build install
-	dh_testdir -a
-	dh_testroot -a
-	%(dh_strip)s
-	dh_link -a
-	dh_compress -a
-	dh_fixperms -a
-	dh_makeshlibs -a -V
-	dh_installdeb -a
-	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -a
-	dh_gencontrol -a
-	dh_md5sums -a
-	dh_installdebconf
-	dh_builddeb -a
+        dh_testdir -a
+        dh_testroot -a
+        %(dh_strip)s
+        dh_link -a
+        dh_compress -a
+        dh_fixperms -a
+        dh_makeshlibs -a -V
+        dh_installdeb -a
+        dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -a
+        dh_gencontrol -a
+        dh_md5sums -a
+        dh_installdebconf
+        dh_builddeb -a
 
 
 binary: binary-indep binary-arch
@@ -376,12 +382,18 @@ class DebianPackager(LinuxPackager):
             args['requires'] = ', ' + requires if requires else ''
             args['recommends'] = recommends
             args['suggests'] = suggests
+            args['conflicts'] = self.package.debian_conflicts
+            args['replaces'] = self.package.debian_replaces
+            args['provides'] = self.package.debian_provides
             return (CONTROL_TPL + CONTROL_RUNTIME_PACKAGE_TPL) % args, runtime_files
 
         requires = self._get_requires(PackageType.RUNTIME)
         args['requires'] = ', ' + requires if requires else ''
         args['recommends'] = ''
         args['suggests'] = ''
+        args['conflicts'] = self.package.debian_conflicts
+        args['replaces'] = self.package.debian_replaces
+        args['provides'] = self.package.debian_provides
         if runtime_files:
             return (CONTROL_TPL + CONTROL_RUNTIME_PACKAGE_TPL + CONTROL_DBG_PACKAGE_TPL) % \
                     args, runtime_files
@@ -409,6 +421,9 @@ class DebianPackager(LinuxPackager):
             args['requires'] = ', ' + requires if requires else ''
             args['recommends'] = recommends
             args['suggests'] = suggests
+            args['conflicts'] = self.package.debian_conflicts
+            args['replaces'] = self.package.debian_replaces
+            args['provides'] = self.package.debian_provides
             return CONTROL_DEVEL_PACKAGE_TPL % args, devel_files
 
         requires = self._get_requires(PackageType.DEVEL)
@@ -417,6 +432,9 @@ class DebianPackager(LinuxPackager):
             args['requires'] += (', %(p_prefix)s%(name)s (= ${binary:Version})' % args)
         args['recommends'] = ''
         args['suggests'] = ''
+        args['conflicts'] = self.package.debian_conflicts
+        args['replaces'] = self.package.debian_replaces
+        args['provides'] = self.package.debian_provides
         if devel_files:
             return CONTROL_DEVEL_PACKAGE_TPL % args, devel_files
         return '', ''
