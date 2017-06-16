@@ -82,6 +82,18 @@ class PackageBase(object):
     @type resources_postinstall = str
     @cvar resources_postremove = filename for the post-remove script
     @type resources_postremove = str
+    @cvar debian_conflicts = list of debian conflicting packages
+    @type debian_conflicts = str
+    @cvar debian_replaces = list of debian replaced packages
+    @type debian_replaces = str
+    @cvar debian_provides = list of debian provided packages
+    @type debian_provides = str
+    @cvar rpm_conflicts = list of RPM conflicting packages
+    @type rpm_conflicts = str
+    @cvar rpm_obsoletes = list of RPM obsoleted packages
+    @type rpm_obsoletes = str
+    @cvar rpm_provides = list of RPM provided packages
+    @type rpm_provides = str
     '''
     name = 'default'
     shortdesc = 'default'
@@ -110,8 +122,13 @@ class PackageBase(object):
     resources_preinstall = 'preinstall'
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
-    conflicts = ''
     resources_debian_rules = None
+    debian_conflicts = ''
+    debian_replaces = ''
+    debian_provides = ''
+    rpm_conflicts = ''
+    rpm_obsoletes = ''
+    rpm_provides = ''
 
     def __init__(self, config, store):
         if self.sys_deps is None:
