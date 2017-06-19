@@ -205,12 +205,19 @@ class DebianPackager(LinuxPackager):
         os.mkdir(os.path.join(packagedir, 'source'))
         m.action(_('Creating debian package structure at %s for package %s') %
                 (srcdir, self.package.name))
+        files_list = self.files_list(PackageType.RUNTIME)
+        files = '\n'.join([os.path.join(self.install_dir + '/' + f) \
+            for f in files_list])
         if os.path.exists(self.package.resources_postinstall):
+            postinst_path = os.path.join(packagedir, 'postinst')
             shutil.copy(os.path.join(self.package.resources_postinstall),
-                        os.path.join(packagedir, 'postinst'))
+                        postinst_path)
+            shell.replace(postinst_path, {'%(files)s': files})
         if os.path.exists(self.package.resources_postremove):
+            postrm_path = os.path.join(packagedir, 'postrm')
             shutil.copy(os.path.join(self.package.resources_postremove),
-                        os.path.join(packagedir, 'postrm'))
+                        postrm_path)
+            shell.replace(postrm_path, {'%(files)s': files})
         return (tmpdir, packagedir, srcdir)
 
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):
