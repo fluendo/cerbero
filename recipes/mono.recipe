@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 from cerbero.utils import shell
+import shutil
 
 class Recipe(recipe.Recipe):
     name = 'mono'
@@ -12,7 +13,11 @@ class Recipe(recipe.Recipe):
                         ' --disable-dtrace ' \
                         ' --with-mcs-docs=no '
     config_sh = 'sh autogen.sh'
-    files_bins = ['mono-sgen', 'mono', 'xbuild']
+    files_bins = ['mono-sgen', 'mono']
+    platform_files_bins = {
+        Platform.DARWIN: ['xbuild'],
+        Platform.LINUX: ['xbuild'],
+    }
     files_libs = ['libmonosgen-2.0', 'libmono-2.0']
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
@@ -28,6 +33,10 @@ class Recipe(recipe.Recipe):
         'lib/mono/xbuild-frameworks',
         'lib/pkgconfig/mono-2.pc',
         'lib/pkgconfig/mono.pc',
+    ]
+
+    patches = [
+        'mono/0008-mono-os-mutex-mingw32-cross.patch',
     ]
 
     def prepare(self):
@@ -65,6 +74,23 @@ class Recipe(recipe.Recipe):
         shell.call ('rm -rf lib/mono/4.5/nunit*', self.config.prefix)
         shell.call ('rm -rf lib/mono/gac/*/2.4.8.0__96d09a1eb7f44a77',
                 self.config.prefix)
+        if self.config.target_platform == Platform.WINDOWS and \
+            self.config.platform == Platform.LINUX:
+            # When crosscompiling mono, mcs dir is not built.
+            # It makes sense as there's no way to build any .dll because the mono
+            # compiler only works on the target platform. Given that we always
+            # include mono as a build-tool too, we can safely copy them into
+            # our own prefix
+            dst = os.path.join(self.config.prefix, 'lib', 'mono')
+            if not os.path.exists(dst):
+                os.makedirs(dst)
+            shell.copy_dir(os.path.join(self.config.build_tools_prefix, 'lib', 'mono'), dst)
+            # When crosscompiling mono, the final binaries names are different
+            # rename them
+            shutil.copy(os.path.join(self.config.prefix, 'bin', 'i686-w64-mingw32-mono-sgen.exe'),
+                os.path.join(self.config.prefix, 'bin', 'mono.exe'))
+            shutil.copy(os.path.join(self.config.prefix, 'bin', 'i686-w64-mingw32-mono-sgen.exe'),
+                os.path.join(self.config.prefix, 'bin', 'mono-sgen.exe'))
 
     # This is the list of installed files that we are not listing in the recipe, in case we ever need them
     # files_ignored = [
