@@ -1,0 +1,18 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+
+class Recipe(recipe.Recipe):
+    name = 'wix'
+    version = '3.11'
+    stype = SourceType.TARBALL
+    url = 'https://github.com/wixtoolset/wix3/releases/download/wix311rtm/wix311-binaries.zip'
+    btype = BuildType.CUSTOM
+
+    def extract(self):
+        if os.path.exists(self.build_dir):
+            shutil.rmtree(self.build_dir)
+        os.makedirs(self.build_dir)
+        shell.unpack(self.download_path, self.build_dir)
+
+    def install(self):
+        shell.copy_dir(self.build_dir, os.path.join(self.config.prefix, 'lib', 'wix', 'bin'))
