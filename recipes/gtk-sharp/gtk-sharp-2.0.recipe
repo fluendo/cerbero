@@ -4,11 +4,11 @@ import os
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
-    version = '2.12.42'
+    version = '2.12.45'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
     deps = ['gtk+', 'libglade', 'mono']
-    url = 'https://github.com/mono/gtk-sharp/archive/2.12.42.tar.gz'
+    url = 'https://github.com/mono/gtk-sharp/archive/%(version)s.tar.gz'
     config_sh = 'sh bootstrap-2.12'
 
     files_gapi = [
