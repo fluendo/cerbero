@@ -17,6 +17,7 @@ class Recipe(recipe.Recipe):
     files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
     files_devel = [
+        'bin/gacutil',
         'include/mono-2.0',
         'lib/mono/2.0-api',
         'lib/mono/4.0-api',
@@ -90,7 +91,6 @@ class Recipe(recipe.Recipe):
     #     'bin/dmcs',
     #     'bin/dtd2rng',
     #     'bin/dtd2xsd',
-    #     'bin/gacutil',
     #     'bin/gacutil2',
     #     'bin/genxs',
     #     'bin/httpcfg',
