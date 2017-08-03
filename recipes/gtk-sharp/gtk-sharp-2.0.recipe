@@ -4,11 +4,12 @@ import os
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
-    version = '2.12.45'
+    version = '2.12.43'
     licenses = [License.LGPL]
     stype = SourceType.TARBALL
     deps = ['gtk+', 'libglade', 'mono']
     url = 'https://github.com/mono/gtk-sharp/archive/%(version)s.tar.gz'
+    patches = ['0002-fix_pixbuf_memory_leak.patch']
     config_sh = 'sh bootstrap-2.12'
 
     files_gapi = [
