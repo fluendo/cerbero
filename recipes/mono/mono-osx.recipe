@@ -1,0 +1,146 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
+import cerbero.utils.messages as m
+from cerbero.utils import shell, file_string_replace
+from cerbero.tools.osxrelocator import OSXRelocator
+
+class Recipe(recipe.Recipe):
+    name = 'mono'
+    version = '5.0.1'
+    licenses = [License.LGPL]
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+
+    deps = ['libgdiplus']
+
+    _monoscripts = [
+        'bin/al',
+        'bin/mcs',
+        'bin/dmcs',
+        'bin/gacutil',
+        'bin/resgen',
+        'bin/msbuild',
+        'bin/xbuild',
+    ]
+    _mono = [
+        'bin/mono-sgen64',
+        'etc/mono',
+        'lib/mono/gac',
+        'lib/mono/2.0-api',
+        'lib/mono/4.0-api',
+        'lib/mono/4.5',
+        'lib/mono/4.5-api',
+        'lib/mono/msbuild',
+        'lib/mono/xbuild',
+        'lib/mono/xbuild-frameworks',
+        'include/mono-2.0',
+        'lib/libMonoPosixHelper.dylib',
+        'lib/libmonosgen-2.0.1.dylib',
+        'lib/pkgconfig/monosgen-2.pc',
+        'lib/pkgconfig/mono-2.pc',
+        'lib/pkgconfig/mono.pc',
+    ]
+
+    files_bins = ['mono-sgen', 'mono', 'xbuild', 'msbuild']
+    files_libs = ['libmonosgen-2.0', 'libmono-2.0']
+    files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
+    files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
+    files_devel = [
+        'bin/gacutil',
+        'include/mono-2.0',
+        'lib/mono/2.0-api',
+        'lib/mono/4.0-api',
+        'lib/mono/4.5',
+        'lib/mono/4.5-api',
+        'lib/mono/gac',
+        'lib/mono/msbuild',
+        'lib/mono/xbuild',
+        'lib/mono/xbuild-frameworks',
+        'lib/pkgconfig/monosgen-2.pc',
+        'lib/pkgconfig/mono-2.pc',
+        'lib/pkgconfig/mono.pc',
+    ]
+
+    def prepare(self):
+        if self.config.target_platform != self.config.platform or self.config.target_platform != Platform.DARWIN:
+            raise InvalidRecipeError()
+
+    def install(self):
+        mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
+        if not os.path.exists(mono_prefix_dir):
+            m.error("ERROR: Mono not found!")
+            raise FatalError("Mono not found!")
+        for f in self._mono + self._monoscripts:
+            src = os.path.join(mono_prefix_dir, f)
+            dest = os.path.join(self.config.prefix, f)
+            if os.path.isdir(src):
+                shell.copy_dir (src, dest)
+            elif os.path.isfile(src):
+                if not os.path.exists(os.path.dirname(dest)):
+                    os.makedirs(os.path.dirname(dest))
+                shutil.copy(src, dest)
+            else:
+                print "WARNING: %s not found" % f
+
+        #replace mono scripts
+        for f in self._monoscripts:
+            script = os.path.join(self.config.prefix, f)
+            file_string_replace(script, mono_prefix_dir, self.config.prefix)
+
+        monosgen_link = os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.dylib')
+        mono_link = os.path.join(self.config.prefix, 'lib', 'libmono-2.0.dylib')
+
+        shutil.move(os.path.join(self.config.prefix, 'bin', 'mono-sgen64'),
+                    os.path.join(self.config.prefix, 'bin', 'mono-sgen'))
+        shutil.copy(os.path.join(self.config.prefix, 'bin', 'mono-sgen'),
+                    os.path.join(self.config.prefix, 'bin', 'mono'))
+
+        try:
+            os.unlink(mono_link)
+        except IOError as e:
+            pass
+
+        try:
+            os.unlink(monosgen_link)
+        except IOError as e:
+            pass
+
+        os.symlink(os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.1.dylib'),
+                   monosgen_link)
+        os.symlink(monosgen_link,
+                   mono_link)
+    
+    def post_install(self):
+        config = os.path.join(self.config.prefix, 'etc', 'mono', 'config')
+        prefix = self.config.libdir
+        if prefix[-1] != '/':
+            prefix += '/'
+        shell.replace(config, {prefix: '',
+            'libintl.dylib': 'libintl.8.dylib',
+            'libintl.so': 'libintl.8.so',
+            'libgdiplus.dylib': 'libgdiplus.0.dylib',
+            'libgdiplus.so': 'libgdiplus.so.0',
+            })
+        shell.call ('rm -rf lib/mono/2.0/nunit*', self.config.prefix)
+        shell.call ('rm -rf lib/mono/4.5/nunit*', self.config.prefix)
+        shell.call ('rm -rf lib/mono/gac/*/2.4.8.0__96d09a1eb7f44a77',
+                self.config.prefix)
+
+    def relocate_osx_libraries(self):
+        super(Recipe, self).relocate_osx_libraries()
+        mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
+        relocator = OSXRelocator(mono_prefix_dir, mono_prefix_dir, True)
+        relocator.change_id(os.path.join(self.config.prefix, 'lib','libmonosgen-2.0.1.dylib'))
+        relocator.change_id(os.path.join(self.config.prefix, 'lib','libMonoPosixHelper.dylib'))
+
+        libiconv_system_path = '/usr/lib/libiconv.2.dylib'
+        libiconv_rpath = '@rpath/lib/libiconv.2.dylib'
+
+        relocator.change_lib_path(os.path.join(self.config.prefix, 'lib','libmonosgen-2.0.1.dylib'),
+            libiconv_system_path, libiconv_rpath)
+        relocator.change_lib_path(os.path.join(self.config.prefix, 'lib','libMonoPosixHelper.dylib'),
+            libiconv_system_path, libiconv_rpath)
+        relocator.change_lib_path(os.path.join(self.config.prefix, 'bin','mono'),
+            libiconv_system_path, libiconv_rpath)
+        relocator.change_lib_path(os.path.join(self.config.prefix, 'bin','mono-sgen'),
+            libiconv_system_path, libiconv_rpath)

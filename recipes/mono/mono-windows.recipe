@@ -5,7 +5,7 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '4.6.1'
+    version = '5.0.1'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
@@ -14,13 +14,16 @@ class Recipe(recipe.Recipe):
         'bin/al',
         'bin/mcs',
         'bin/mcs.bat',
+        'bin/csc',
+        'bin/csc.bat',
         'bin/dmcs',
         'bin/gacutil',
         'bin/intl.dll',
-        'bin/monosgen-2.0.dll',
+        'bin/libmonosgen-2.0.dll',
         'bin/mono-sgen.exe',
         'bin/libMonoPosixHelper.dll',
         'bin/resgen',
+        'bin/msbuild',
         'bin/xbuild',
         'bin/zlib1.dll',
         'etc/mono',
@@ -29,11 +32,12 @@ class Recipe(recipe.Recipe):
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/msbuild',
         'lib/mono/xbuild',
         'lib/mono/xbuild-frameworks',
         'include/mono-2.0',
-        'lib/mono-2.0.lib',
-        'lib/monosgen-2.0.lib',
+        'lib/mono-2.0-sgen.lib',
+        'lib/pkgconfig/monosgen-2.pc',
         'lib/pkgconfig/mono-2.pc',
         'lib/pkgconfig/mono.pc',
     ]
@@ -41,7 +45,7 @@ class Recipe(recipe.Recipe):
     files_bins = ['mono-sgen', 'mono']
     files_bin = [
         'bin/intl.dll',
-        'bin/monosgen-2.0.dll',
+        'bin/mono-2.0-sgen.dll',
         'bin/zlib1.dll',
         'bin/cygpath'
     ]
@@ -52,20 +56,25 @@ class Recipe(recipe.Recipe):
         'bin/al',
         'bin/mcs',
         'bin/mcs.bat',
+        'bin/csc',
+        'bin/csc.bat',
         'bin/dmcs',
         'bin/gacutil',
         'bin/resgen',
         'bin/xbuild',
+        'bin/msbuild',
         'lib/mono/gac',
         'lib/mono/2.0-api',
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/msbuild',
         'lib/mono/xbuild',
         'lib/mono/xbuild-frameworks',
         'include/mono-2.0',
         'lib/mono-2.0.lib',
         'lib/monosgen-2.0.lib',
+        'lib/pkgconfig/monosgen-2.pc',
         'lib/pkgconfig/mono-2.pc',
         'lib/pkgconfig/mono.pc',
     ]
@@ -76,7 +85,7 @@ class Recipe(recipe.Recipe):
 
     def install(self):
         pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
-        mono_prefix_dir = os.path.join(pf, 'Mono')
+        mono_prefix_dir = os.path.join(pf, 'Mono-%s' % self.version)
         if not os.path.exists(mono_prefix_dir):
             m.error("ERROR: Mono not found!")
             raise FatalError("Mono not found!")
@@ -91,6 +100,14 @@ class Recipe(recipe.Recipe):
                 shutil.copy(src, dest)
             else:
                 print "WARNING: %s not found" % f
+
+        shutil.move(os.path.join(self.config.prefix, 'lib', 'mono-2.0-sgen.lib'),
+                    os.path.join(self.config.prefix, 'lib', 'monosgen-2.0.lib'))
+        shutil.copy(os.path.join(self.config.prefix, 'lib', 'monosgen-2.0.lib'),
+                    os.path.join(self.config.prefix, 'lib', 'mono-2.0.lib'))
+
+        shutil.move(os.path.join(self.config.prefix, 'bin', 'libmonosgen-2.0.dll'),
+                    os.path.join(self.config.prefix, 'bin', 'mono-2.0-sgen.dll'))
         shutil.copy(os.path.join(self.config.prefix, 'bin', 'mono-sgen.exe'),
                     os.path.join(self.config.prefix, 'bin', 'mono.exe'))
         shutil.copy(os.path.join(self.config.prefix, 'bin', 'mcs'),
