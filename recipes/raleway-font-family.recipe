@@ -1,0 +1,55 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell
+import shutil
+import cerbero.utils.messages as m
+
+class Recipe(recipe.Recipe):
+    name = 'raleway-font-family'
+    version = '0.1'
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+    url = 'https://fonts.google.com/download?family=Raleway'
+    tarball_name = 'raleway.zip'
+    files_fonts = [ 'share/fonts/truetype/raleway-font-family' ]
+    platform_files_fonts = {
+        Platform.WINDOWS: ['etc/pango/pango.aliases'],
+    }
+
+    def install(self):
+        fonts_dir = os.path.join(self.config.prefix, 'share', 'fonts', 'truetype', 'raleway-font-family')
+        if not os.path.exists(fonts_dir):
+            os.makedirs(fonts_dir)
+        for f in os.listdir(self.build_dir):
+            if not f.endswith(".ttf"):
+                continue
+            shutil.copy(os.path.join(self.build_dir, f), fonts_dir)
+
+        if self.config.target_platform == Platform.WINDOWS:
+            pango_path = os.path.join(self.config.prefix, 'etc', 'pango')
+            if not os.path.exists(pango_path):
+                os.makedirs(pango_path)
+
+            pango_aliases_filename = os.path.join(pango_path, 'pango.aliases')
+            with open(pango_aliases_filename,'w') as f:
+                f.write('raleway = raleway\n')
+                # Simplified Chinese fonts
+                f.write('raleway += "NSimSun"\n')
+                f.write('raleway += "SimSun"\n')
+                # Japanese fonts
+                f.write('raleway += "MS PMincho"\n')
+                f.write('raleway += "MS Mincho"\n')
+
+    def extract(self):
+        m.action(_('Extracting tarball to %s') % self.build_dir)
+        if os.path.exists(self.build_dir):
+            shutil.rmtree(self.build_dir)
+        # The raleway zip doesn't contain a folder, so we create it manually
+        os.makedirs(self.build_dir)
+        shell.unpack(self.download_path, self.build_dir)
+        if self.tarball_dirname is not None:
+            os.rename(os.path.join(self.config.sources, self.tarball_dirname),
+                    self.build_dir)
+        for patch in self.patches:
+            if not os.path.isabs(patch):
+                patch = self.relative_path(patch)
+            shell.apply_patch(patch, self.build_dir, self.strip)

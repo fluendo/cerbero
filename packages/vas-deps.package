@@ -8,6 +8,7 @@ class Package(package.Package):
     shortdesc  = 'VAS dependencies'
     longdesc  = 'Video Analysis Solution dependencies'
     files = ['ubuntu-font-family:fonts',
+             'raleway-font-family:fonts',
              'gtk-sharp',
              'libglade:libs',
              'sqlite3:libs',
