@@ -327,6 +327,41 @@ class Svn(Source):
         return '%s+svn~%s' % (self.version, svn.revision(self.repo_dir))
 
 
+class GitLfs (Git):
+    '''
+    Source handler for git repositories with LFS support
+    '''
+
+    def extract(self):
+        # For Git with LFS there's a bug where we can not fetch from
+        # a local folder. We overcome that by using the --reference arg
+        # https://github.com/git-lfs/git-lfs/issues/1207#issuecomment-217455331
+        if os.path.exists(self.build_dir):
+            # fix read-only permissions
+            if self.config.platform == Platform.WINDOWS:
+                shell.call('chmod -R +w .git/', self.build_dir, fail=False)
+            try:
+                commit_hash = git.get_hash(self.repo_dir, self.commit)
+                checkout_hash = git.get_hash(self.build_dir, 'HEAD')
+                if commit_hash == checkout_hash:
+                    return False
+            except Exception:
+                pass
+            shutil.rmtree(self.build_dir)
+        if not os.path.exists(self.build_dir):
+            os.mkdir(self.build_dir)
+        if self.supports_non_src_build:
+            return
+
+        # get the remote this commit belongs too
+        branch = shell.check_call('git branch -r --contains %s' % (self.commit), self.repo_dir)
+        remote = branch.strip().split('/')[0]
+        # this one appears on git 2.7
+        remote_url = shell.check_call('git remote get-url %s' % (remote), self.repo_dir).rstrip()
+        shell.call('git clone --no-checkout --reference %s %s .' % (self.repo_dir, remote_url), self.build_dir)
+        shell.call('git checkout -b build %s' % (self.commit), self.build_dir)
+        shell.call('git submodule update --init --recursive', self.build_dir)
+
 class SourceType (object):
 
     CUSTOM = CustomSource
@@ -335,3 +370,4 @@ class SourceType (object):
     GIT = Git
     GIT_TARBALL = GitExtractedTarball
     SVN = Svn
+    GIT_LFS = GitLfs
