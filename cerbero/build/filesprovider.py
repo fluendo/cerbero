@@ -112,7 +112,7 @@ class FilesProvider(object):
         ''' Get the list of categories available '''
         categories = []
         for name, value in inspect.getmembers(self):
-            if (isinstance(value, list) or isinstance(value, dict)):
+            if (isinstance(value, list) or isinstance(value, dict) or (value is None)):
                 if name.startswith('files_'):
                     categories.append(name.split('files_')[1])
                 if name.startswith('platform_files_'):
