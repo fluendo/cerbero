@@ -1,0 +1,19 @@
+commit c6707947afe8f6c503d18399bb5d87f9f2a42c7b
+Author: Victor Martos <vmartos@fluendo.com>
+Date:   Thu Aug 10 12:05:46 2017 +0200
+
+    Remove CFLAG_VISIBILITY for CFLAGS
+
+diff --git a/lib/Makefile.in b/lib/Makefile.in
+index a538cce..4f862c0 100644
+--- a/lib/Makefile.in
++++ b/lib/Makefile.in
+@@ -13,7 +13,7 @@ libdir = @libdir@
+ 
+ # Programs used by "make":
+ CC = @CC@
+-CFLAGS = @CFLAGS@ @CFLAG_VISIBILITY@
++CFLAGS = @CFLAGS@
+ CPPFLAGS = @CPPFLAGS@
+ LDFLAGS = @LDFLAGS@ $(LDFLAGS_@WOE32DLL@)
+ LDFLAGS_yes = -Wl,--export-all-symbols

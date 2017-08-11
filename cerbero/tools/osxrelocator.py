@@ -76,6 +76,14 @@ class OSXRelocator(object):
                                                object_file)
                 shell.call(cmd, fail=False)
 
+    def change_lib_path(self, object_file, old_path, new_path):
+        for lib in self.list_shared_libraries(object_file):
+            if old_path in lib:
+                new_path = lib.replace(old_path, new_path)
+                cmd = '%s -change "%s" "%s" "%s"' % (INT_CMD, lib, new_path,
+                                               object_file)
+                shell.call(cmd, fail=True)
+
     def parse_dir(self, dir_path, filters=None):
         for dirpath, dirnames, filenames in os.walk(dir_path):
             for f in filenames:
