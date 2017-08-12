@@ -87,8 +87,9 @@ class Recipe(recipe.Recipe):
             script = os.path.join(self.config.prefix, f)
             file_string_replace(script, mono_prefix_dir, self.config.prefix)
 
-        monosgen_link = os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.dylib')
-        mono_link = os.path.join(self.config.prefix, 'lib', 'libmono-2.0.dylib')
+        libmonosgen_link = os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.dylib')
+        libmono_link = os.path.join(self.config.prefix, 'lib', 'libmono-2.0.dylib')
+        mono_link = os.path.join(self.config.prefix, 'bin', 'mono')
 
         shutil.move(os.path.join(self.config.prefix, 'bin', 'mono-sgen64'),
                     os.path.join(self.config.prefix, 'bin', 'mono-sgen'))
