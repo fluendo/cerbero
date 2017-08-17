@@ -137,7 +137,7 @@ class Recipe(recipe.Recipe):
     def compile(self):
         #HACK: Temporal workaround for https://bugzilla.xamarin.com/show_bug.cgi?id=37478
         if self.config.target_platform == Platform.WINDOWS:
-            shell.call("make -C .nuget", self.build_dir)
+            shell.call("make -C .paket", self.build_dir)
             csproj = os.path.join(self.build_dir, 'LongoMatch.DB/LongoMatch.DB.Net45.csproj')
             dllpath = shell.check_call(
                 "sed -n 's:.*<HintPath>\(.*SharpZipLib.*\)</HintPath>.*:\\1:p' %s" % csproj)
