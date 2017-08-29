@@ -83,8 +83,10 @@ class Package(Command):
         if args.only_build_deps:
             return
 
+        package_outputs = []
         for package in packages:
-            self._create_package(config, package, args)
+            package_outputs += self._create_package(config, package, args)
+        return package_outputs
 
     def _create_package(self, config, p, args):
         if args.type == 'native':
@@ -117,6 +119,7 @@ class Package(Command):
             # Generate the sha1sum file
             with open('%s.sha1' % p, 'w+') as sha1file:
                 sha1file.write(sha1sum)
+        return paths
 
     def _build_deps(self, config, packages, args):
         recipes = []
