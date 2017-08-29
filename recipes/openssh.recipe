@@ -1,0 +1,15 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell
+
+
+class Recipe(recipe.Recipe):
+    name = 'openssh'
+    version = '7.5p1'
+    stype = SourceType.TARBALL
+    url = 'ftp://ftp3.usa.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-7.5p1.tar.gz'
+    configure_options='--with-privsep-path=/3rd_rw/empty/ --disable-strip'
+    deps = ['openssl']
+
+    def prepare(self):
+         self.new_env['LD'] = os.environ.get('CC', 'gcc')
+

@@ -1,0 +1,9 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.utils import shell
+
+
+class Recipe(recipe.Recipe):
+    name = 'gdb'
+    version = '8.0'
+    stype = SourceType.TARBALL
+    url = 'http://ftp.gnu.org/gnu/gdb/gdb-8.0.tar.xz'
