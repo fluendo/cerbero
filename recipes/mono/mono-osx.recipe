@@ -121,7 +121,11 @@ class Recipe(recipe.Recipe):
         prefix = self.config.libdir
         if prefix[-1] != '/':
             prefix += '/'
+        mono_prefix = os.path.join(self.mono_prefix_dir, 'lib')
+        if mono_prefix[-1] != '/':
+            mono_prefix += '/'
         shell.replace(config, {prefix: '',
+            mono_prefix: '',
             'libintl.dylib': 'libintl.8.dylib',
             'libintl.so': 'libintl.8.so',
             'libgdiplus.dylib': 'libgdiplus.0.dylib',
