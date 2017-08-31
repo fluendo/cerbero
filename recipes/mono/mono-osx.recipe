@@ -64,14 +64,14 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.target_platform != self.config.platform or self.config.target_platform != Platform.DARWIN:
             raise InvalidRecipeError()
+        self.mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
 
     def install(self):
-        mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
-        if not os.path.exists(mono_prefix_dir):
+        if not os.path.exists(self.mono_prefix_dir):
             m.error("ERROR: Mono not found!")
             raise FatalError("Mono not found!")
         for f in self._mono + self._monoscripts:
-            src = os.path.join(mono_prefix_dir, f)
+            src = os.path.join(self.mono_prefix_dir, f)
             dest = os.path.join(self.config.prefix, f)
             if os.path.isdir(src):
                 shell.copy_dir (src, dest)
@@ -85,7 +85,7 @@ class Recipe(recipe.Recipe):
         #replace mono scripts
         for f in self._monoscripts:
             script = os.path.join(self.config.prefix, f)
-            file_string_replace(script, mono_prefix_dir, self.config.prefix)
+            file_string_replace(script, self.mono_prefix_dir, self.config.prefix)
 
         libmonosgen_link = os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.dylib')
         libmono_link = os.path.join(self.config.prefix, 'lib', 'libmono-2.0.dylib')
@@ -121,7 +121,11 @@ class Recipe(recipe.Recipe):
         prefix = self.config.libdir
         if prefix[-1] != '/':
             prefix += '/'
+        mono_prefix = os.path.join(self.mono_prefix_dir, 'lib')
+        if mono_prefix[-1] != '/':
+            mono_prefix += '/'
         shell.replace(config, {prefix: '',
+            mono_prefix: '',
             'libintl.dylib': 'libintl.8.dylib',
             'libintl.so': 'libintl.8.so',
             'libgdiplus.dylib': 'libgdiplus.0.dylib',
@@ -134,8 +138,7 @@ class Recipe(recipe.Recipe):
 
     def relocate_osx_libraries(self):
         super(Recipe, self).relocate_osx_libraries()
-        mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
-        relocator = OSXRelocator(mono_prefix_dir, mono_prefix_dir, True)
+        relocator = OSXRelocator(self.mono_prefix_dir, self.mono_prefix_dir, True)
         relocator.change_id(os.path.join(self.config.prefix, 'lib','libmonosgen-2.0.1.dylib'))
         relocator.change_id(os.path.join(self.config.prefix, 'lib','libMonoPosixHelper.dylib'))
 
