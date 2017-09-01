@@ -86,7 +86,8 @@ class Package(Command):
         package_outputs = []
         for package in packages:
             package_outputs += self._create_package(config, package, args)
-        return package_outputs
+        print package_outputs
+        return
 
     def _create_package(self, config, p, args):
         if args.type == 'native':
