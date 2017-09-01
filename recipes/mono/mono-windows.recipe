@@ -87,7 +87,7 @@ class Recipe(recipe.Recipe):
         pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
         mono_prefix_dir = os.path.join(pf, 'Mono-%s' % self.version)
         if not os.path.exists(mono_prefix_dir):
-            m.error("ERROR: Mono not found!")
+            m.error("ERROR: Mono not found in path %s" % mono_prefix_dir)
             raise FatalError("Mono not found!")
         for f in self._mono:
             src = os.path.join(mono_prefix_dir, f)

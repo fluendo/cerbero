@@ -68,7 +68,7 @@ class Recipe(recipe.Recipe):
 
     def install(self):
         if not os.path.exists(self.mono_prefix_dir):
-            m.error("ERROR: Mono not found!")
+            m.error("ERROR: Mono not found in path %s" % self.mono_prefix_dir)
             raise FatalError("Mono not found!")
         for f in self._mono + self._monoscripts:
             src = os.path.join(self.mono_prefix_dir, f)
