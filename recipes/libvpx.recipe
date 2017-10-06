@@ -15,7 +15,7 @@ class Recipe(recipe.Recipe):
                     "--libdir=%(libdir)s %(options)s"
     configure_options = "--enable-pic --as=yasm --disable-unit-tests --size-limit=16384x16384 "\
                         "--enable-postproc --enable-multi-res-encoding --enable-temporal-denoising "\
-                        "--enable-vp9-temporal-denoising --enable-vp9-postproc --disable-sse3 "
+                        "--enable-vp9-temporal-denoising --enable-vp9-postproc "
     add_host_build_target = False
     supports_cache_variables = False
     can_use_configure_cache = False
@@ -98,6 +98,8 @@ class Recipe(recipe.Recipe):
         else:
             self.configure_options += '--enable-shared '
             platform = 'linux'
+            if self.config.distro_version == DistroVersion.UBUNTU_LUCID:
+                self.configure_options += '--disable-sse3 '
 
         self.configure_options += ' --disable-examples '
 
