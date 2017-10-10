@@ -8,7 +8,7 @@ from cerbero.build.filesprovider import FilesProvider
 
 class Recipe(recipe.Recipe):
     name = 'longomatch'
-    version = 'git-master'
+    version = 'g-m' # git-master (avoid long paths)
     licenses = [License.GPL]
     remotes = {'github': 'git@github.com:LongoMatch/longomatch-core.git'}
     commit = 'github/master'
