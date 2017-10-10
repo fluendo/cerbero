@@ -109,11 +109,11 @@ class Recipe(recipe.Recipe):
         except OSError as e:
             pass
 
-        os.symlink(os.path.join(self.config.prefix, 'lib', 'libmonosgen-2.0.1.dylib'),
+        os.symlink('libmonosgen-2.0.1.dylib',
                    libmonosgen_link)
-        os.symlink(libmonosgen_link,
+        os.symlink(os.path.basename(libmonosgen_link),
                    libmono_link)
-        os.symlink(os.path.join(self.config.prefix, 'bin', 'mono-sgen'),
+        os.symlink('mono-sgen',
                    mono_link)
     
     def post_install(self):
