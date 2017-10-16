@@ -12,7 +12,6 @@ class Package(package.Package):
              'gtk-sharp',
              'libglade:libs',
              'sqlite3:libs',
-             'db4o:cli',
              'fontconfig:bins',
              ]
     platform_files = {
