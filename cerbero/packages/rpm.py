@@ -226,11 +226,11 @@ class RPMPackager(LinuxPackager):
 
         scripts = ''
         if os.path.exists(self.package.resources_postinstall):
-            scripts += "{}{}\n".format(
+            scripts += "{0}{1}\n".format(
                 POST_TPL,
                 open(self.package.resources_postinstall).read())
         if os.path.exists(self.package.resources_postremove):
-            scripts += "{}{}\n".format(
+            scripts += "{0}{1}\n".format(
                 POSTUN_TPL,
                 open(self.package.resources_postremove).read())
         scripts = scripts % template_dict
