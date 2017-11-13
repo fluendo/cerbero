@@ -280,6 +280,12 @@ class Autotools (MakefilesBase):
         if use_configure_cache and self.can_use_configure_cache:
             cache = os.path.join(self.config.prefix, '.configure.cache')
             self.config_sh += ' --cache-file=%s' % cache
+        if self.config.variants.doc:
+            if self.use_gtkdoc:
+                self.configure_tpl += ' --enable-gtk-doc'
+        else:
+            if self.use_gtkdoc:
+                self.configure_tpl += ' --disable-gtk-doc'
 
         MakefilesBase.configure(self)
 
