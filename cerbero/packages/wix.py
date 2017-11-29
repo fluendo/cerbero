@@ -467,10 +467,11 @@ class MSI(WixBase):
             Id=self._format_id(self.package.name + '_app'),
             Title=self.package.title, Level='1', Display="expand",
             AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
-
-        self._add_merge_module(self.package, True, True, [])
-
-        etree.SubElement(self.installdir, 'Merge',
+        if self.package.wix_use_fragment:
+          etree.SubElement(self.main_feature, 'ComponentGroupRef',Id=self._package_id(self.package.name))
+        else:
+          self._add_merge_module(self.package, True, True, [])
+          etree.SubElement(self.installdir, 'Merge',
             Id=self._package_id(self.package.name), Language='1033',
             SourceFile=self.packages_deps[self.package], DiskId='1')
 

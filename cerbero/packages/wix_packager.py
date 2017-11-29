@@ -28,7 +28,7 @@ from cerbero.packages.package import Package, App, AppExtensionPackage
 from cerbero.utils import messages as m
 from cerbero.utils import shell, to_winepath, get_wix_prefix, etree
 from cerbero.tools import strip
-from cerbero.packages.wix import MergeModule, VSMergeModule, MSI, WixConfig, Burn
+from cerbero.packages.wix import MergeModule, VSMergeModule, MSI, WixConfig, Burn, Fragment
 from cerbero.packages.wix import VSTemplatePackage
 from cerbero.config import Platform
 
@@ -80,14 +80,22 @@ class MergeModulePackager(PackagerBase):
             for p in self.package.strip_dirs:
                 s.strip_dir(os.path.join(tmpdir, p))
 
+        package_name = self._package_name(version)
 
-        mergemodule = MergeModule(self.config, files_list, self.package)
+        if self.package.wix_use_fragment:
+          mergemodule = Fragment(self.config, files_list, self.package)
+          sources = [os.path.join(output_dir, "%s-fragment.wxs" % package_name)]
+        else:
+          mergemodule = MergeModule(self.config, files_list, self.package)
+          sources = [os.path.join(output_dir, "%s.wxs" % package_name)]
         if tmpdir:
             mergemodule.prefix = tmpdir
-        package_name = self._package_name(version)
-        sources = [os.path.join(output_dir, "%s.wxs" % package_name)]
+
         mergemodule.write(sources[0])
-        wixobjs = [os.path.join(output_dir, "%s.wixobj" % package_name)]
+        if self.package.wix_use_fragment:
+          wixobjs = [os.path.join(output_dir, "%s-fragment.wixobj" % package_name)]
+        else:
+          wixobjs = [os.path.join(output_dir, "%s.wixobj" % package_name)]
 
         for x in ['utils']:
             wixobjs.append(os.path.join(output_dir, "%s.wixobj" % x))
@@ -103,18 +111,22 @@ class MergeModulePackager(PackagerBase):
 
         candle = Candle(self.wix_prefix, self._with_wine)
         candle.compile(' '.join(final_sources), output_dir)
-        light = Light(self.wix_prefix, self._with_wine)
-        path = light.compile(final_wixobjs, package_name, output_dir, True)
+        if self.package.wix_use_fragment:
+          path = wixobjs[0]
+        else:
+          light = Light(self.wix_prefix, self._with_wine)
+          path = light.compile(wixobjs, package_name, output_dir, True)
 
         # Clean up
         if not keep_temp:
             os.remove(sources[0])
-            for f in wixobjs:
-                os.remove(f)
-                try:
-                    os.remove(f.replace('.wixobj', '.wixpdb'))
-                except:
-                    pass
+            if not self.package.wix_use_fragment:
+              for f in wixobjs:
+                  os.remove(f)
+                  try:
+                      os.remove(f.replace('.wixobj', '.wixpdb'))
+                  except:
+                      pass
         if tmpdir:
             shutil.rmtree(tmpdir)
 
@@ -223,6 +235,10 @@ class MSIPackager(PackagerBase):
 
         wixobjs = [os.path.join(self.output_dir, "%s.wixobj" %
                                 self._package_name())]
+
+        if self.package.wix_use_fragment:
+          wixobjs.append(os.path.join(self.output_dir, "%s-fragment.wixobj" %
+                                self._package_name()))
         for x in ['utils']:
             wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
             sources.append(os.path.join(os.path.abspath(self.config.data_dir),

@@ -129,6 +129,7 @@ class PackageBase(object):
     rpm_conflicts = ''
     rpm_obsoletes = ''
     rpm_provides = ''
+    wix_use_fragment = False
 
     def __init__(self, config, store):
         if self.sys_deps is None:
