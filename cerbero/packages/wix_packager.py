@@ -170,7 +170,8 @@ class MSIPackager(PackagerBase):
         if not keep_temp:
             for msms in self.merge_modules.values():
                 for p in msms:
-                    os.remove(p)
+                    if os.path.exists(p):
+                      os.remove(p)
 
         return paths
 
