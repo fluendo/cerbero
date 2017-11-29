@@ -390,7 +390,10 @@ class Light(object):
             else:
                 self.options['ext'] = 'msi'
         shell.call(self.cmd % self.options, output_dir)
-        return os.path.join(output_dir, '%(msi)s.%(ext)s' % self.options)
+        msi_file_path = os.path.join(output_dir, '%(msi)s.%(ext)s' % self.options)
+        if self.options['wine'] == 'wine':
+          os.chmod(msi_file_path, 0755)
+        return msi_file_path
 
 class Insignia(object):
     """
