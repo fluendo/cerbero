@@ -67,10 +67,25 @@ class WixBase():
         self.platform = config.platform
         self.target_platform = config.target_platform
         self._with_wine = self.platform != Platform.WINDOWS
-        self.prefix = config.prefix
+        # We use this trick to workaround the wix path limitation.
+        # wix_wine_prefix is a symbolic link to the regular cerbero prefix
+        # and should not be a folder.
+        if self._with_wine:
+          self.wix_wine_prefix = '/tmp/flu_cwwp'
+          if os.path.exists(self.wix_wine_prefix):
+            os.remove(self.wix_wine_prefix)
+          os.symlink(config.prefix, self.wix_wine_prefix)
+          self.prefix = self.wix_wine_prefix
+        else:
+          self.prefix = config.prefix
         self.filled = False
         self.id_count = 0
         self.ids = {}
+
+    def __del__(self):
+        if self._with_wine:
+          if os.path.exists(self.wix_wine_prefix):
+            os.remove(self.wix_wine_prefix)
 
     def fill(self):
         if self.filled:
