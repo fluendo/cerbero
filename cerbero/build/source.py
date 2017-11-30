@@ -33,9 +33,15 @@ class Source (object):
     @type recipe: L{cerbero.recipe.Recipe}
     @ivar config: cerbero's configuration
     @type config: L{cerbero.config.Config}
+    @cvar patches: list of patches to apply
+    @type patches: list
+    @cvar strip: number passed to the --strip 'patch' option
+    @type strip: int
     '''
 
     supports_non_src_build = False
+    patches = None
+    strip = 0
 
     def fetch(self):
         '''
@@ -65,6 +71,15 @@ class Source (object):
         '''
         return self.version
 
+    def apply_patches(self):
+        '''
+        Applies patches contains in the self name variable.
+        '''
+        for patch in self.patches:
+            if not os.path.isabs(patch):
+                patch = self.relative_path(patch)
+            shell.apply_patch(patch, self.build_dir, self.strip)
+
 
 class CustomSource (Source):
 
@@ -81,14 +96,9 @@ class Tarball (Source):
 
     @cvar url: dowload URL for the tarball
     @type url: str
-    @cvar patches: list of patches to apply
-    @type patches: list
-    @cvar strip: number passed to the --strip 'patch' option
-    @type patches: int
     '''
 
     url = None
-    patches = None
     strip = 1
     tarball_name = None
     tarball_dirname = None
@@ -129,10 +139,7 @@ class Tarball (Source):
         if self.tarball_dirname is not None:
             os.rename(os.path.join(self.config.sources, self.tarball_dirname),
                     self.build_dir)
-        for patch in self.patches:
-            if not os.path.isabs(patch):
-                patch = self.relative_path(patch)
-            shell.apply_patch(patch, self.build_dir, self.strip)
+        self.apply_patches()
 
 
 class GitCache (Source):
@@ -219,6 +226,7 @@ class Git (GitCache):
     '''
     Source handler for git repositories
     '''
+    strip = 1
 
     def __init__(self):
         GitCache.__init__(self)
@@ -247,6 +255,8 @@ class Git (GitCache):
 
         # checkout the current version
         git.local_checkout(self.build_dir, self.repo_dir, self.commit)
+        # apply the patches only after checkout to avoid failure with patches already applied.
+        self.apply_patches()
         return True
 
 

@@ -1,0 +1,14 @@
+diff --git a/ext/vpx/gstvp8utils.h b/ext/vpx/gstvp8utils.h
+index e62ab8f..8c1e0ed 100644
+--- a/ext/vpx/gstvp8utils.h
++++ b/ext/vpx/gstvp8utils.h
+@@ -26,9 +26,6 @@
+ G_BEGIN_DECLS
+ 
+ /* Some compatibility defines for older libvpx versions */
+-#ifndef VPX_IMG_FMT_I420
+-#define VPX_IMG_FMT_I420 IMG_FMT_I420
+-#endif
+ 
+ #ifndef VPX_PLANE_Y
+ #define VPX_PLANE_Y PLANE_Y
