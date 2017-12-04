@@ -19,7 +19,7 @@ Libs: -r:${libdir}/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll\
 
 class Recipe(recipe.Recipe):
     name = 'Couchbase.Lite'
-    version = '1.3.1.1'
+    version = '1.3.1.2'
     licenses = [License.Apachev2]
     stype = SourceType.GIT
     btype = BuildType.CUSTOM
@@ -34,8 +34,8 @@ class Recipe(recipe.Recipe):
 
     files_devel = [
         'lib/pkgconfig/couchbase-lite.pc',
-        'share/nuget/Couchbase.Lite.LM.1.3.1.1.nupkg',
-        'share/nuget/Couchbase.Lite.Storage.SystemSQLite.LM.1.3.1.1.nupkg'
+        'share/nuget/Couchbase.Lite.LM.1.3.1.2.nupkg',
+        'share/nuget/Couchbase.Lite.Storage.SystemSQLite.LM.1.3.1.2.nupkg'
     ]
 
     def prepare(self):
