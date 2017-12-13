@@ -69,6 +69,7 @@ class DistroVersion:
     DEBIAN_SQUEEZE = 'debian_squeeze'
     DEBIAN_WHEEZY = 'debian_wheezy'
     DEBIAN_JESSIE = 'debian_jessy'
+    DEBIAN_STRETCH = 'debian_stretch'
     UBUNTU_MAVERICK = 'ubuntu_maverick'
     UBUNTU_HARDY = 'ubuntu_hardy'
     UBUNTU_LUCID = 'ubuntu_lucid'

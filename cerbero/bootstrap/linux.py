@@ -56,6 +56,7 @@ class DebianBootstraper (UnixBootstraper):
         DistroVersion.UBUNTU_NATTY: ['libgtk2.0-dev'],
         DistroVersion.DEBIAN_WHEEZY: ['libgdk-pixbuf2.0-dev'],
         DistroVersion.DEBIAN_JESSIE: ['libgdk-pixbuf2.0-dev'],
+        DistroVersion.DEBIAN_STRETCH: ['libgdk-pixbuf2.0-dev'],
         DistroVersion.UBUNTU_ONEIRIC: ['libgdk-pixbuf2.0-dev'],
         DistroVersion.UBUNTU_PRECISE: ['libgdk-pixbuf2.0-dev'],
     }
