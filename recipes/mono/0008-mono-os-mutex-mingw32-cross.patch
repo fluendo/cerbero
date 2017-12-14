@@ -1,0 +1,11 @@
+--- mono-4.6.0-orig/mono/utils/mono-os-mutex.h	2016-09-14 11:02:02.000000000 +0200
++++ mono-4.6.0/mono/utils/mono-os-mutex.h	2017-06-14 13:24:43.654620494 +0200
+@@ -154,7 +154,7 @@
+ #else
+ 
+ /* Vanilla MinGW is missing some defs, load them from MinGW-w64. */
+-#if defined __MINGW32__ && !defined __MINGW64_VERSION_MAJOR && (_WIN32_WINNT >= 0x0600)
++#if defined __MINGW32__
+ 
+ /* Fixme: Opaque structs */
+ typedef PVOID RTL_CONDITION_VARIABLE;

@@ -7,6 +7,7 @@ class Recipe(recipe.Recipe):
     licenses = [License.MIT]
     configure_options = '--without-python --without-crypto'
     deps = ['libxml2']
+    autoreconf = True
 
     files_libs = ['libxslt', 'libexslt']
     files_devel = ['bin/xsltproc%(bext)s', 'bin/xslt-config', 'include/libexslt', 'include/libxslt',
@@ -16,4 +17,5 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.platform != self.config.target_platform:
             self.configure_options += ' --with-libxml-include-prefix=%s/include/libxml2' % self.config.prefix
-            self.configure_options += ' --with-libxml-lib-prefix=%s' % self.config.libdir
+            self.configure_options += ' --with-libxml-libs-prefix=%s' % self.config.libdir
+            self.configure_options += ' --with-libxml-prefix=%s' % self.config.prefix

@@ -17,6 +17,7 @@
 # Boston, MA 02111-1307, USA.
 
 import os
+import stat
 import tempfile
 import shutil
 from zipfile import ZipFile
@@ -94,13 +95,16 @@ class MergeModulePackager(PackagerBase):
                            'wix/%s.wxs' % x))
 
         if self._with_wine:
-            wixobjs = [to_winepath(x) for x in wixobjs]
-            sources = [to_winepath(x) for x in sources]
+            final_wixobjs = [to_winepath(x) for x in wixobjs]
+            final_sources = [to_winepath(x) for x in sources]
+        else:
+            final_wixobjs = wixobjs
+            final_sources = sources
 
         candle = Candle(self.wix_prefix, self._with_wine)
-        candle.compile(' '.join(sources), output_dir)
+        candle.compile(' '.join(final_sources), output_dir)
         light = Light(self.wix_prefix, self._with_wine)
-        path = light.compile(wixobjs, package_name, output_dir, True)
+        path = light.compile(final_wixobjs, package_name, output_dir, True)
 
         # Clean up
         if not keep_temp:
@@ -121,8 +125,8 @@ class MergeModulePackager(PackagerBase):
             isinstance(self.package, AppExtensionPackage)
 
     def _package_name(self, version):
-        return "%s-%s-%s" % (self.package.name, version,
-                             self.config.target_arch)
+        return "%s-%s-%s" % (self.package.name, self.config.target_arch,
+                             version)
 
 
 class MSIPackager(PackagerBase):
@@ -224,15 +228,18 @@ class MSIPackager(PackagerBase):
                            'wix/%s.wxs' % x))
 
         if self._with_wine:
-            wixobjs = [to_winepath(x) for x in wixobjs]
-            sources = [to_winepath(x) for x in sources]
+            final_wixobjs = [to_winepath(x) for x in wixobjs]
+            final_sources = [to_winepath(x) for x in sources]
+        else:
+            final_wixobjs = wixobjs
+            final_sources = sources
 
         candle = Candle(self.wix_prefix, self._with_wine,
                       "%s %s" % (self.UI_EXT, self.UTIL_EXT))
-        candle.compile(' '.join(sources), self.output_dir)
+        candle.compile(' '.join(final_sources), self.output_dir)
         light = Light(self.wix_prefix, self._with_wine,
                       "%s %s" % (self.UI_EXT, self.UTIL_EXT))
-        path = light.compile(wixobjs, self._package_name(), self.output_dir)
+        path = light.compile(final_wixobjs, self._package_name(), self.output_dir)
 
         # Clean up
         if not self.keep_temp:
@@ -284,15 +291,18 @@ class BurnPackager(MSIPackager):
                            'wix/%s.wxs' % x))
 
         if self._with_wine:
-            wixobjs = [to_winepath(x) for x in wixobjs]
-            sources = [to_winepath(x) for x in sources]
+            final_wixobjs = [to_winepath(x) for x in wixobjs]
+            final_sources = [to_winepath(x) for x in sources]
+        else:
+            final_wixobjs = wixobjs
+            final_sources = sources
 
         candle = Candle(self.wix_prefix, self._with_wine,
                         "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
-        candle.compile(' '.join(sources), self.output_dir)
+        candle.compile(' '.join(final_sources), self.output_dir)
         light = Light(self.wix_prefix, self._with_wine,
                       "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
-        path = light.compile(wixobjs, self._package_name(), self.output_dir, extension='exe')
+        path = light.compile(final_wixobjs, self._package_name(), self.output_dir, extension='exe')
 
         # Clean up
         if not self.keep_temp:

@@ -16,5 +16,5 @@ class Package(package.Package):
     files = ['mono:libs:bins:bin:config:posix_helper']
 
     def prepare(self):
-        if self.config.platform != Platform.WINDOWS:
+        if self.config.target_platform != Platform.WINDOWS:
             self.files += ['libgdiplus:libs']
