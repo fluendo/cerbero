@@ -43,6 +43,10 @@ class Source (object):
     patches = None
     strip = 0
 
+    def __init__(self):
+        if self.patches is None:
+            self.patches = []
+
     def fetch(self):
         '''
         Fetch the sources
