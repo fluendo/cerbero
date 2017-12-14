@@ -46,6 +46,7 @@ class Package(package.Package):
            self.config.target_distro_version not in \
                 [DistroVersion.DEBIAN_WHEEZY,
                  DistroVersion.DEBIAN_JESSIE,
+                 DistroVersion.DEBIAN_STRETCH,
                  DistroVersion.UBUNTU_NATTY,
                  DistroVersion.UBUNTU_ONEIRIC,
                  DistroVersion.UBUNTU_PRECISE,
