@@ -234,8 +234,8 @@ class Config (object):
 
         path = os.environ.get('PATH', '')
         if bindir not in path and self.prefix_is_executable():
-            path = self._join_path(bindir, path)
-        path = self._join_path(
+            path = self.join_path(bindir, path)
+        path = self.join_path(
             os.path.join(self.build_tools_prefix, 'bin'), path)
 
         if self.prefix_is_executable():
@@ -243,11 +243,11 @@ class Config (object):
         else:
             ld_library_path = ""
         if self.toolchain_prefix is not None:
-            ld_library_path = self._join_path(ld_library_path,
+            ld_library_path = self.join_path(ld_library_path,
                 os.path.join(self.toolchain_prefix, 'lib'))
-            includedir = self._join_path(includedir,
+            includedir = self.join_path(includedir,
                 os.path.join(self.toolchain_prefix, 'include'))
-        monopath = self._join_path (os.path.join(libdir, 'mono', '4.5'),
+        monopath = self.join_path (os.path.join(libdir, 'mono', '4.5'),
             os.path.join(libdir, 'mono', '4.5', 'Facades'))
 
         variants = ':'.join(self.variants.list_all())
@@ -404,6 +404,19 @@ class Config (object):
             md5.update(sanitized_env[e])
         return md5.hexdigest()
 
+    def join_path(self, *args):
+        '''
+        Join paths with the PATH syntax, depending on the platform.
+        Can receive a strings or a list of strings
+        '''
+        if len(args) == 1 and isinstance(args[0], list):
+            return self.join_path(*args[0])
+        if self.platform == Platform.WINDOWS:
+            separator = ';'
+        else:
+            separator = ':'
+        return separator.join(args)
+
     def _parse(self, filename):
         config = {'os': os, '__file__': filename}
         for prop in self._properties:
@@ -437,13 +450,6 @@ class Config (object):
                 os.makedirs(path)
             except:
                 raise FatalError(_('directory (%s) can not be created') % path)
-
-    def _join_path(self, path1, path2):
-        if self.platform == Platform.WINDOWS:
-            separator = ';'
-        else:
-            separator = ':'
-        return "%s%s%s" % (path1, separator, path2)
 
     def _load_main_config(self):
         if os.path.exists(DEFAULT_CONFIG_FILE):
