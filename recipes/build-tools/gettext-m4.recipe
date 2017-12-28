@@ -11,7 +11,9 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2Plus]
     autoreconf = True
     btype = BuildType.CUSTOM
-
+    # same patch as for gettext-tools
+    patches = ['gettext-tools/secure_snprintf.patch']
+    
     files_devel = [
             'share/aclocal/codeset.m4',
             'share/aclocal/fcntl-o.m4',
