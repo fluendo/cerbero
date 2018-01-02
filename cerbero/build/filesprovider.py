@@ -34,6 +34,7 @@ class FilesProvider(object):
     PY_CAT = 'python'
     DEVEL_CAT = 'devel'
     LANG_CAT = 'lang'
+    DOC_CAT = 'doc'
 
     EXTENSIONS = {
         Platform.WINDOWS: {'bext': '.exe', 'sext': '*-*.dll', 'sdir': 'bin',
@@ -57,6 +58,7 @@ class FilesProvider(object):
                              self.BINS_CAT: self._search_binaries,
                              self.PY_CAT: self._search_pyfiles,
                              self.LANG_CAT: self._search_langfiles,
+                             self.DOC_CAT: self._search_docfiles,
                              'default': self._search_files}
 
     def devel_files_list(self):
@@ -117,6 +119,8 @@ class FilesProvider(object):
                     categories.append(name.split('files_')[1])
                 if name.startswith('platform_files_'):
                     categories.append(name.split('platform_files_')[1])
+        if self.config.variants.doc:
+            categories.append(self.DOC_CAT)
         return sorted(list(set(categories)))
 
     def _get_category_files_list(self, category):
@@ -229,6 +233,29 @@ class FilesProvider(object):
         pattern = 'share/locale/*/LC_MESSAGES/%s.mo'
         return shell.ls_files([pattern % x for x in files],
                               self.config.prefix)
+
+    def _search_gtkdocfiles(self):
+        '''
+        Search for the gtk-doc files
+        '''
+        files = []
+        rel_path = os.path.join('share', 'gtk-doc', 'html')
+        abs_path = os.path.join(self.config.prefix, rel_path)
+        doc_dirs = [s for s in os.listdir(abs_path) if self.name in s]
+        abs_doc_dirs = [os.path.join(abs_path, d) for d in doc_dirs]
+        for d in abs_doc_dirs:
+            files.extend([os.path.join(rel_path, os.path.basename(d), f) for f in shell.ls_files("*", d)])
+        return files
+
+    def _search_docfiles(self, files):
+        '''
+        Search for the documentation files
+        '''
+        docfiles = []
+        if self.use_gtkdoc:
+            docfiles.extend(self._search_gtkdocfiles())
+
+        return docfiles
 
     def _search_devel_libraries(self):
         devel_libs = []
