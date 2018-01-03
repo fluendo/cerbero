@@ -6,7 +6,7 @@ from cerbero.tools.osxrelocator import OSXRelocator
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '5.2.0'
+    version = '5.4.1'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
