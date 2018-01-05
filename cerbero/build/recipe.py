@@ -203,8 +203,6 @@ class Recipe(FilesProvider):
         deps.extend(self.deps)
         if self.config.target_platform in self.platform_deps:
             deps.extend(self.platform_deps[self.config.target_platform])
-        if self.config.variants.doc and self.use_gtkdoc:
-            deps.append('gtk-doc')
         return deps
 
     def list_licenses_by_categories(self, categories):
