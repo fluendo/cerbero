@@ -6,7 +6,7 @@ class Recipe(recipe.Recipe):
     name = 'gnutls'
     version = '3.3.14'
     maj_ver = '.'.join(version.split('.')[0:2])
-    url = 'ftp://ftp.gnutls.org/gcrypt/{0}/v{1}/{0}-{2}.tar.xz'.format(name, maj_ver, version)
+    url = 'https://www.gnupg.org/ftp/gcrypt/{0}/v{1}/{0}-{2}.tar.xz'.format(name, maj_ver, version)
     stype = SourceType.TARBALL
     # main library is LGPLv2+ and binaries and libgnutls-openssl are
     # GPLv3+ and defined below
