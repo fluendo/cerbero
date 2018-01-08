@@ -26,10 +26,11 @@ class Strip(object):
 
     STRIP_CMD = '$STRIP'
 
-    def __init__(self, config, excludes=None, keep_symbols=None):
+    def __init__(self, config, excludes=None, keep_symbols=None, strip_debug=False):
         self.config = config
         self.excludes = excludes or []
         self.keep_symbols = keep_symbols or []
+        self.strip_debug = strip_debug
 
     def strip_file(self, path):
         for f in self.excludes:
@@ -37,10 +38,16 @@ class Strip(object):
                 return
         try:
             if self.config.target_platform == Platform.DARWIN:
-                shell.call("%s -x \"%s\"" % (self.STRIP_CMD, path))
+                options = "-x"
+                if self.strip_debug:
+                    options += " -S"
+                shell.call("%s %s \"%s\"" % (self.STRIP_CMD, options, path))
             else:
-                shell.call("%s %s --strip-unneeded \"%s\"" % (self.STRIP_CMD,
-                    ' '.join(['-K %s' % x for x in self.keep_symbols]), path))
+                options = "--strip-unneeded"
+                if self.strip_debug:
+                    options += " --strip-debug"
+                shell.call("%s %s %s \"%s\"" % (self.STRIP_CMD,
+                    ' '.join(['-K %s' % x for x in self.keep_symbols]), options, path))
         except:
             pass
 
