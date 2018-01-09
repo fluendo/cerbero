@@ -16,7 +16,8 @@ class Recipe(recipe.Recipe):
     files_devel = ['include/libxml2', 'lib/xml2Conf.sh', 'bin/xml2-config',
                    'lib/pkgconfig/libxml-2.0.pc', 'bin/xmllint%(bext)s']
     patches = ['libxml2/0001-Fix-library-info-creation-to-avoid-conflicts-between.patch',
-            'libxml2/xml.patch']
+            'libxml2/xml.patch',
+            'libxml2/0002-Add-the-prefix-to-the-default-location-of-the-catalog-file.patch']
 
 
     def prepare(self):
