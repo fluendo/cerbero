@@ -6,13 +6,45 @@ class Recipe(recipe.Recipe):
     licenses = [License.BSD_like]
     btype = BuildType.CUSTOM
 
-    files_catalog = ['etc/catalog.xml']
+    files_docbook = ['share/xml/docbook/stylesheet/docbook-xsl/VERSION',
+                    'share/xml/docbook/stylesheet/docbook-xsl/catalog.xml',
+                    'share/xml/docbook/stylesheet/docbook-xsl/common',
+                    'share/xml/docbook/stylesheet/docbook-xsl/docsrc',
+                    'share/xml/docbook/stylesheet/docbook-xsl/eclipse',
+                    'share/xml/docbook/stylesheet/docbook-xsl/epub',
+                    'share/xml/docbook/stylesheet/docbook-xsl/extensions',
+                    'share/xml/docbook/stylesheet/docbook-xsl/fo',
+                    'share/xml/docbook/stylesheet/docbook-xsl/highlighting',
+                    'share/xml/docbook/stylesheet/docbook-xsl/html',
+                    'share/xml/docbook/stylesheet/docbook-xsl/htmlhelp',
+                    'share/xml/docbook/stylesheet/docbook-xsl/images',
+                    'share/xml/docbook/stylesheet/docbook-xsl/javahelp',
+                    'share/xml/docbook/stylesheet/docbook-xsl/lib',
+                    'share/xml/docbook/stylesheet/docbook-xsl/manpages',
+                    'share/xml/docbook/stylesheet/docbook-xsl/params',
+                    'share/xml/docbook/stylesheet/docbook-xsl/profiling',
+                    'share/xml/docbook/stylesheet/docbook-xsl/roundtrip',
+                    'share/xml/docbook/stylesheet/docbook-xsl/slides',
+                    'share/xml/docbook/stylesheet/docbook-xsl/template',
+                    'share/xml/docbook/stylesheet/docbook-xsl/webhelp',
+                    'share/xml/docbook/stylesheet/docbook-xsl/website',
+                    'share/xml/docbook/stylesheet/docbook-xsl/xhtml',
+                    'share/xml/docbook/stylesheet/docbook-xsl/xhtml-1_1']
+    files_catalog = ['etc/xml/catalog']
 
     def install(self):
-        etc_path =  os.path.join(self.config.prefix, 'etc')
+        # Install the dockbook files
+        docbook_path = os.path.join(self.config.prefix, 'share', 'xml', 'docbook', 'stylesheet', 'dockbook-xsl')
+        if not os.path.exists(docbook_path):
+            os.makedirs(docbook_path)
+        for f in self.files_docbook:
+            shell.call('cp -rf %s %s' % (os.path.basename(f), docbook_path), self.build_dir)
+
+        # Generate the catalog file
+        etc_path =  os.path.join(self.config.prefix, 'etc', 'xml')
         if not os.path.exists(etc_path):
             os.makedirs(etc_path)
-        etc_catalog_path = os.path.join(etc_path, 'catalog.xml')
+        etc_catalog_path = os.path.join(etc_path, 'catalog')
         new_catalog_path = os.path.join(self.build_dir, 'catalog.xml')
 
         def read_catalog(path):
@@ -27,12 +59,14 @@ class Recipe(recipe.Recipe):
 
         etc_catalog_lines = read_catalog(etc_catalog_path)
         new_catalog_lines = read_catalog(new_catalog_path)
-        if new_catalog_lines in etc_catalog_lines:
+        new_catalog_lines_replaced = new_catalog_lines.replace('rewritePrefix="./"', 'rewritePrefix="%s/"' % docbook_path)
+
+        if new_catalog_lines_replaced in etc_catalog_lines:
             return
         with open(etc_catalog_path, 'w') as f:
             f.write("<?xml version='1.0'?>\n")
             f.write('<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">\n')
             f.write(etc_catalog_lines)
             f.write("\n")
-            f.write(new_catalog_lines)
+            f.write(new_catalog_lines_replaced)
             f.write("</catalog>")
