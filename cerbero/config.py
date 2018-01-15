@@ -151,6 +151,8 @@ class Config (object):
         self._raw_environ = os.environ.copy()
 
         for config in self.arch_config.values():
+            if config == self:
+                continue
             config._restore_environment()
             if self.target_arch == Architecture.UNIVERSAL:
                 config.sources = os.path.join(self.sources, config.target_arch)
