@@ -317,7 +317,7 @@ def escape_path(path):
 
 def get_wix_prefix():
     if 'WIX' in os.environ:
-        wix_prefix = os.path.join(os.environ['WIX'], 'bin')
+        wix_prefix = os.environ['WIX']
     else:
         wix_prefix = 'C:/Program Files%s/WiX Toolset v3.6/bin'
         if not os.path.exists(wix_prefix):

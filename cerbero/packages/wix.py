@@ -67,10 +67,25 @@ class WixBase():
         self.platform = config.platform
         self.target_platform = config.target_platform
         self._with_wine = self.platform != Platform.WINDOWS
-        self.prefix = config.prefix
+        # We use this trick to workaround the wix path limitation.
+        # wix_wine_prefix is a symbolic link to the regular cerbero prefix
+        # and should not be a folder.
+        if self._with_wine:
+          self.wix_wine_prefix = '/tmp/flu_cwwp'
+          if os.path.exists(self.wix_wine_prefix):
+            os.remove(self.wix_wine_prefix)
+          os.symlink(config.prefix, self.wix_wine_prefix)
+          self.prefix = self.wix_wine_prefix
+        else:
+          self.prefix = config.prefix
         self.filled = False
         self.id_count = 0
         self.ids = {}
+
+    def __del__(self):
+        if self._with_wine:
+          if os.path.exists(self.wix_wine_prefix):
+            os.remove(self.wix_wine_prefix)
 
     def fill(self):
         if self.filled:
@@ -138,6 +153,76 @@ class WixBase():
                 tversions.append(version)
         return '.'.join(tversions)
 
+
+class Fragment(WixBase):
+    '''
+    Creates WiX fragment from cerbero packages
+
+    @ivar package: package with the info to build the merge package
+    @type pacakge: L{cerbero.packages.package.Package}
+    '''
+
+    def __init__(self, config, files_list, package):
+        WixBase.__init__(self, config, package)
+        self.files_list = files_list
+        self._dirnodes = {}
+        self._dirids = {}
+
+    def _fill(self):
+        self._add_root()
+        self._add_fragment()
+        self._add_component_group()
+        self._add_root_dir()
+        self._add_files()
+
+    def _add_fragment(self):
+        self.fragment = etree.SubElement(self.root, "Fragment")
+
+    def _add_component_group(self):
+        self.component_group = etree.SubElement(self.fragment, "ComponentGroup",
+            Id=self._format_id(self.package.name))
+
+    def _add_root_dir(self):
+        self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
+            Id='INSTALLDIR')
+        self._dirnodes[''] = self.rdir
+
+    def _add_files(self):
+        for f in self.files_list:
+            self._add_file(f)
+
+    def _add_directory(self, dirpath):
+        if dirpath in self._dirnodes:
+            return
+
+        parentpath = os.path.split(dirpath)[0]
+        if parentpath == []:
+            parentpath = ['']
+
+        if parentpath not in self._dirnodes:
+            self._add_directory(parentpath)
+
+        parent = self._dirnodes[parentpath]
+        dirid = self._format_path_id(dirpath)
+        dirnode = etree.SubElement(parent, "Directory",
+            Id=dirid,
+            Name=os.path.split(dirpath)[1])
+        self._dirnodes[dirpath] = dirnode
+        self._dirids[dirpath] = dirid
+
+    def _add_file(self, filepath):
+        dirpath, filename = os.path.split(filepath)
+        self._add_directory(dirpath)
+        dirid = self._dirids[dirpath]
+
+        component = etree.SubElement(self.component_group, 'Component',
+            Id=self._format_path_id(filepath), Guid=self._get_uuid(), Directory=dirid)
+        filepath = os.path.join(self.prefix, filepath)
+        p_id = self._format_path_id(filepath, True)
+        if self._with_wine:
+            filepath = to_winepath(filepath)
+        etree.SubElement(component, 'File', Id=p_id, Name=filename,
+                         Source=filepath)
 
 class MergeModule(WixBase):
     '''
@@ -382,10 +467,11 @@ class MSI(WixBase):
             Id=self._format_id(self.package.name + '_app'),
             Title=self.package.title, Level='1', Display="expand",
             AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
-
-        self._add_merge_module(self.package, True, True, [])
-
-        etree.SubElement(self.installdir, 'Merge',
+        if self.package.wix_use_fragment:
+          etree.SubElement(self.main_feature, 'ComponentGroupRef',Id=self._package_id(self.package.name))
+        else:
+          self._add_merge_module(self.package, True, True, [])
+          etree.SubElement(self.installdir, 'Merge',
             Id=self._package_id(self.package.name), Language='1033',
             SourceFile=self.packages_deps[self.package], DiskId='1')
 
@@ -453,15 +539,11 @@ class MSI(WixBase):
                 (self.DIALOG_BMP, 'DialogBmp'),
                 (self.LICENSE_RTF, 'LicenseRtf')]:
             path = self.package.relative_path(path)
-            if self._with_wine:
-                path = to_winepath(path)
             if os.path.exists(path):
                 etree.SubElement(self.product, 'WixVariable',
                         Id='WixUI%s' % var, Value=path)
         # Icon
         path = self.package.relative_path(self.ICON)
-        if self._with_wine:
-            path = to_winepath(path)
         if os.path.exists(path):
             etree.SubElement(self.product, 'Icon',
                 Id='MainIcon', SourceFile=path)

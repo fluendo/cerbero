@@ -19,21 +19,53 @@
 from cerbero.bootstrap import BootstraperBase
 from cerbero.bootstrap.bootstraper import register_bootstraper
 from cerbero.config import Platform, Architecture, Distro, DistroVersion
-from cerbero.utils import shell
+from cerbero.utils import shell, os
 
 
 class UnixBootstraper (BootstraperBase):
-
     tool = ''
     packages = []
     distro_packages = {}
+    winetricks_tool = ''
+    msxml3_path = ''
+
+    def _download_winetricks(self):
+        if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
+            self.winetricks_tool = os.path.join(self.config.build_tools_prefix, 'winetricks')
+            WINETRICKS_URL = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks'
+            if not os.path.isfile(self.winetricks_tool):
+                shell.download(WINETRICKS_URL, self.winetricks_tool)
+            shell.call ('chmod +x %s' % self.winetricks_tool)
+        else:
+            self.winetricks_tool = 'winetricks'
+            shell.call(self.tool % ' winetricks')
+    # This method aims to download missing package manually helping winetricks. This method became useless
+    # with dotnot40 but helps dotnet45 installation on ubuntu 16.04.
+    def _download_wine_package(self, path_name, package_name):
+        package_path = os.path.expanduser('~/.cache/winetricks/%s/' % path_name)
+        url = 'ftp://fluendosys:fluendo\ sys@officestorage1.fluendo.lan/data/fluendo/tech/private/cerbero/custom_packages/wine/%s' % package_name
+        if not os.path.exists (package_path):
+            os.makedirs (package_path)
+            package_path = os.path.expanduser('~/.cache/winetricks/%s/%s' % (path_name, package_name))
+            shell.download(url, package_path)
+
+    def _download_missing_wine_deps(self):
+        self._download_winetricks()
+
+    def _install_dotnet_for_wine(self):
+        self._download_missing_wine_deps()
+        shell.call('%s dotnet40 corefonts' % self.winetricks_tool)
 
     def start(self):
         packages = self.packages
         if self.config.distro_version in self.distro_packages:
             packages += self.distro_packages[self.config.distro_version]
         shell.call(self.tool % ' '.join(self.packages))
-
+        if 'wine' in self.packages:
+            if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
+                shell.call(self.tool % ' wine32')
+            shell.call(self.tool % ' cabextract')
+            self._install_dotnet_for_wine()
 
 class DebianBootstraper (UnixBootstraper):
 
