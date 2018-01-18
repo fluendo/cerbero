@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 from cerbero.tools.libtool import LibtoolLibrary
+from cerbero.tools.osxrelocator import OSXRelocator
 
 
 class Recipe(recipe.Recipe):
@@ -29,6 +30,10 @@ class Recipe(recipe.Recipe):
                 (shared_makefile, self.config.prefix, extension, self.config.prefix)
 
     def post_install(self):
+        if self.config.target_platform in [Platform.DARWIN]:
+            relocator = OSXRelocator(self.config.prefix, self.config.prefix, True)
+            libbz2 = os.path.join(self.config.libdir, "libbz2.1.0.dylib")
+            relocator.change_id(libbz2, libbz2)
         libtool_la = LibtoolLibrary('bz2', 1, 0, 6, self.config.libdir,
                 self.config.target_platform)
         libtool_la.save()
