@@ -134,7 +134,7 @@ def get_hash(git_dir, commit):
     @param commit: the commit to log
     @type commit: str
     '''
-    return shell.check_call('%s rev-parse %s' % (GIT, commit),
+    return shell.check_call('%s rev-parse --short %s' % (GIT, commit),
             git_dir).split('\n')[0]
 
 
