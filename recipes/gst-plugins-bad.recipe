@@ -191,6 +191,10 @@ class Recipe(recipe.Recipe):
             self.configure_options += '--with-egl-window-system=ios'
         if self.config.variants.nodebug:
             self.configure_options += ' --disable-gst-debug'
+        if self.config.platform == Platform.LINUX:
+            self.platform_files_plugins_sys[Platform.WINDOWS].remove('lib/gstreamer-0.10/libgstdshowdecwrapper%(mext)s')
+            self.platform_files_plugins_sys[Platform.WINDOWS].remove('lib/gstreamer-0.10/libgstdshowsrcwrapper%(mext)s')
+            self.platform_files_plugins_sys[Platform.WINDOWS].remove('lib/gstreamer-0.10/libgstdshowvideosink%(mext)s')
 
     def post_install(self):
         if self.config.platform == Platform.WINDOWS and\
