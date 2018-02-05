@@ -118,6 +118,12 @@ class WixBase():
             ret = '%s_%s' % (ret, self.ids[ret])
         return ret
 
+    def _format_dir_id(self, string, path,replace_dots=False):
+     return self._format_id(string, replace_dots) + '_' + self._format_path_id(path, replace_dots)
+
+    def _format_group_id(self, string, replace_dots=False):
+      return self._format_id(string, replace_dots) + '_group'
+
     def _get_uuid(self):
         return "%s" % uuid.uuid1()
 
@@ -165,7 +171,7 @@ class Fragment(WixBase):
 
     def _add_component_group(self):
         self.component_group = etree.SubElement(self.fragment, "ComponentGroup",
-            Id=self._format_id(self.package.name))
+            Id=self._format_group_id(self.package.name))
 
     def _add_root_dir(self):
         self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
@@ -188,7 +194,7 @@ class Fragment(WixBase):
             self._add_directory(parentpath)
 
         parent = self._dirnodes[parentpath]
-        dirid = self._format_path_id(dirpath)
+        dirid = self._format_dir_id(self.package.name, dirpath)
         dirnode = etree.SubElement(parent, "Directory",
             Id=dirid,
             Name=os.path.split(dirpath)[1])
@@ -201,9 +207,9 @@ class Fragment(WixBase):
         dirid = self._dirids[dirpath]
 
         component = etree.SubElement(self.component_group, 'Component',
-            Id=self._format_path_id(filepath), Guid=self._get_uuid(), Directory=dirid)
+            Id=self._format_dir_id(self.package.name, filepath), Guid=self._get_uuid(), Directory=dirid)
         filepath = os.path.join(self.prefix, filepath)
-        p_id = self._format_path_id(filepath, True)
+        p_id = self._format_dir_id(self.package.name, filepath, True)
         if self._with_wine:
             filepath = to_winepath(filepath)
         etree.SubElement(component, 'File', Id=p_id, Name=filename,
@@ -453,7 +459,7 @@ class MSI(WixBase):
             Title=self.package.title, Level='1', Display="expand",
             AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
         if self.package.wix_use_fragment:
-          etree.SubElement(self.main_feature, 'ComponentGroupRef',Id=self._package_id(self.package.name))
+          etree.SubElement(self.main_feature, 'ComponentGroupRef',Id=self._format_group_id(self.package.name))
         else:
           self._add_merge_module(self.package, True, True, [])
           etree.SubElement(self.installdir, 'Merge',
@@ -482,16 +488,21 @@ class MSI(WixBase):
         for p in req:
             required_packages.extend(self.store.get_package_deps(p, True))
 
-        for package, required, selected in packages:
-            if package in self.packages_deps:
-                self._add_merge_module(package, required, selected,
+        if not self.package.wix_use_fragment:
+          for package, required, selected in packages:
+              if package in self.packages_deps:
+                  self._add_merge_module(package, required, selected,
                                        required_packages)
 
-        # Add a merge module ref for all the packages
+        # Add a merge module ref for all the packages or use ComponentGroupRef when using
+        # wix_use_fragment
         for package, path in self.packages_deps.iteritems():
-            etree.SubElement(self.installdir, 'Merge',
-                Id=self._package_id(package.name), Language='1033',
-                SourceFile=path, DiskId='1')
+            if self.package.wix_use_fragment:
+                etree.SubElement(self.main_feature, 'ComponentGroupRef',Id=self._format_group_id(package.name))
+            else:
+                etree.SubElement(self.installdir, 'Merge',
+                  Id=self._package_id(package.name), Language='1033',
+                  SourceFile=path, DiskId='1')
 
     def _add_dir(self, parent, dir_id, name):
         tdir = etree.SubElement(parent, "Directory",

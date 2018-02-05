@@ -120,8 +120,7 @@ class MergeModulePackager(PackagerBase):
           path = wixobjs[0]
         else:
           light = Light(self.wix_prefix, self._with_wine)
-          path = light.compile(wixobjs, package_name, output_dir, True)
-
+          path = light.compile(final_wixobjs, package_name, output_dir, True)
         # Clean up
         if not keep_temp:
             os.remove(sources[0])
@@ -193,7 +192,7 @@ class MSIPackager(PackagerBase):
             paths.append(p)
 
         # create zip with merge modules
-        if not self._is_app():
+        if not self._is_app() and not self.package.wix_use_fragment:
             self.package.set_mode(PackageType.RUNTIME)
             zipf = ZipFile(os.path.join(self.output_dir, '%s-merge-modules.zip' %
                                         self._package_name()), 'w')
@@ -226,14 +225,15 @@ class MSIPackager(PackagerBase):
             self.packagedeps = [self.package]
         else:
             self.packagedeps = self.store.get_package_deps(self.package, True)
-        self._create_merge_modules(package_type)
+        self._create_merge_modules(package_type, self.package.wix_use_fragment)
         config_path = self._create_config()
         return self._create_msi(config_path)
 
-    def _create_merge_modules(self, package_type):
+    def _create_merge_modules(self, package_type, wix_use_fragment):
         packagedeps = {}
         for package in self.packagedeps:
             package.set_mode(package_type)
+            package.wix_use_fragment = wix_use_fragment
             m.action("Creating Merge Module for %s" % package)
             packager = MergeModulePackager(self.config, package, self.store)
             if self.wix_wine_prefix:
@@ -267,9 +267,8 @@ class MSIPackager(PackagerBase):
         wixobjs = [os.path.join(self.output_dir, "%s.wixobj" %
                                 self._package_name())]
 
-        if self.package.wix_use_fragment:
-          wixobjs.append(os.path.join(self.output_dir, "%s-fragment.wixobj" %
-                                self._package_name()))
+        wixobjs.extend(self.merge_modules[self.package.package_mode])
+
         for x in ['utils']:
             wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
             sources.append(os.path.join(os.path.abspath(self.config.data_dir),
