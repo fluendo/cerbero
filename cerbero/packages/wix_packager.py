@@ -20,6 +20,7 @@ import os
 import stat
 import tempfile
 import shutil
+import uuid
 from zipfile import ZipFile
 
 from cerbero.errors import EmptyPackageError
@@ -39,6 +40,8 @@ class MergeModulePackager(PackagerBase):
         PackagerBase.__init__(self, config, package, store)
         self._with_wine = config.platform != Platform.WINDOWS
         self.wix_prefix = get_wix_prefix()
+        # Init wix wine prefix in the case of using it.
+        self.wix_wine_prefix = None
 
     def pack(self, output_dir, devel=False, force=False, keep_temp=False):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp)
@@ -90,6 +93,8 @@ class MergeModulePackager(PackagerBase):
           sources = [os.path.join(output_dir, "%s.wxs" % package_name)]
         if tmpdir:
             mergemodule.prefix = tmpdir
+        elif self.wix_wine_prefix:
+            mergemodule.prefix = self.wix_wine_prefix
 
         mergemodule.write(sources[0])
         if self.package.wix_use_fragment:
@@ -150,6 +155,23 @@ class MSIPackager(PackagerBase):
         PackagerBase.__init__(self, config, package, store)
         self._with_wine = config.platform != Platform.WINDOWS
         self.wix_prefix = get_wix_prefix()
+        # We use this trick to workaround the wix path limitation.
+        # wix_wine_prefix is a symbolic link to the regular cerbero prefix
+        # and should not be a folder.
+        if self._with_wine:
+          self.wix_wine_prefix = self.get_wix_wine_prefix()
+          os.symlink(config.prefix, self.wix_wine_prefix)
+        else:
+          self.wix_wine_prefix = None
+
+    def get_unique_wix_wine_prefix(self):
+        return '/tmp/wix_%s' % str(uuid.uuid4())[:8]
+
+    def get_wix_wine_prefix(self):
+        wix_wine_prefix = self.get_unique_wix_wine_prefix()
+        while (os.path.exists(wix_wine_prefix)):
+          wix_wine_prefix = self.get_unique_wix_wine_prefix()
+        return wix_wine_prefix
 
     def pack(self, output_dir, devel=False, force=False, keep_temp=False):
         self.output_dir = os.path.realpath(output_dir)
@@ -185,6 +207,9 @@ class MSIPackager(PackagerBase):
                     if os.path.exists(p):
                       os.remove(p)
 
+        if self.wix_wine_prefix:
+          os.remove(self.wix_wine_prefix)
+
         return paths
 
     def _is_app(self):
@@ -211,6 +236,8 @@ class MSIPackager(PackagerBase):
             package.set_mode(package_type)
             m.action("Creating Merge Module for %s" % package)
             packager = MergeModulePackager(self.config, package, self.store)
+            if self.wix_wine_prefix:
+               packager.wix_wine_prefix = self.wix_wine_prefix
             try:
                 path = packager.create_merge_module(self.output_dir,
                            package_type, self.force, self.package.version,
@@ -231,6 +258,10 @@ class MSIPackager(PackagerBase):
                    self._package_name())]
         msi = MSI(self.config, self.package, self.packagedeps, config_path,
                   self.store)
+
+        if self.wix_wine_prefix:
+          msi.prefix = self.wix_wine_prefix
+
         msi.write(sources[0])
 
         wixobjs = [os.path.join(self.output_dir, "%s.wixobj" %

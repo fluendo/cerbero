@@ -104,7 +104,6 @@ def to_winepath(path):
         path = 'z:\\%s' % path
         return path
 
-
 def fix_winpath(path):
     return path.replace('\\', '/')
 
