@@ -72,7 +72,7 @@ class DebianBootstraper (UnixBootstraper):
     tool = 'sudo apt-get install %s'
     packages = ['autotools-dev', 'automake', 'autoconf', 'libtool', 'g++',
                 'autopoint', 'make', 'cmake', 'bison', 'flex', 'yasm',
-                'pkg-config', 'gtk-doc-tools', 'libxv-dev', 'libx11-dev',
+                'pkg-config', 'libxv-dev', 'libx11-dev',
                 'libpulse-dev', 'python-dev', 'texinfo', 'gettext',
                 'build-essential', 'pkg-config', 'doxygen', 'curl',
                 'libxext-dev', 'libxi-dev', 'x11proto-record-dev',
@@ -120,7 +120,7 @@ class RedHatBootstraper (UnixBootstraper):
     tool = 'su -c "yum install %s"'
     packages = ['gcc', 'gcc-c++', 'automake', 'autoconf', 'libtool',
                 'gettext-devel', 'make', 'cmake', 'bison', 'flex', 'yasm',
-                'pkgconfig', 'gtk-doc', 'curl', 'doxygen', 'texinfo',
+                'pkgconfig', 'curl', 'doxygen', 'texinfo',
                 'texinfo-tex', 'texlive-dvips', 'docbook-style-xsl',
                 'transfig', 'intltool', 'rpm-build', 'redhat-rpm-config',
                 'python-devel', 'libXrender-devel', 'pulseaudio-libs-devel',
@@ -135,7 +135,7 @@ class OpenSuseBootstraper (UnixBootstraper):
     tool = 'sudo zypper install %s'
     packages = ['gcc', 'automake', 'autoconf', 'gcc-c++', 'libtool',
             'gettext-tools', 'make', 'cmake', 'bison', 'flex', 'yasm',
-            'gtk-doc', 'curl', 'doxygen', 'texinfo',
+            'curl', 'doxygen', 'texinfo',
             'texlive', 'docbook-xsl-stylesheets',
             'transfig', 'intltool', 'patterns-openSUSE-devel_rpm_build',
             'python-devel', 'xorg-x11-libXrender-devel', 'libpulse-devel',
