@@ -14,11 +14,9 @@ class Recipe(recipe.Recipe):
     deps = ['libxslt', 'docbook-xsl', 'docbook-xml']
 
     def prepare(self):
-        if self.config.target_platform in [Platform.WINDOWS, Platform.DARWIN]:
-            self.configure_options = '--with-xml-catalog=%s/etc/xml/catalog' % self.config.prefix
+        self.configure_options = '--with-xml-catalog=%s/etc/xml/catalog' % self.config.prefix
 
 # NOTE:
 # There's also pre-configured release in GNOME project (where GTK-doc website send us)
 # https://download.gnome.org/sources/gtk-doc/1.27/gtk-doc-1.27.tar.xz
 # But due to turned on documentation it depends on itstool.
-    
