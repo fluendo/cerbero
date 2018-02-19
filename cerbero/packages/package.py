@@ -123,6 +123,7 @@ class PackageBase(object):
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
     resources_debian_rules = None
+    debian_disable_dh_shlibdebs = False
     debian_conflicts = ''
     debian_replaces = ''
     debian_provides = ''

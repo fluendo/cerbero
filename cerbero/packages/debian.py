@@ -469,7 +469,10 @@ class DebianPackager(LinuxPackager):
             rules = open(self.package.resources_debian_rules).read()
         else:
             rules = RULES_TPL
-        return rules % args
+        rules = rules % args
+        if self.package.debian_disable_dh_shlibdebs:
+            rules = ''.join([x+'\n' for x in rules.split('\n') if 'dh_shlibdeps' not in x])
+        return rules
 
 
 class Packager(object):
