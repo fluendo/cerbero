@@ -129,6 +129,7 @@ class Recipe(FilesProvider):
     runtime_dep = False
     allow_package_creation = True
     use_gtkdoc = False
+    version_file = None
     _default_steps = BuildSteps()
 
     def __init__(self, config):
