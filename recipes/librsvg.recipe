@@ -5,7 +5,7 @@ class Recipe(recipe.Recipe):
     name = 'librsvg'
     version = '2.36.1'
     licenses = [License.LGPLv2]
-    deps = ['libcroco', 'libxml2']
+    deps = ['gdk-pixbuf','libcroco', 'libxml2']
     configure_options = '--enable-introspection=no'
     allow_package_creation = False
 
@@ -17,7 +17,7 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         if self.config.variants.gtk:
-            self.deps += ['gdk-pixbuf', 'gtk+']
+            self.deps += ['gtk+']
             self.files_loader += ['lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg%(mext)s']
             self.files_loader += ['lib/gdk-pixbuf-2.0/2.10.0/loaders.cache']
         else:
