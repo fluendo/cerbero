@@ -318,6 +318,9 @@ class Svn(Source):
 
     def extract(self):
         if os.path.exists(self.build_dir):
+            # fix read-only permissions
+            if self.config.platform == Platform.WINDOWS:
+                shell.call('chmod -R +w .git/', self.build_dir, fail=False)
             shutil.rmtree(self.build_dir)
 
         if self.supports_non_src_build:
