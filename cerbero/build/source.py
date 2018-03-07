@@ -241,25 +241,13 @@ class Git (GitCache):
 
     def extract(self):
         if os.path.exists(self.build_dir):
-            # fix read-only permissions
-            if self.config.platform == Platform.WINDOWS:
-                shell.call('chmod -R +w .git/', self.build_dir, fail=False)
-            try:
-                commit_hash = git.get_hash(self.repo_dir, self.commit)
-                checkout_hash = git.get_hash(self.build_dir, 'HEAD')
-                if commit_hash == checkout_hash:
-                    return False
-            except Exception:
-                pass
             shutil.rmtree(self.build_dir)
-        if not os.path.exists(self.build_dir):
-            os.mkdir(self.build_dir)
+        os.mkdir(self.build_dir)
         if self.supports_non_src_build:
             return
 
         # checkout the current version
         git.local_checkout(self.build_dir, self.repo_dir, self.commit)
-        # apply the patches only after checkout to avoid failure with patches already applied.
         self.apply_patches()
         return True
 
