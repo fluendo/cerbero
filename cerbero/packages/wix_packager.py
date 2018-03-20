@@ -267,7 +267,8 @@ class MSIPackager(PackagerBase):
         wixobjs = [os.path.join(self.output_dir, "%s.wixobj" %
                                 self._package_name())]
 
-        wixobjs.extend(self.merge_modules[self.package.package_mode])
+        if self.package.wix_use_fragment:
+          wixobjs.extend(self.merge_modules[self.package.package_mode])
 
         for x in ['utils']:
             wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
