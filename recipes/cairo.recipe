@@ -3,16 +3,17 @@
 
 class Recipe(recipe.Recipe):
     name = 'cairo'
-    version = '1.12.16'
+    version = '1.14.12'
     stype = SourceType.TARBALL
-    url = 'http://cairographics.org/releases/cairo-1.12.16.tar.xz'
+    url = 'http://cairographics.org/releases/cairo-%(version)s.tar.xz'
     # either LGPLv2.1 or MPLv1.1
     licenses = [License.LGPLv2_1]
     autoreconf = True
     autoreconf_sh = 'NOCONFIGURE=1 ./autogen.sh'
-    configure_options = "--enable-gtk-doc-html=no --enable-trace=no"
     deps = ['glib', 'libpng', 'zlib', 'pixman', 'fontconfig', 'freetype']
-    patches = ['cairo/0001-Fix-compilation-with-Android-s-bionic-libc.patch']
+    patches = ['cairo/0001-Fix-compilation-with-Android-s-bionic-libc.patch',
+               'cairo/0001-Disable-building-of-the-tests.patch',
+               ]
 
     files_libs = ['libcairo', 'libcairo-gobject', 'libcairo-script-interpreter']
     files_devel = [
@@ -42,11 +43,14 @@ class Recipe(recipe.Recipe):
             self.files_devel += ['lib/pkgconfig/cairo-xlib-xrender.pc',
                                  'lib/pkgconfig/cairo-xlib.pc']
         else:
-            self.configure_options += ' --without-x '
+            self.configure_options += '--without-x '
         if self.config.target_platform == Platform.DARWIN:
             self.configure_options += ' --enable-quartz-font --enable-quartz-image'
-    def configure(self):
-        super(Recipe, self).configure()
-        shell.replace(os.path.join(self.build_dir, 'Makefile'),
-            {'am__append_1 = boilerplate test perf':
-             'am__append_1 = boilerplate'})
+        elif self.config.target_platform == Platform.ANDROID:
+            v = DistroVersion.get_android_api_version(self.config.target_distro_version)
+            if self.config.target_arch in [Architecture.ARM, Architecture.ARMv7, Architecture.X86] and v < 21:
+                # FIXME: HACK to make projects using mmap compile with NDK 16
+                # we fail to compile with -D_FILE_OFFSET_BITS=64
+                # because we don't use clang and we use a platform < 21 (Lollipop)
+                # See $NDK_ROOT/sysroot/usr/include/sys/mman.h as one example
+                self.new_env['ac_cv_func_mmap'] = 'no'
