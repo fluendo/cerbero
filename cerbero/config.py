@@ -104,7 +104,9 @@ class Config (object):
                    'ios_platform', 'extra_build_tools', 'target_arch_flags',
                    'extra_bootstrap_packages', 'binary_commits',
                    'ignore_runtime_deps', 'binaries', 'binary_repo',
-                   'binary_repo_username', 'binary_repo_password', 'custom_cflags']
+                   'binary_repo_username', 'binary_repo_password',
+                   'custom_cflags', 'build_hash'
+                   ]
 
     cookbook = None
 
@@ -336,6 +338,7 @@ class Config (object):
         self.set_property('binary_repo_username', None)
         self.set_property('binary_repo_password', None)
         self.set_property('extra_properties', {})
+        self.set_property('build_hash', None)
 
     def set_property(self, name, value, force=False):
         if name not in self._properties:
@@ -399,6 +402,8 @@ class Config (object):
         return ret_env
 
     def get_md5(self):
+        if self.build_hash is not None:
+            return self.build_hash
         md5 = hashlib.md5()
         sanitized_env = self.get_sanitized_env()
         for e in sorted(sanitized_env.iterkeys()):
