@@ -338,10 +338,12 @@ def prompt(message, options=[]):
     return res
 
 
-def copy_dir(src, dest):
+def copy_dir(src, dest, exclude_dirs = []):
     if not os.path.exists(src):
         return
     for path in os.listdir(src):
+        if path in exclude_dirs :
+            continue
         s = os.path.join(src, path)
         d = os.path.join(dest, path)
         if not os.path.exists(os.path.dirname(d)):
@@ -349,7 +351,7 @@ def copy_dir(src, dest):
         if os.path.isfile(s):
             shutil.copy(s, d)
         elif os.path.isdir(s):
-            copy_dir(s, d)
+            copy_dir(s, d, exclude_dirs)
 
 
 def touch(path, create_if_not_exists=False, offset=0):

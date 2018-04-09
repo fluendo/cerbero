@@ -84,8 +84,12 @@ class Recipe(recipe.Recipe):
             raise InvalidRecipeError()
 
     def install(self):
+        # this needs that the official Mono installer with the version specified in the recipe should be installed
+        # at location C:\ProgramFiles(x86)\Mono-"Version", to obtain the proper version mono installation package
+        # go to https://download.mono-project.com/archive/
         pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
         mono_prefix_dir = os.path.join(pf, 'Mono-%s' % self.version)
+        exclude_dirs = ['atk-sharp', 'gdk-sharp', 'glade-sharp', 'glib-sharp', 'gtk-sharp', 'pango-sharp']
         if not os.path.exists(mono_prefix_dir):
             m.error("ERROR: Mono not found in path %s" % mono_prefix_dir)
             raise FatalError("Mono not found!")
@@ -93,7 +97,7 @@ class Recipe(recipe.Recipe):
             src = os.path.join(mono_prefix_dir, f)
             dest = os.path.join(self.config.prefix, f)
             if os.path.isdir(src):
-                shell.copy_dir (src, dest)
+                shell.copy_dir (src, dest, exclude_dirs)
             elif os.path.isfile(src):
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
