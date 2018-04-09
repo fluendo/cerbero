@@ -4,7 +4,7 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
-    version = '2.12.10'
+    version = '2.12.42'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
@@ -38,14 +38,17 @@ class Recipe(recipe.Recipe):
             raise InvalidRecipeError()
 
     def install(self):
+        # this needs that the proper official GtkSharp installer with the version specified in the recipe
+        # should be installed at the location C:\ProgramFiles(x86)\GtkSharp\'version'
+        # to obtain the package download from: https://dl.xamarin.com/GTKforWindows/Windows/gtk-sharp-{version}.msi
         pf = os.environ.get('PROGRAMFILES(X86)', os.environ['PROGRAMFILES'])
-        mono_prefix_dir = os.path.join(pf, 'Mono')
-        if not os.path.exists(mono_prefix_dir):
-            m.error("ERROR: Mono not found!")
-            raise FatalError("Mono not found!")
+        gtk_sharp_prefix_dir = os.path.join(pf, 'GtkSharp', self.version)
+        if not os.path.exists(gtk_sharp_prefix_dir):
+            m.error("ERROR: GtkSharp not found!")
+            raise FatalError("GtkSharp not found!")
 
         for f in self.files_glue + self.files_mono + self.files_mono_devel:
-            src = os.path.join(mono_prefix_dir, f)
+            src = os.path.join(gtk_sharp_prefix_dir, f)
             dest = os.path.join(self.config.prefix, f)
             if os.path.isdir(src):
                 shell.copy_dir (src, dest)
