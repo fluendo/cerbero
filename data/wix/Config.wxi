@@ -6,6 +6,7 @@
 <?define Language = "@Language@" ?>
 <?define Manufacturer = "@Manufacturer@" ?>
 <?define Version = "@Version@" ?>
+<?define PackageName = "@PackageName@" ?>
 <?define PackageComments = "@PackageComments@" ?>
 <?define Description = "@Description@" ?>
 <?define WebSiteName = "@ProjectURL" ?>

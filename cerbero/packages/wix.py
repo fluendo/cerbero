@@ -364,6 +364,7 @@ class WixConfig(WixBase):
             "@Language@": '1033',
             "@Manufacturer@": self.package.vendor,
             "@Version@": self._format_version(self.package.version),
+            "@PackageName@": self._package_name(),
             "@PackageComments@": self.package.longdesc,
             "@Description@": self.package.shortdesc,
             "@ProjectURL": self.package.url,
@@ -378,6 +379,12 @@ class WixConfig(WixBase):
 
     def _product_name(self):
         return '%s' % self.package.shortdesc
+
+    def _package_name(self):
+        package_name = '%s' % self.package.name
+        for r in ['/', '-', ' ', '@', '+']:
+            package_name = package_name.replace(r, '_')
+        return package_name
 
     def _program_folder(self):
         if self.arch == Architecture.X86:
