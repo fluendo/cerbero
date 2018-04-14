@@ -137,19 +137,9 @@ class Recipe(recipe.Recipe):
                 self.config.prefix)
 
     def relocate_osx_libraries(self):
-        super(Recipe, self).relocate_osx_libraries()
         relocator = OSXRelocator(self.mono_prefix_dir, self.mono_prefix_dir, True)
-        relocator.change_id(os.path.join(self.config.prefix, 'lib','libmonosgen-2.0.1.dylib'))
-        relocator.change_id(os.path.join(self.config.prefix, 'lib','libMonoPosixHelper.dylib'))
-
-        libiconv_system_path = '/usr/lib/libiconv.2.dylib'
-        libiconv_rpath = '@rpath/lib/libiconv.2.dylib'
-
-        relocator.change_lib_path(os.path.join(self.config.prefix, 'lib','libmonosgen-2.0.1.dylib'),
-            libiconv_system_path, libiconv_rpath)
-        relocator.change_lib_path(os.path.join(self.config.prefix, 'lib','libMonoPosixHelper.dylib'),
-            libiconv_system_path, libiconv_rpath)
-        relocator.change_lib_path(os.path.join(self.config.prefix, 'bin','mono'),
-            libiconv_system_path, libiconv_rpath)
-        relocator.change_lib_path(os.path.join(self.config.prefix, 'bin','mono-sgen'),
-            libiconv_system_path, libiconv_rpath)
+        for f in self.files_list():
+            if f.startswith('lib/mono'):
+                continue
+            if f.split('/')[0] in ['lib', 'bin', 'libexec']:
+                relocator.relocate_file(os.path.join(self.config.prefix, f))
