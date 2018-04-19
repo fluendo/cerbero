@@ -64,6 +64,15 @@ def determine_num_of_cpus():
     except (ImportError, NotImplementedError):
         return 1
 
+# We can't just add '-something' to the end of the file,
+# because on linux ldconfig thinks that library.0.0.0.something,
+# or library.0.0.0-something is a newest version of the library,
+# and updates symlink library.0 -> library.0.0.0 to library.0.0.0.something
+def decorate_filename(file_path, prename):
+    dir_path = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+    return os.path.join(dir_path, prename + file_name)
+
 
 def to_winpath(path):
     if path.startswith('/'):
