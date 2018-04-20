@@ -421,6 +421,7 @@ class MetaPackage(PackageBase):
     platform_packages = {}
     sdk_version = '1.0'
     resources_wix_installer = None
+    config_wix_custom = None
     resources_distribution = 'Distribution.xml'
     user_resources = None
 
@@ -550,6 +551,7 @@ class AppExtensionPackage(Package):
 
     app_package = None
     resources_wix_installer = None
+    config_wix_custom = None
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
     _app = None
@@ -633,6 +635,7 @@ class App(PackageBase):
     wrapper = 'app_wrapper.tpl'
     resources_wix_bundle = None
     resources_wix_installer = None
+    config_wix_custom = None
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
     osx_create_dmg = True
