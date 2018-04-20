@@ -30,5 +30,6 @@ class Package(package.Package):
             'gst-plugins-ugly-static:plugins_codecs_devel']
     platform_files = {
             Platform.ANDROID: ['tremor:libs'],
-            Platform.IOS: ['tremor:libs']
+            Platform.IOS: ['tremor:libs'],
+            Platform.WINDOWS: ['openh264:libs']
     }
