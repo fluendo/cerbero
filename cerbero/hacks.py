@@ -141,7 +141,7 @@ if sys.platform.startswith('win'):
 
 # use cURL to download instead of wget
 
-if sys.platform.startswith('darwin'):
+if sys.platform.startswith('darwin') or sys.platform.startswith('win'):
     import cerbero.utils.shell as cshell
     del cshell.download
     cshell.download = cshell.download_curl
