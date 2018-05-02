@@ -54,7 +54,8 @@ class UnixBootstraper (BootstraperBase):
 
     def _install_dotnet_for_wine(self):
         self._download_missing_wine_deps()
-        shell.call('%s dotnet40 corefonts' % self.winetricks_tool)
+        os.environ['WINE'] = "wineconsole"
+        shell.call('%s -q dotnet40 corefonts' % self.winetricks_tool)
 
     def start(self):
         packages = self.packages
@@ -62,6 +63,7 @@ class UnixBootstraper (BootstraperBase):
             packages += self.distro_packages[self.config.distro_version]
         shell.call(self.tool % ' '.join(self.packages))
         if 'wine' in self.packages:
+            shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
             if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
                 shell.call(self.tool % ' wine32')
             shell.call(self.tool % ' cabextract')
