@@ -54,7 +54,8 @@ class UnixBootstraper (BootstraperBase):
 
     def _install_dotnet_for_wine(self):
         self._download_missing_wine_deps()
-        shell.call('%s dotnet40 corefonts' % self.winetricks_tool)
+        os.environ['WINE'] = "wineconsole"
+        shell.call('%s -q dotnet40 corefonts' % self.winetricks_tool)
 
     def start(self):
         packages = self.packages
@@ -62,6 +63,7 @@ class UnixBootstraper (BootstraperBase):
             packages += self.distro_packages[self.config.distro_version]
         shell.call(self.tool % ' '.join(self.packages))
         if 'wine' in self.packages:
+            shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
             if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
                 shell.call(self.tool % ' wine32')
             shell.call(self.tool % ' cabextract')
@@ -69,17 +71,16 @@ class UnixBootstraper (BootstraperBase):
 
 class DebianBootstraper (UnixBootstraper):
 
-    tool = 'sudo apt-get install %s'
     packages = ['autotools-dev', 'automake', 'autoconf', 'libtool', 'g++',
                 'autopoint', 'make', 'cmake', 'bison', 'flex', 'yasm',
                 'pkg-config', 'gtk-doc-tools', 'libxv-dev', 'libx11-dev',
                 'libpulse-dev', 'python-dev', 'texinfo', 'gettext',
-                'build-essential', 'pkg-config', 'doxygen', 'curl',
+                'build-essential', 'doxygen', 'curl',
                 'libxext-dev', 'libxi-dev', 'x11proto-record-dev',
                 'libxrender-dev', 'libgl1-mesa-dev', 'libxfixes-dev',
                 'libxdamage-dev', 'libxcomposite-dev', 'libasound2-dev',
                 'libxml-simple-perl', 'dpkg-dev', 'debhelper',
-                'build-essential', 'devscripts', 'fakeroot', 'transfig',
+                'devscripts', 'fakeroot', 'transfig',
                 'gperf', 'libdbus-glib-1-dev', 'wget', 'glib-networking',
                 'intltool', 'git']
     distro_packages = {
@@ -94,8 +95,8 @@ class DebianBootstraper (UnixBootstraper):
         DistroVersion.UBUNTU_PRECISE: ['libgdk-pixbuf2.0-dev'],
     }
 
-    def __init__(self, config):
-        UnixBootstraper.__init__(self, config)
+    def __init__(self, config, assume_yes, non_interactive):
+        UnixBootstraper.__init__(self, config, assume_yes, non_interactive)
         if self.config.target_platform == Platform.WINDOWS:
             if self.config.arch == Architecture.X86_64:
                 if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
@@ -113,6 +114,14 @@ class DebianBootstraper (UnixBootstraper):
                 self.config.platform, None)
         if plat_packages:
             self.packages += plat_packages.get(self.config.distro, [])
+
+        tool = 'sudo apt-get'
+        if self.assume_yes or self.non_interactive:
+            tool += ' -y'
+        tool += ' install %s'
+        if self.non_interactive:
+            tool = 'DEBIAN_FRONTEND=noninteractive ' + tool
+        self.tool = tool
 
 
 class RedHatBootstraper (UnixBootstraper):

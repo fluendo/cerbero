@@ -35,8 +35,8 @@ class BuildTools (BootstraperBase):
     }
 
     def __init__(self, config, use_binaries=False, upload_binaries=False,
-            build_missing=False):
-        BootstraperBase.__init__(self, config)
+            build_missing=False, assume_yes=False, non_interactive=False):
+        BootstraperBase.__init__(self, config, assume_yes, non_interactive)
         self.use_binaries = use_binaries
         self.upload_binaries = upload_binaries
         self.build_missing = build_missing
