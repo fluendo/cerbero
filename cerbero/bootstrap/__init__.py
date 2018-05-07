@@ -19,8 +19,10 @@
 
 class BootstraperBase (object):
 
-    def __init__(self, config):
+    def __init__(self, config, assume_yes, non_interactive):
         self.config = config
+        self.assume_yes = assume_yes
+        self.non_interactive = non_interactive
 
     def start(self):
         raise NotImplemented("'start' must be implemented by subclasess")

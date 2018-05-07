@@ -39,12 +39,17 @@ class Bootstrap(Command):
             ArgparseArgument('--build-missing', action='store_true',
                 default=False,
                 help=_('in case a binary package is missing try to build it')),
+            ArgparseArgument('--assume-yes', action='store_true',
+                default=False, help=_('In case of a question, assume yes')),
+            ArgparseArgument('--non-interactive', action='store_true',
+                default=False, help=_('Run in a non-interactive way')),
             ]
         Command.__init__(self, args)
 
     def run(self, config, args):
         bootstrapers = Bootstraper(config, args.build_tools_only,
-                args.use_binaries, args.upload_binaries, args.build_missing)
+                args.use_binaries, args.upload_binaries, args.build_missing,
+                args.assume_yes, args.non_interactive)
         for bootstraper in bootstrapers:
             bootstraper.start()
 

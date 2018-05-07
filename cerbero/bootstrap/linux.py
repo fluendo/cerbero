@@ -71,7 +71,6 @@ class UnixBootstraper (BootstraperBase):
 
 class DebianBootstraper (UnixBootstraper):
 
-    tool = 'sudo apt-get install %s'
     packages = ['autotools-dev', 'automake', 'autoconf', 'libtool', 'g++',
                 'autopoint', 'make', 'cmake', 'bison', 'flex', 'yasm',
                 'pkg-config', 'gtk-doc-tools', 'libxv-dev', 'libx11-dev',
@@ -96,8 +95,8 @@ class DebianBootstraper (UnixBootstraper):
         DistroVersion.UBUNTU_PRECISE: ['libgdk-pixbuf2.0-dev'],
     }
 
-    def __init__(self, config):
-        UnixBootstraper.__init__(self, config)
+    def __init__(self, config, assume_yes, non_interactive):
+        UnixBootstraper.__init__(self, config, assume_yes, non_interactive)
         if self.config.target_platform == Platform.WINDOWS:
             if self.config.arch == Architecture.X86_64:
                 if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
@@ -115,6 +114,14 @@ class DebianBootstraper (UnixBootstraper):
                 self.config.platform, None)
         if plat_packages:
             self.packages += plat_packages.get(self.config.distro, [])
+
+        tool = 'sudo apt-get'
+        if self.assume_yes or self.non_interactive:
+            tool += ' -y'
+        tool += ' install %s'
+        if self.non_interactive:
+            tool = 'DEBIAN_FRONTEND=noninteractive ' + tool
+        self.tool = tool
 
 
 class RedHatBootstraper (UnixBootstraper):
