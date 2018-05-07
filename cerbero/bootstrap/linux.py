@@ -75,12 +75,12 @@ class DebianBootstraper (UnixBootstraper):
                 'autopoint', 'make', 'cmake', 'bison', 'flex', 'yasm',
                 'pkg-config', 'gtk-doc-tools', 'libxv-dev', 'libx11-dev',
                 'libpulse-dev', 'python-dev', 'texinfo', 'gettext',
-                'build-essential', 'pkg-config', 'doxygen', 'curl',
+                'build-essential', 'doxygen', 'curl',
                 'libxext-dev', 'libxi-dev', 'x11proto-record-dev',
                 'libxrender-dev', 'libgl1-mesa-dev', 'libxfixes-dev',
                 'libxdamage-dev', 'libxcomposite-dev', 'libasound2-dev',
                 'libxml-simple-perl', 'dpkg-dev', 'debhelper',
-                'build-essential', 'devscripts', 'fakeroot', 'transfig',
+                'devscripts', 'fakeroot', 'transfig',
                 'gperf', 'libdbus-glib-1-dev', 'wget', 'glib-networking',
                 'intltool', 'git']
     distro_packages = {
