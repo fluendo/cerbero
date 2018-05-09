@@ -61,11 +61,12 @@ class UnixBootstraper (BootstraperBase):
         packages = self.packages
         if self.config.distro_version in self.distro_packages:
             packages += self.distro_packages[self.config.distro_version]
+        if 'wine' in self.packages:
+          if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
+            ["wine32" if x=="wine" else x for x in a]
+          shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
         shell.call(self.tool % ' '.join(self.packages))
         if 'wine' in self.packages:
-            shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
-            if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
-                shell.call(self.tool % ' wine32')
             shell.call(self.tool % ' cabextract')
             self._install_dotnet_for_wine()
 
