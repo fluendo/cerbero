@@ -46,10 +46,11 @@ class UnixBootstraper (BootstraperBase):
         url = 'ftp://fluendosys:fluendo\ sys@officestorage1.fluendo.lan/data/fluendo/tech/private/cerbero/custom_packages/wine/%s' % package_name
         if not os.path.exists (package_path):
             os.makedirs (package_path)
-            package_path = os.path.expanduser('~/.cache/winetricks/%s/%s' % (path_name, package_name))
-            shell.download(url, package_path)
+        package_path = os.path.expanduser('~/.cache/winetricks/%s/%s' % (path_name, package_name))
+        shell.download(url, package_path)
 
     def _download_missing_wine_deps(self):
+        self._download_wine_package('dotnet40', 'gacutil-net40.tar.bz2')
         self._download_winetricks()
 
     def _install_dotnet_for_wine(self):
