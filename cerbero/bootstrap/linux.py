@@ -41,16 +41,28 @@ class UnixBootstraper (BootstraperBase):
             shell.call(self.tool % ' winetricks')
     # This method aims to download missing package manually helping winetricks. This method became useless
     # with dotnot40 but helps dotnet45 installation on ubuntu 16.04.
-    def _download_wine_package(self, path_name, package_name):
+    def _download_wine_package(self, path_name, package_names):
         package_path = os.path.expanduser('~/.cache/winetricks/%s/' % path_name)
-        url = 'ftp://fluendosys:fluendo\ sys@officestorage1.fluendo.lan/data/fluendo/tech/private/cerbero/custom_packages/wine/%s' % package_name
+        CUSTOM_WINE_PACKAGE_PATH="ftp://fluendosys:fluendo\ sys@officestorage1.fluendo.lan/data/fluendo/tech/private/cerbero/custom_packages/wine"
         if not os.path.exists (package_path):
             os.makedirs (package_path)
-        package_path = os.path.expanduser('~/.cache/winetricks/%s/%s' % (path_name, package_name))
-        shell.download(url, package_path)
+        for package_name in package_names:
+          package_dest_filename = os.path.expanduser('%s/%s' % (package_path, package_name))
+          url = '%s/%s/%s' % (CUSTOM_WINE_PACKAGE_PATH, path_name, package_name)
+          shell.download(url, package_dest_filename)
 
     def _download_missing_wine_deps(self):
-        self._download_wine_package('dotnet40', 'gacutil-net40.tar.bz2')
+        self._download_wine_package('dotnet40', ["gacutil-net40.tar.bz2"])
+        self._download_wine_package('corefonts', ["arial32.exe",
+                                                  "arialb32.exe",
+                                                  "comic32.exe",
+                                                  "courie32.exe",
+                                                  "georgi32.exe",
+                                                  "impact32.exe",
+                                                  "times32.exe",
+                                                  "trebuc32.exe",
+                                                  "verdan32.exe",
+                                                  "webdin32.exe"])
         self._download_winetricks()
 
     def _install_dotnet_for_wine(self):
