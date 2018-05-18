@@ -123,9 +123,9 @@ class DebianBootstraper (UnixBootstraper):
                 elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL]:
                   self.packages.append('libc6:i386 libncurses5:i386 libstdc++6:i386')
         if self.config.distro_version in [DistroVersion.DEBIAN_SQUEEZE,
-                DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID]:
+                DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
             self.packages.remove('glib-networking')
-        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID]:
+        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
             self.packages.remove('autopoint')
         plat_packages = self.config.extra_bootstrap_packages.get(
                 self.config.platform, None)
