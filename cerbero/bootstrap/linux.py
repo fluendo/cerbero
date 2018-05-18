@@ -67,7 +67,10 @@ class UnixBootstraper (BootstraperBase):
 
     def _install_dotnet_for_wine(self):
         self._download_missing_wine_deps()
-        os.environ['WINE'] = "wineconsole"
+        # wineconsole fails trying to get env var in a VT with DISPLAY.
+        # This is working on docker buildbot and on a real terminal.
+        if not 'DISPLAY' in os.environ:
+          os.environ['WINE'] = "wineconsole"
         shell.call('%s -q dotnet40 corefonts' % self.winetricks_tool)
 
     def start(self):
