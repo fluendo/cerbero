@@ -118,7 +118,7 @@ class DebianBootstraper (UnixBootstraper):
             if self.config.arch == Architecture.X86_64:
                 if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
                     DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
-                    DistroVersion.UBUNTU_NATTY, DistroVersion.UBUNTU_PRECISE]:
+                    DistroVersion.UBUNTU_NATTY]:
                   self.packages.append('ia32-libs')
                 elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL]:
                   self.packages.append('libc6:i386 libncurses5:i386 libstdc++6:i386')
