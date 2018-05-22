@@ -127,6 +127,9 @@ class DebianBootstraper (UnixBootstraper):
             self.packages.remove('glib-networking')
         if self.config.distro_version in [DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
             self.packages.remove('autopoint')
+        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
+            self.packages.remove('git')
+            self.packages.append('git-core')
         plat_packages = self.config.extra_bootstrap_packages.get(
                 self.config.platform, None)
         if plat_packages:
