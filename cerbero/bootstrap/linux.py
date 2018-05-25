@@ -118,7 +118,7 @@ class DebianBootstraper (UnixBootstraper):
             if self.config.arch == Architecture.X86_64:
                 if self.config.distro_version in [DistroVersion.UBUNTU_MAVERICK,
                     DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
-                    DistroVersion.UBUNTU_NATTY, DistroVersion.UBUNTU_PRECISE]:
+                    DistroVersion.UBUNTU_NATTY]:
                   self.packages.append('ia32-libs')
                 elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL]:
                   self.packages.append('libc6:i386 libncurses5:i386 libstdc++6:i386')
@@ -127,6 +127,9 @@ class DebianBootstraper (UnixBootstraper):
             self.packages.remove('glib-networking')
         if self.config.distro_version in [DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
             self.packages.remove('autopoint')
+        if self.config.distro_version in [DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
+            self.packages.remove('git')
+            self.packages.append('git-core')
         plat_packages = self.config.extra_bootstrap_packages.get(
                 self.config.platform, None)
         if plat_packages:
