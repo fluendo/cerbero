@@ -16,5 +16,5 @@
 <?define UIType = "@UIType@" ?>
 <?define CerberoPackageDir = "@CerberoPackageDir@" ?>
 <?define CerberoPrefixDir = "@CerberoPrefixDir@" ?>
-
+@CustomVariables@
 </Include>

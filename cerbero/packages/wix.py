@@ -374,6 +374,7 @@ class WixConfig(WixBase):
             "@UIType@": self.ui_type,
             "@CerberoPackageDir@": self.package.package_dir(),
             "@CerberoPrefixDir@": self.prefix,
+            "@CustomVariables@": self._custom_variables(),
         }
 
     def _product_name(self):
@@ -388,6 +389,10 @@ class WixConfig(WixBase):
         if self.arch == Architecture.X86_64:
             return 'x64'
         return 'x86'
+    def _custom_variables(self):
+      if self.package.config_wix_custom:
+        return self.package.config_wix_custom
+      return ''
 
 
 class MSI(WixBase):
