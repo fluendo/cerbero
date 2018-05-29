@@ -19,6 +19,7 @@
 import os
 import uuid
 import shutil
+import hashlib
 
 from cerbero.utils import etree, to_winepath, shell
 from cerbero.errors import FatalError
@@ -104,7 +105,9 @@ class WixBase():
             ret = ret.replace(r, '_')
         if replace_dots:
             ret = ret.replace('.', '')
-        # For directories starting with a number
+        # Due to limitations in the Windows Installer, feature names cannot be longer than 38 characters in length.
+        # Remove the next line for debugging purpose
+        ret = hashlib.md5(ret).hexdigest()
         return '_' + ret
 
     def _format_path_id(self, path, replace_dots=False):
