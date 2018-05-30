@@ -19,23 +19,23 @@ Libs: -r:${libdir}/cli/Couchbase.Lite-1.0/Couchbase.Lite.dll\
 
 class Recipe(recipe.Recipe):
     name = 'Couchbase.Lite'
-    version = '1.3.1.2'
+    version = '1.4.1.1'
     licenses = [License.Apachev2]
     stype = SourceType.GIT
     btype = BuildType.CUSTOM
     deps = ['mono', 'sqlite3']
     remotes = {'github': 'https://github.com/fluendo/couchbase-lite-net.git'}
-    commit = 'github/release/1.3.1'
+    commit = 'github/flu1.4.1'
     files_cli = [
-      'lib/cli/Couchbase.Lite-1.3/Couchbase.Lite.dll',
-      'lib/cli/Couchbase.Lite-1.3/Couchbase.Lite.Storage.SystemSQLite.dll',
-      'lib/cli/Couchbase.Lite-1.3/websocket-sharp.dll',
+      'lib/cli/Couchbase.Lite-1.4/Couchbase.Lite.dll',
+      'lib/cli/Couchbase.Lite-1.4/Couchbase.Lite.Storage.SystemSQLite.dll',
+      'lib/cli/Couchbase.Lite-1.4/websocket-sharp.dll',
     ]
 
     files_devel = [
         'lib/pkgconfig/couchbase-lite.pc',
-        'share/nuget/Couchbase.Lite.LM.1.3.1.2.nupkg',
-        'share/nuget/Couchbase.Lite.Storage.SystemSQLite.LM.1.3.1.2.nupkg'
+        'share/nuget/Couchbase.Lite.LM.1.4.1.1.nupkg',
+        'share/nuget/Couchbase.Lite.Storage.SystemSQLite.LM.1.4.1.1.nupkg'
     ]
 
     def prepare(self):
@@ -96,7 +96,7 @@ class Recipe(recipe.Recipe):
             logging.info('Exception compiling iOS')
 
     def install(self):
-        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.3')
+        destdir = os.path.join(self.config.prefix, 'lib/cli/Couchbase.Lite-1.4')
         if not os.path.exists(destdir):
             os.makedirs(destdir)
         shell.call('cp staging/Couchbase.Lite/net45/*.dll %s' % destdir,
