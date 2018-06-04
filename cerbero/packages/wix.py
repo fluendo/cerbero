@@ -177,8 +177,12 @@ class Fragment(WixBase):
             Id=self._format_group_id(self.package.name))
 
     def _add_root_dir(self):
-        self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
-            Id='INSTALLDIR')
+        if self._is_app():
+          self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
+              Id='INSTALLDIR')
+        else:
+          self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
+              Id='SDKROOTDIR')
         self._dirnodes[''] = self.rdir
 
     def _add_files(self):
