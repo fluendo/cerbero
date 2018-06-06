@@ -54,7 +54,7 @@ class Recipe(recipe.Recipe):
     @modify_environment
     def compile(self):
         logging.info('Compiling Couchbase')
-        shell.call("mono src/.nuget/NuGet.exe restore " \
+        shell.call("nuget restore " \
                    "src/Couchbase.Lite.Net45.sln -source 'https://www.nuget.org/api/v2/'", self.build_dir)
         shell.call('xbuild src/Couchbase.Lite.Net45/Couchbase.Lite.Net45.csproj '
                    ' /property:SolutionDir=' + self.build_dir + '/src/'
