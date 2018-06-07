@@ -3,7 +3,7 @@ import shutil
 import logging
 from cerbero.build.build import modify_environment
 
-PC_TPL ='''\
+PC_TPL = '''\
 prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
