@@ -28,6 +28,7 @@ import time
 import glob
 import shutil
 import hashlib
+import ntpath
 
 from cerbero.enums import Platform
 from cerbero.utils import _, system_info, to_unixpath
@@ -205,12 +206,15 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
       url = mirror_url
     cmd = "wget %s " % url
     path = None
+    dst = destination
     if recursive:
         cmd += "-r "
-        path = destination
+        path = dst
     else:
-        if destination is not None:
-            cmd += "-O %s " % destination
+        if not dst:
+            dst = ntpath.basename(url)
+        tmp_dst = "%s_tmp" % dst
+        cmd += "-O %s " % tmp_dst
 
     if not check_cert:
         cmd += " --no-check-certificate"
@@ -220,23 +224,32 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
     if password:
         cmd += " --password=%s" % password
 
-    if not recursive and os.path.exists(destination):
-        logging.info("File %s already downloaded." % destination)
+    if not recursive and os.path.exists(dst):
+        logging.info("File %s already downloaded." % dst)
     else:
         logging.info("Downloading %s", url)
         try:
-            call(cmd, path)
+            ret = call(cmd, path)
+            if ret != 0:
+                raise FatalError(_("command: '%s' returned: %s" % (cmd, ret)))
         except FatalError, e:
-            os.remove(destination)
+            if os.path.exists(tmp_dst):
+                os.remove(tmp_dst)
             if original_url is not None:
-              try:
-                cmd = cmd.replace(mirror_url, original_url)
-                call(cmd, path)
-              except FatalError, e:
-                os.remove(destination)
-                raise e
+                try:
+                    cmd = cmd.replace(mirror_url, original_url)
+                    ret = call(cmd, path)
+                    if ret != 0:
+                        raise FatalError(_("command: '%s' returned: %s" % (cmd, ret)))
+                except FatalError, e:
+                    if os.path.exists(tmp_dst):
+                        os.remove(tmp_dst)
+                    raise e
             else:
               raise e
+        if not recursive:
+            shutil.move(tmp_dst, dst)
+            logging.info("Moved '%s' to '%s'" % (tmp_dst, dst))
 
 
 def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False):
@@ -259,6 +272,7 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
         raise FatalError(_("cURL doesn't support recursive downloads"))
 
     cmd = "curl -L "
+    dst = destination
     if user:
         cmd += "--user %s" % user
         if password:
@@ -267,19 +281,26 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
             cmd += " "
     if not check_cert:
         cmd += "-k "
-    if destination is not None:
-        cmd += "%s -o %s " % (url, destination)
-    else:
-        cmd += "-O %s " % url
+    if not dst:
+        dst = ntpath.basename(url)
+    tmp_dst = "%s_tmp" % dst
+    cmd += "%s -o %s " % (url, tmp_dst)
 
     if not overwrite and os.path.exists(destination):
         logging.info("File %s already downloaded." % destination)
     else:
         logging.info("Downloading %s", url)
         try:
-            call(cmd, path)
+            ret = call(cmd, path)
+            if ret != 0:
+                raise FatalError(_("command: '%s' returned: %s" % (cmd, ret)))
+            shutil.move(tmp_dst, dst)
+            logging.info("Moved '%s' to '%s'" % (tmp_dst, dst))
         except FatalError, e:
-            os.remove(destination)
+            if os.path.exists(tmp_dst):
+                os.remove(tmp_dst)
+            if os.path.exists(dst):
+                os.remove(dst)
             raise e
 
 
