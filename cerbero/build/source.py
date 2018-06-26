@@ -139,7 +139,15 @@ class Tarball (Source):
         m.action(_('Extracting tarball to %s') % self.build_dir)
         if os.path.exists(self.build_dir):
             shutil.rmtree(self.build_dir)
-        shell.unpack(self.download_path, self.config.sources)
+        try:
+            shell.unpack(self.download_path, self.config.sources)
+        except Exception:
+            m.action(_("Unpacking file '%s' failed. " \
+                       "Try to fetch it one more time") % self.download_path)
+            if os.path.exists(self.download_path):
+                os.remove(self.download_path)
+            self.fetch()
+            shell.unpack(self.download_path, self.config.sources)
         if self.tarball_dirname is not None:
             os.rename(os.path.join(self.config.sources, self.tarball_dirname),
                     self.build_dir)
