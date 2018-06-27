@@ -91,6 +91,7 @@ class BuildTools (BootstraperBase):
         config.binary_repo = self.config.binary_repo + '/build-tools'
         config.binary_repo_username = self.config.binary_repo_username
         config.binary_repo_password = self.config.binary_repo_password
+        config.mirror_url = self.config.mirror_url
 
         if not os.path.exists(config.prefix):
             os.makedirs(config.prefix)
