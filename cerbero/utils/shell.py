@@ -28,7 +28,6 @@ import time
 import glob
 import shutil
 import hashlib
-import ntpath
 
 from cerbero.enums import Platform
 from cerbero.utils import _, system_info, to_unixpath
@@ -212,7 +211,7 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
         path = dst
     else:
         if not dst:
-            dst = ntpath.basename(url)
+            dst = os.path.basename(url)
         tmp_dst = "%s_tmp" % dst
         cmd += "-O %s " % tmp_dst
 
@@ -282,7 +281,7 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
     if not check_cert:
         cmd += "-k "
     if not dst:
-        dst = ntpath.basename(url)
+        dst = os.path.basename(url)
     tmp_dst = "%s_tmp" % dst
     cmd += "%s -o %s " % (url, tmp_dst)
 
