@@ -133,7 +133,7 @@ class Tarball (Source):
         if self.url.startswith('file://'):
             shutil.copy(self.url[7:], self.download_path)
         else:
-            shell.download(self.url, self.download_path, check_cert=False, mirror_url=self.config.mirror_url, filename=self.tarball_name)
+            shell.download(self.url, self.download_path, check_cert=False, cache_url=self.config.cache_url, filename=self.tarball_name)
 
     def extract(self):
         m.action(_('Extracting tarball to %s') % self.build_dir)
