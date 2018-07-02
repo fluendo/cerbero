@@ -239,7 +239,7 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
               raise e
 
 
-def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False):
+def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False, mirror_url=None, filename = None):
     '''
     Downloads a file with cURL
 
@@ -253,10 +253,20 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
     @type password: str
     @param overwrite: in case the file exists overwrite it
     @type overwrite: bool
+    @param mirror_url: mirror url to try first
+    @type mirror_url: str
+    @param filename: custom filename to use by the mirror url
+    @type filename: str
     '''
     path = None
     if recursive:
         raise FatalError(_("cURL doesn't support recursive downloads"))
+
+    original_url = None
+    mirror_url = _get_download_mirror_url(url, mirror_url, filename)
+    if mirror_url != url:
+      original_url = url
+      url = mirror_url
 
     cmd = "curl -L "
     if user:
@@ -280,7 +290,15 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
             call(cmd, path)
         except FatalError, e:
             os.remove(destination)
-            raise e
+            if original_url is not None:
+              try:
+                cmd = cmd.replace(mirror_url, original_url)
+                call(cmd, path)
+              except FatalError, e:
+                os.remove(destination)
+                raise e
+            else:
+              raise e
 
 
 def upload_curl(source, url, user=None, password=None):
