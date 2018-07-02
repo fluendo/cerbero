@@ -49,7 +49,7 @@ class UnixBootstraper (BootstraperBase):
         for package_name in package_names:
           package_dest_filename = os.path.expanduser('%s/%s' % (package_path, package_name))
           url = '%s/%s/%s' % (CUSTOM_WINE_PACKAGE_PATH, path_name, package_name)
-          shell.download(url, package_dest_filename, mirror_url=self.config.mirror_url)
+          shell.download(url, package_dest_filename, cache_url=self.config.cache_url)
 
     def _download_missing_wine_deps(self):
         self._download_wine_package('dotnet40', ["gacutil-net40.tar.bz2"])

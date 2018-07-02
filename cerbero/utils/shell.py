@@ -160,28 +160,28 @@ def unpack(filepath, output_dir):
         zf.extractall(path=output_dir)
 
 
-def _get_download_mirror_url(url, mirror_url, filename = None):
+def _get_download_cache_url(url, cache_url, filename = None):
     '''
-    Get the mirror url if available
+    Get the cache url if available
 
     @param url: original url to download
     @type url: str
-    @param mirror_url: base mirror url to use
-    @type mirror_url: str
+    @param cache_url: base cache url to use
+    @type cache_url: str
     @param filename: custom filename to use
     @type filename: str
     '''
-    if mirror_url is None:
+    if cache_url is None:
       return url
     if filename is None:
-      dl_mirror_url = mirror_url + os.path.basename(url)
+      dl_cache_url = cache_url + os.path.basename(url)
     else:
-      dl_mirror_url = mirror_url + filename
-    logging.info('Using the mirror url: %s instead of %s' % (dl_mirror_url, url))
-    return dl_mirror_url
+      dl_cache_url = cache_url + filename
+    logging.info('Using the cache url: %s instead of %s' % (dl_cache_url, url))
+    return dl_cache_url
 
 
-def download(url, destination=None, recursive=False, check_cert=True, user=None, password=None, mirror_url=None, filename = None):
+def download(url, destination=None, recursive=False, check_cert=True, user=None, password=None, cache_url=None, filename = None):
     '''
     Downloads a file with wget
 
@@ -193,16 +193,16 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
     @type user: str
     @param password: the password to use when connecting
     @type password: str
-    @param mirror_url: mirror url to try first
-    @type mirror_url: str
-    @param filename: custom filename to use by the mirror url
+    @param cache_url: cache url to try first
+    @type cache_url: str
+    @param filename: custom filename to use by the cache url
     @type filename: str
     '''
     original_url = None
-    mirror_url = _get_download_mirror_url(url, mirror_url, filename)
-    if mirror_url != url:
+    cache_url = _get_download_cache_url(url, cache_url, filename)
+    if cache_url != url:
       original_url = url
-      url = mirror_url
+      url = cache_url
     cmd = "wget %s " % url
     path = None
     if recursive:
@@ -230,7 +230,7 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
             os.remove(destination)
             if original_url is not None:
               try:
-                cmd = cmd.replace(mirror_url, original_url)
+                cmd = cmd.replace(cache_url, original_url)
                 call(cmd, path)
               except FatalError, e:
                 os.remove(destination)
@@ -239,7 +239,7 @@ def download(url, destination=None, recursive=False, check_cert=True, user=None,
               raise e
 
 
-def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False):
+def download_curl(url, destination=None, recursive=False, check_cert=True, user=None, password=None, overwrite=False, cache_url=None, filename = None):
     '''
     Downloads a file with cURL
 
@@ -253,10 +253,20 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
     @type password: str
     @param overwrite: in case the file exists overwrite it
     @type overwrite: bool
+    @param cache_url: cache url to try first
+    @type cache_url: str
+    @param filename: custom filename to use by the cache url
+    @type filename: str
     '''
     path = None
     if recursive:
         raise FatalError(_("cURL doesn't support recursive downloads"))
+
+    original_url = None
+    cache_url = _get_download_cache_url(url, cache_url, filename)
+    if cache_url != url:
+      original_url = url
+      url = cache_url
 
     cmd = "curl -L "
     if user:
@@ -280,7 +290,15 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
             call(cmd, path)
         except FatalError, e:
             os.remove(destination)
-            raise e
+            if original_url is not None:
+              try:
+                cmd = cmd.replace(cache_url, original_url)
+                call(cmd, path)
+              except FatalError, e:
+                os.remove(destination)
+                raise e
+            else:
+              raise e
 
 
 def upload_curl(source, url, user=None, password=None):

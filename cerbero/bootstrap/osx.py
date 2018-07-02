@@ -42,7 +42,7 @@ class OSXBootstraper (BootstraperBase):
         return
         tar = self.GCC_TAR[self.config.distro_version]
         url = os.path.join(self.GCC_BASE_URL, tar)
-        pkg = os.path.join(self.config.local_sources, tar, mirror_url=self.config.mirror_url)
+        pkg = os.path.join(self.config.local_sources, tar, cache_url=self.config.cache_url)
         shell.download(url, pkg, check_cert=False)
         shell.call('sudo installer -pkg %s -target /' % pkg)
 
@@ -50,7 +50,7 @@ class OSXBootstraper (BootstraperBase):
         # Install cpan-minus, a zero-conf CPAN wrapper
         tmp = tempfile.NamedTemporaryFile()
         cpanm_installer = tmp.name
-        shell.download(self.CPANM_URL, cpanm_installer, mirror_url=self.config.mirror_url)
+        shell.download(self.CPANM_URL, cpanm_installer, cache_url=self.config.cache_url)
         shell.call('chmod +x %s' % cpanm_installer)
         # Install XML::Parser, required for intltool
         shell.call("sudo %s XML::Parser" % cpanm_installer)
