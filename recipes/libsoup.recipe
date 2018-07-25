@@ -8,7 +8,7 @@ class Recipe(recipe.Recipe):
     stype = SourceType.TARBALL
     url = 'http://ftp.gnome.org/pub/gnome/sources/libsoup/2.50/libsoup-2.50.0.tar.xz'
     autoreconf = True
-    autoreconf_sh = 'gtkdocize && intltoolize --automake --copy && autoreconf --force --install --verbose'
+    autoreconf_sh = 'autoreconf --force --install --verbose'
     configure_options = '--without-gnome --disable-more-warnings'
     deps = ['libxml2', 'glib', 'glib-networking']
     patches = ['libsoup/0001-Rip-out-sqlite-based-cookie-storage.patch',
@@ -21,6 +21,8 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.target_platform != Platform.LINUX:
             self.configure_options += ' --disable-gtk-doc'
+            autoreconf = False
+            autoreconf_sh = 'autoreconf --force --install --verbose'
 
         if self.config.target_platform in [Platform.WINDOWS, Platform.IOS]:
             self.configure_options += ' --disable-tls-check'
