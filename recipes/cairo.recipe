@@ -46,7 +46,9 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.DARWIN:
             self.configure_options += ' --enable-quartz-font --enable-quartz-image'
     def configure(self):
-        super(Recipe, self).configure()
+        super(recipe.Recipe, self).configure()
         shell.replace(os.path.join(self.build_dir, 'Makefile'),
             {'am__append_1 = boilerplate test perf':
              'am__append_1 = boilerplate'})
+
+cairo_recipe = Recipe
