@@ -1,0 +1,25 @@
+From 084fe7393a0b62bc682b14b3673bb53e18a54133 Mon Sep 17 00:00:00 2001
+From: Julian Bouzas <jbouzas@fluendo.com>
+Date: Thu, 2 Aug 2018 18:17:18 +0200
+Subject: [PATCH] Do fallback if EACCES is returned by link
+
+---
+ src/fcatomic.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/fcatomic.c b/src/fcatomic.c
+index c1daed9..37aab1c 100644
+--- a/src/fcatomic.c
++++ b/src/fcatomic.c
+@@ -131,7 +131,7 @@ FcAtomicLock (FcAtomic *atomic)
+ 	return FcFalse;
+     }
+     ret = link ((char *) atomic->tmp, (char *) atomic->lck);
+-    if (ret < 0 && errno == EPERM)
++    if (ret < 0 && (errno == EPERM || errno == EACCES))
+     {
+ 	/* the filesystem where atomic->lck points to may not supports
+ 	 * the hard link. so better try to fallback
+-- 
+2.18.0
+
