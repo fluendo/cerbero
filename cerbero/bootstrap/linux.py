@@ -80,6 +80,8 @@ class UnixBootstraper (BootstraperBase):
         if 'wine' in self.packages:
           if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
             ["wine32" if x=="wine" else x for x in a]
+          if self.config.distro_version in [DistroVersion.UBUNTU_BIONIC]:
+            ["wine-stable" if x=="wine" else x for x in a]
           shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
         shell.call(self.tool % ' '.join(self.packages))
         if 'wine' in self.packages:
@@ -120,7 +122,8 @@ class DebianBootstraper (UnixBootstraper):
                     DistroVersion.UBUNTU_HARDY, DistroVersion.UBUNTU_LUCID,
                     DistroVersion.UBUNTU_NATTY]:
                   self.packages.append('ia32-libs')
-                elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL]:
+                elif self.config.distro_version in [DistroVersion.UBUNTU_XENIAL,
+                    DistroVersion.UBUNTU_BIONIC]:
                   self.packages.append('libc6:i386 libncurses5:i386 libstdc++6:i386')
         if self.config.distro_version in [DistroVersion.DEBIAN_SQUEEZE,
                 DistroVersion.UBUNTU_MAVERICK, DistroVersion.UBUNTU_LUCID, DistroVersion.UBUNTU_HARDY]:
