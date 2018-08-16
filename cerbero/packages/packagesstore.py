@@ -198,7 +198,6 @@ class PackagesStore (object):
             if p is None:
                 m.warning(_("Could not found a valid package in %s") % f)
                 continue
-            p.__file__ = os.path.abspath(f)
             packages_dict[p.name] = p
         return packages_dict
 
@@ -225,6 +224,7 @@ class PackagesStore (object):
             else:
                 raise Exception('Package, SDKPackage, InstallerPackage or App '
                                 'class not found')
+            p.__file__ = os.path.abspath(filepath)
             p.prepare()
             # reload files from package now that we called prepare that
             # may have changed it
