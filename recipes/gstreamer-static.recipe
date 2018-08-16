@@ -28,7 +28,7 @@ class Recipe(custom.GStreamerStatic):
                 (self.config.platform == Platform.LINUX and \
                 self.config.distro_version in [DistroVersion.UBUNTU_TRUSTY, DistroVersion.UBUNTU_UTOPIC, \
                 DistroVersion.UBUNTU_VIVID, DistroVersion.UBUNTU_WILY, DistroVersion.UBUNTU_XENIAL, \
-                DistroVersion.DEBIAN_STRETCH]):
+                DistroVersion.UBUNTU_BIONIC, DistroVersion.DEBIAN_STRETCH]):
             _patch = self.relative_path('gstreamer/0001-gst-parse-switch-to-lex-param.patch')
             shell.apply_patch(_patch, self.build_dir, 1)
 

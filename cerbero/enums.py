@@ -84,6 +84,7 @@ class DistroVersion:
     UBUNTU_VIVID = 'ubuntu_vivid'
     UBUNTU_WILY = 'ubuntu_wily'
     UBUNTU_XENIAL = 'ubuntu_xenial'
+    UBUNTU_BIONIC = 'ubuntu_bionic'
     FEDORA_16 = 'fedora_16'
     FEDORA_17 = 'fedora_17'
     FEDORA_18 = 'fedora_18'
