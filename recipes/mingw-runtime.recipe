@@ -12,7 +12,7 @@ class Recipe(recipe.Recipe):
     runtime_dep = True
 
     files_libs = ['libstdc++', 'libwinpthread', 'libgomp', 'libgcc_s_sjlj']
-    files_satic = []
+    files_static = None
     files_headers = ['include/GL']
 
     def prepare(self):

@@ -48,9 +48,9 @@ class ObjdumpLister(RecursiveLister):
 
     def list_file_deps(self, prefix, path):
         files = shell.check_call('objdump -x %s' % path).split('\n')
-        files = [x.split(' ')[2][:-1] for x in files if 'DLL ' in x]
+        files = [x.split(':')[1].strip() for x in files if 'DLL Name:' in x]
         files = [os.path.join(prefix, 'bin', x) for x in files if \
-                 x.lower().endswith('dll')]
+-                 x.lower().endswith('dll')]
         return [os.path.realpath(x) for x in files if os.path.exists(x)]
 
 class LinuxObjdumpLister(RecursiveLister):
