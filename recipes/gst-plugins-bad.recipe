@@ -18,6 +18,15 @@ class Recipe(recipe.Recipe):
 
     files_lang = ['gst-plugins-bad-0.10']
 
+    platform_files_devel = {
+        Platform.WINDOWS: [
+             'lib/libgstcodecparsers-0.10.dll.a',
+             'lib/libgstbasevideo-0.10.dll.a',
+             'lib/libgstbasecamerabinsrc-0.10.dll.a',
+             'lib/libgstphotography-0.10.dll.a',
+            ]
+    }
+
     files_plugins_effects = [
              'lib/gstreamer-0.10/libgstautoconvert%(mext)s',
              'lib/gstreamer-0.10/libgstbayer%(mext)s',
