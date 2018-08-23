@@ -18,6 +18,26 @@ class Recipe(recipe.Recipe):
 
     files_lang = ['gst-plugins-bad-0.10']
 
+    files_devel = [
+             'lib/libgstcodecparsers-0.10.la',
+             'lib/libgstcodecparsers-0.10.a',
+             'lib/libgstbasevideo-0.10.la',
+             'lib/libgstbasevideo-0.10.a',
+             'lib/libgstbasecamerabinsrc-0.10.la',
+             'lib/libgstbasecamerabinsrc-0.10.a',
+             'lib/libgstphotography-0.10.la',
+             'lib/libgstphotography-0.10.a',
+    ]
+
+    platform_files_devel = {
+        Platform.WINDOWS: [
+             'lib/libgstcodecparsers-0.10.dll.a',
+             'lib/libgstbasevideo-0.10.dll.a',
+             'lib/libgstbasecamerabinsrc-0.10.dll.a',
+             'lib/libgstphotography-0.10.dll.a',
+            ]
+    }
+
     files_plugins_effects = [
              'lib/gstreamer-0.10/libgstautoconvert%(mext)s',
              'lib/gstreamer-0.10/libgstbayer%(mext)s',
@@ -76,11 +96,7 @@ class Recipe(recipe.Recipe):
              'lib/gstreamer-0.10/libgsty4mdec%(mext)s',
              'lib/gstreamer-0.10/libgstjpegformat%(mext)s',
              '%(sdir)s/libgstcodecparsers-0.10%(sext)s',
-             'lib/libgstcodecparsers-0.10.la',
-             'lib/libgstcodecparsers-0.10.a',
              '%(sdir)s/libgstbasevideo-0.10%(sext)s',
-             'lib/libgstbasevideo-0.10.la',
-             'lib/libgstbasevideo-0.10.a',
     ]
 
     platform_files_plugins_codecs = {
@@ -121,11 +137,7 @@ class Recipe(recipe.Recipe):
     files_plugins_capture = [
              'lib/gstreamer-0.10/libgstcamerabin2%(mext)s',
              '%(sdir)s/libgstbasecamerabinsrc-0.10%(sext)s',
-             'lib/libgstbasecamerabinsrc-0.10.la',
-             'lib/libgstbasecamerabinsrc-0.10.a',
              '%(sdir)s/libgstphotography-0.10%(sext)s',
-             'lib/libgstphotography-0.10.la',
-             'lib/libgstphotography-0.10.a',
             ]
 
 
