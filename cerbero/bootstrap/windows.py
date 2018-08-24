@@ -92,6 +92,7 @@ class WindowsBootstraper(BootstraperBase):
             except Exception:
                 pass
         self.fix_lib_paths()
+        self.update_ntdll()
         if self.arch == Architecture.X86:
             try:
                 shutil.rmtree('/mingw/lib')
@@ -155,6 +156,13 @@ class WindowsBootstraper(BootstraperBase):
         for path in [f for f in os.listdir(lib_path) if f.endswith('la')]:
             path = os.path.abspath(os.path.join(lib_path, path))
             shell.replace(path, {orig_sysroot: new_sysroot})
+    def update_ntdll(self):
+      m.action(_("Update libntdll.a"))
+      ntdll_src = os.path.join(self.config.data_dir, 'mingw','libntdll.a')
+      shutil.copy(ntdll_src,
+                os.path.join(self.config.toolchain_prefix, 'mingw', 'lib'))
+      shutil.copy(ntdll_src,
+                os.path.join(self.config.toolchain_prefix, 'i686-w64-mingw32', 'lib'))
 
     def find_mingw_sys_root(self):
         if self.config.platform != Platform.WINDOWS:
