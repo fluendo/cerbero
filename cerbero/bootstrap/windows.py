@@ -160,10 +160,12 @@ class WindowsBootstraper(BootstraperBase):
     def update_ntdll(self):
       m.action(_("Update libntdll.a"))
       ntdll_src = os.path.join(self.config.data_dir, 'mingw','libntdll.a')
-      shutil.copy(ntdll_src,
-                os.path.join(self.config.toolchain_prefix, 'mingw', 'lib'))
-      shutil.copy(ntdll_src,
+      if self.arch == Architecture.X86:
+          shutil.copy(ntdll_src,
                 os.path.join(self.config.toolchain_prefix, 'i686-w64-mingw32', 'lib'))
+      else:
+          shutil.copy(ntdll_src,
+                os.path.join(self.config.toolchain_prefix, 'mingw', 'lib'))
 
     def find_mingw_sys_root(self):
         if self.config.platform != Platform.WINDOWS:
