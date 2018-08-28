@@ -23,6 +23,7 @@ from cerbero.config import Platform
 from cerbero.utils import git, svn, shell, _
 from cerbero.errors import FatalError, InvalidRecipeError
 import cerbero.utils.messages as m
+from collections import OrderedDict
 
 
 class Source (object):
@@ -79,7 +80,7 @@ class Source (object):
         '''
         Applies patches contains in the self name variable.
         '''
-        for patch in self.patches:
+        for patch in list(OrderedDict.fromkeys(self.patches)):
             if not os.path.isabs(patch):
                 patch = self.relative_path(patch)
             shell.apply_patch(patch, self.build_dir, self.strip)
