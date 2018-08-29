@@ -13,7 +13,7 @@ class Recipe(GStreamerStatic):
             'fluendo': 'git@github.com:fluendo/gst-plugins-bad.git',
             }
     commit = 'fluendo/sdk-0.10.23-hls'
-
+    patches = ['gst-plugins-bad/001-disable-osxscreencapsrc-for-ios.patch']
     deps = ['gstreamer', 'gst-plugins-base', 'libass', 'bzip2',
             'faad2', 'libkate', 'libvpx', 'libdvdnav', 'zlib',
             'schroedinger', 'libdca', 'jasper', 'libmms', 'opus', 'soundtouch' ]

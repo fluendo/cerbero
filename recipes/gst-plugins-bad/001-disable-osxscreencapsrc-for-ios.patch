@@ -1,0 +1,48 @@
+diff --git a/sys/applemedia/Makefile.am b/sys/applemedia/Makefile.am
+index 0725fd484..001a6b13b 100644
+--- a/sys/applemedia/Makefile.am
++++ b/sys/applemedia/Makefile.am
+@@ -12,9 +12,12 @@ libgstapplemedia_la_SOURCES =	\
+	vth264decbin.c		\
+	vth264encbin.c		\
+	avfvideosrc.m 		\
+-	osxscreencapsrc.m 	\
+	vtutil.c
+
++if !HAVE_IOS
++libgstapplemedia_la_SOURCES += osxscreencapsrc.m
++endif
++
+ libgstapplemedia_la_CFLAGS =		\
+	$(GST_CFLAGS)			\
+	$(GST_BASE_CFLAGS)		\
+diff --git a/sys/applemedia/plugin.m b/sys/applemedia/plugin.m
+index 887caab12..b5b349855 100644
+--- a/sys/applemedia/plugin.m
++++ b/sys/applemedia/plugin.m
+@@ -28,7 +28,9 @@
+ #include <Foundation/Foundation.h>
+ #endif
+ #include "avfvideosrc.h"
++#ifndef HAVE_IOS
+ #include "osxscreencapsrc.h"
++#endif
+ #include "vth264decbin.h"
+ #include "vth264encbin.h"
+ #include "vtenc.h"
+@@ -57,12 +59,13 @@
+       GST_TYPE_AVASSET_SRC);
+ #else
+   enable_mt_mode ();
++  res = gst_element_register (plugin, "osxscreencapsrc", GST_RANK_NONE,
++      GST_TYPE_OSX_SCREEN_CAP_SRC);
+ #endif
+
+   res = gst_element_register (plugin, "avfvideosrc", GST_RANK_NONE,
+       GST_TYPE_AVF_VIDEO_SRC);
+-  res = gst_element_register (plugin, "osxscreencapsrc", GST_RANK_NONE,
+-      GST_TYPE_OSX_SCREEN_CAP_SRC);
++
+   res &= gst_element_register (plugin, "vth264decbin", GST_RANK_NONE,
+       GST_TYPE_VT_H264_DEC_BIN);
+   res &= gst_element_register (plugin, "vth264encbin", GST_RANK_NONE,
