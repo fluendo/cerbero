@@ -1,0 +1,28 @@
+diff --git a/gst/audioresample/Makefile.am b/gst/audioresample/Makefile.am
+index dc02daf5d..58c9813be 100644
+--- a/gst/audioresample/Makefile.am
++++ b/gst/audioresample/Makefile.am
+@@ -7,6 +7,9 @@ else
+ ORC_TEST_LIBS =
+ endif
+
++#disable on IOS
++ORC_TEST_LIBS =
++
+ libgstaudioresample_la_SOURCES = \
+	gstaudioresample.c \
+	speex_resampler_int.c \
+diff --git a/gst/audioresample/gstaudioresample.c b/gst/audioresample/gstaudioresample.c
+index 85690b99d..35f75cd95 100644
+--- a/gst/audioresample/gstaudioresample.c
++++ b/gst/audioresample/gstaudioresample.c
+@@ -50,6 +50,9 @@
+ #include <gst/audio/audio.h>
+ #include <gst/base/gstbasetransform.h>
+
++// Disable on IOS
++#define DISABLE_ORC
++
+ #ifndef DISABLE_ORC
+ #include <orc/orc.h>
+ #include <orc-test/orctest.h>
