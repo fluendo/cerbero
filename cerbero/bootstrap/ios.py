@@ -25,12 +25,18 @@
 
 from cerbero.bootstrap import BootstraperBase
 from cerbero.bootstrap.bootstraper import register_bootstraper
-from cerbero.config import Distro
+from cerbero.config import Distro, DistroVersion
+from cerbero.utils import shell
 
 
 class IOSBootstraper (BootstraperBase):
 
     def start(self):
+        # libvpx needs this change because if You first install Command line tools and then Xcode
+        # , your xcode-select variable is set to command line tools not to Xcode itself.
+        # Command line tools don't have iOS libraries that are needed for build;
+        if self.config.distro_version in [DistroVersion.OS_X_HIGH_SIERRA]:
+            shell.call('sudo xcode-select -switch /Applications/Xcode.app')
         # FIXME: enable it when buildbots are properly configured
         return
 
