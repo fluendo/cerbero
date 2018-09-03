@@ -6,7 +6,7 @@ from cerbero.tools.osxrelocator import OSXRelocator
 
 class Recipe(recipe.Recipe):
     name = 'mono'
-    version = '5.2.0'
+    version = '5.14.0'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
@@ -30,6 +30,7 @@ class Recipe(recipe.Recipe):
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/4.7-api',
         'lib/mono/msbuild',
         'lib/mono/xbuild',
         'lib/mono/xbuild-frameworks',
@@ -52,6 +53,7 @@ class Recipe(recipe.Recipe):
         'lib/mono/4.0-api',
         'lib/mono/4.5',
         'lib/mono/4.5-api',
+        'lib/mono/4.7-api',
         'lib/mono/gac',
         'lib/mono/msbuild',
         'lib/mono/xbuild',
@@ -67,6 +69,7 @@ class Recipe(recipe.Recipe):
         self.mono_prefix_dir = '/Library/Frameworks/Mono.framework/Versions/%s' % self.version
 
     def install(self):
+        exclude_dirs = ['atk-sharp', 'gdk-sharp', 'glade-sharp', 'glib-sharp', 'gtk-sharp', 'pango-sharp']
         if not os.path.exists(self.mono_prefix_dir):
             m.error("ERROR: Mono not found in path %s" % self.mono_prefix_dir)
             raise FatalError("Mono not found!")
@@ -74,7 +77,7 @@ class Recipe(recipe.Recipe):
             src = os.path.join(self.mono_prefix_dir, f)
             dest = os.path.join(self.config.prefix, f)
             if os.path.isdir(src):
-                shell.copy_dir (src, dest)
+                shell.copy_dir (src, dest, exclude_dirs)
             elif os.path.isfile(src):
                 if not os.path.exists(os.path.dirname(dest)):
                     os.makedirs(os.path.dirname(dest))
