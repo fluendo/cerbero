@@ -12,7 +12,7 @@ class Recipe(recipe.Recipe):
     # GPLv3+ and defined below
     licenses = [License.LGPLv2Plus]
     configure_options = "--enable-local-libopts --disable-guile \
-        --enable-static --enable-zlib --enable-shared --disable-doc"
+        --enable-static --enable-zlib --disable-tests --enable-shared --disable-doc"
     deps = ['zlib', 'nettle', 'libtasn1']
     # GnuTLS uses error.h, which is a GNU extension only available with glibc
     # bionic-fixup provides that to us for all platforms
@@ -24,7 +24,8 @@ class Recipe(recipe.Recipe):
     }
     patches = [
         name + "/0001-configure-vasprintf-is-defined-in-stdio.h.patch",
-        name + "/secure_snprintf.patch"]
+        name + "/secure_snprintf.patch",
+        name + "/0002-disable-system-ios.patch"]
     autoreconf = True
 
     files_libs = ['libgnutls', 'libgnutlsxx']
@@ -44,6 +45,8 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.ANDROID:
             self.configure_options += ' --disable-cxx'
         if self.config.target_platform == Platform.IOS:
+            if self.config.target_arch == Architecture.ARM64:
+                self.configure_options += ' --disable-hardware-acceleration'
             self.configure_options += ' --disable-cxx'
 
     def configure(self):
