@@ -113,6 +113,8 @@ class CookBook (object):
         '''
         self._config = config
         config.cookbook = self
+        for c in config.arch_config.keys():
+            config.arch_config[c].cookbook = self
 
     def get_config(self):
         '''
