@@ -101,7 +101,7 @@ class Fridge (object):
                 tar.extractall(self.config.prefix)
                 for member in tar.getmembers():
                     # Simple sed for .la and .pc files
-                    if os.path.splitext(member.name)[1] in ['.la', '.pc'] or (
+                    if os.path.splitext(member.name)[1] in DistArchive.RELOCATABLE_EXTENSIONS or (
                             'bin' in os.path.splitext(member.name)[0] and is_text_file(os.path.join(self.config.prefix, member.name))):
                         shell.replace(os.path.join(self.config.prefix, member.name),
                             {"CERBERO_PREFIX": self.config.prefix})
