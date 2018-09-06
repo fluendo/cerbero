@@ -44,6 +44,7 @@ file_types = [
     ('Zip', 'copy'),
     ('empty', 'copy'),
     ('data', 'copy'),
+    ('GVariant Database', 'copy'),
 ]
 
 class OSXUniversalGenerator(object):
