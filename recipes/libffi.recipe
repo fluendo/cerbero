@@ -25,6 +25,7 @@ class Recipe(recipe.Recipe):
     remotes = {'origin': 'https://github.com/atgreen/libffi.git'}
     commit = '60e4250a77eb3fde500bfd68ec40519fe34b21bd'
     licenses = [License.BSD_like]
+    patches = ['libffi/0001-enable-pic-unix64-abort-call.patch']
 
     files_libs = ['libffi']
     files_devel = ['lib/libffi-3.99999/include/ffi.h', 'lib/pkgconfig/libffi.pc']

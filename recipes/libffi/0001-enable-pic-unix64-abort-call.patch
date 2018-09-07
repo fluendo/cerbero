@@ -1,0 +1,13 @@
+diff --git a/src/x86/asmnames.h b/src/x86/asmnames.h
+index 7551021..af2b93a 100644
+--- a/src/x86/asmnames.h
++++ b/src/x86/asmnames.h
+@@ -15,7 +15,7 @@
+ # define L(X)     C1(.L, X)
+ #endif
+
+-#if defined(__ELF__) && defined(__PIC__)
++#if defined(__ELF__)
+ # define PLT(X)	  X@PLT
+ #else
+ # define PLT(X)	  X
