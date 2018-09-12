@@ -19,9 +19,9 @@ class Recipe(recipe.Recipe):
         'bin/dmcs',
         'bin/gacutil',
         'bin/intl.dll',
-        'bin/libmonosgen-2.0.dll',
+        'bin/mono-2.0-sgen.dll',
         'bin/mono-sgen.exe',
-        'bin/libMonoPosixHelper.dll',
+        'bin/MonoPosixHelper.dll',
         'bin/resgen',
         'bin/msbuild',
         'bin/xbuild',
@@ -51,7 +51,7 @@ class Recipe(recipe.Recipe):
         'bin/cygpath'
     ]
 
-    files_posix_helper = ['%(sdir)s/libMonoPosixHelper%(srext)s']
+    files_posix_helper = ['%(sdir)s/MonoPosixHelper%(srext)s']
     files_config = ['etc/mono/config', 'etc/mono/4.5/machine.config']
     files_devel = [
         'bin/al',
@@ -112,8 +112,6 @@ class Recipe(recipe.Recipe):
         shutil.copy(os.path.join(self.config.prefix, 'lib', 'monosgen-2.0.lib'),
                     os.path.join(self.config.prefix, 'lib', 'mono-2.0.lib'))
 
-        shutil.move(os.path.join(self.config.prefix, 'bin', 'libmonosgen-2.0.dll'),
-                    os.path.join(self.config.prefix, 'bin', 'mono-2.0-sgen.dll'))
         shutil.copy(os.path.join(self.config.prefix, 'bin', 'mono-sgen.exe'),
                     os.path.join(self.config.prefix, 'bin', 'mono.exe'))
         shutil.copy(os.path.join(self.config.prefix, 'bin', 'mcs'),
