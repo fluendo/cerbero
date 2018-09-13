@@ -353,14 +353,17 @@ class ProductPackage(PackagerBase):
 
     def _create_packages_dmg(self):
         paths = self.packages_paths[PackageType.RUNTIME].values()
-        dmg_file = os.path.join(self.output_dir,
-            self._package_name('-packages.dmg'))
+        dmg_path = os.path.join(self.output_dir,self._package_name('-packages'))
+        dmg_file = os.path.join(self.output_dir,self._package_name('-packages.dmg'))
 
         # Create Disk Image
         cmd = 'hdiutil create %s -ov' % dmg_file
+        shell.call('mkdir -p %s' % dmg_path)
         for p in paths:
-            cmd += ' -srcfolder %s' % p
+            shutil.copy(p, dmg_path)
+        cmd += ' -srcfolder %s' % dmg_path
         shell.call(cmd)
+        shutil.rmtree(dmg_path)
 
 
 class ApplicationPackage(PackagerBase, PostProcessingMixin):
