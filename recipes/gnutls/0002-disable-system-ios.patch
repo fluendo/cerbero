@@ -1,0 +1,12 @@
+--- a/src/libopts/pgusage.c	2015-03-23 08:19:23.000000000 +0100
++++ b/src/libopts/pgusage.c.save	2018-09-04 10:29:14.000000000 +0200
+@@ -165,7 +165,9 @@
+             dup2(STDOUT_FILENO, STDERR_FILENO);
+         }
+
++#ifndef __ENVIRONMENT_IPHONE_OS_VERSION_MIN_REQUIRED__
+         ignore_val( system( fil_name));
++#endif
+         AGFREE(fil_name);
+
+     case PAGER_STATE_CHILD:

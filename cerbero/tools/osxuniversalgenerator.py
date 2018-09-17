@@ -44,6 +44,7 @@ file_types = [
     ('Zip', 'copy'),
     ('empty', 'copy'),
     ('data', 'copy'),
+    ('GVariant Database', 'copy'),
 ]
 
 class OSXUniversalGenerator(object):
@@ -98,7 +99,7 @@ class OSXUniversalGenerator(object):
             tmp_inputs.append(tmp)
             shutil.copy(f, tmp.name)
             prefix_to_replace = [d for d in dirs if d in f][0]
-            relocator = OSXRelocator (self.output_root, prefix_to_replace, self.output_root,
+            relocator = OSXRelocator (self.output_root, prefix_to_replace,
                                       False)
             # since we are using a temporary file, we must force the library id
             # name to real one and not based on the filename

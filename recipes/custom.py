@@ -51,9 +51,17 @@ class GStreamerStatic(recipe.Recipe):
         for name in self.platform_plugins_categories:
             platform_files = getattr(self, name)
             files = platform_files.get(self.config.target_platform, [])
-            f = ['%s/%s.a' % (plugin_path, x) for x in files]
-            f.extend(['%s/%s.la' % (plugin_path, x) for x in files])
-            platform_files[self.config.target_platform] = f
+            # Rearrange the platform files only once for the inherited recipe
+            # avoiding wrong extended platform files in multi arch
+            # configuration (IOS.Universal).
+            f = []
+            for x in files:
+              if plugin_path in x:
+                f.append(x)
+              else:
+                f.append('%s/%s.a' % (plugin_path, x))
+                f.append('%s/%s.la' % (plugin_path, x))
+                platform_files[self.config.target_platform] = f
             self._files_list.extend(f)
         self.append_env ['CFLAGS'] = "%s %s" % (self.append_env.get('CFLAGS',
             ''), '-fPIC -DPIC')

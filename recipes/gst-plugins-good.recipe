@@ -108,6 +108,12 @@ class Recipe(recipe.Recipe):
             self.configure_options += ' --disable-aalib --disable-esd '
         if self.config.target_platform == Platform.LINUX:
             self.use_system_libs = True
+        if self.config.target_platform in [Platform.IOS, Platform.DARWIN]:
+            self.configure_options += ' --disable-goom --disable-goom2k1 '
+            if 'lib/gstreamer-0.10/libgstgoom%(mext)s' in self.files_plugins_vis:
+                self.files_plugins_vis.remove('lib/gstreamer-0.10/libgstgoom%(mext)s')
+            if 'lib/gstreamer-0.10/libgstgoom2k1%(mext)s' in self.files_plugins_vis:
+                self.files_plugins_vis.remove('lib/gstreamer-0.10/libgstgoom2k1%(mext)s')
         if self.config.variants.v4l2:
             self.files_plugins_capture += ['lib/gstreamer-0.10/libgstvideo4linux2%(mext)s']
         else:

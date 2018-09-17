@@ -1,6 +1,7 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from custom import GStreamerStatic
 
-class Recipe(custom.GStreamerStatic):
+class Recipe(GStreamerStatic):
     name = 'gst-plugins-base-static'
     version = '0.10.36'
     gstreamer_version = '0.10'
@@ -103,4 +104,7 @@ class Recipe(custom.GStreamerStatic):
                 self.config.target_arch == Architecture.X86:
             self.new_env['CFLAGS'] = os.environ['CFLAGS'] + ' -msse2'
 
-        custom.GStreamerStatic.prepare(self)
+        if self.config.target_platform == Platform.IOS:
+          self.patches += ['gst-plugins-base/0001-disable-orc-test-IOS.patch']
+
+        GStreamerStatic.prepare(self)
