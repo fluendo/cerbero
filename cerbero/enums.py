@@ -109,6 +109,7 @@ class DistroVersion:
     OS_X_EL_CAPITAN = 'osx_el_capitan'
     OS_X_SIERRA = 'osx_sierra'
     OS_X_HIGH_SIERRA = 'osx_high_sierra'
+    OS_X_MOJAVE = 'osx_mojave'
     IOS_6_0 = 'ios_6_0'
     IOS_6_1 = 'ios_6_1'
     IOS_7_0 = 'ios_7_0'
