@@ -52,7 +52,7 @@ class Recipe(recipe.Recipe):
 
         self.new_env['LD'] = os.environ.get('CC', 'gcc')
         if self.config.target_platform == Platform.DARWIN:
-            platform = 'darwin12'
+            platform = 'darwin'+ self.config.osx_target_sdk_version.split('.')[1]
         elif self.config.target_platform == Platform.IOS:
             if self.config.target_arch == Architecture.X86 or self.config.target_arch == Architecture.X86_64:
                 platform = 'iphonesimulator'
