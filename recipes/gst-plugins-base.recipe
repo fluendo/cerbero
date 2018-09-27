@@ -150,6 +150,7 @@ class Recipe(recipe.Recipe):
         if self.config.target_distro_version == DistroVersion.UBUNTU_HARDY and \
                 self.config.target_arch == Architecture.X86:
             self.new_env['CFLAGS'] = os.environ['CFLAGS'] + ' -msse2'
+        self.patches+=['gst-plugins-base/0002-Explicitly-added-SSE-support.patch']
 
         if self.config.target_platform == Platform.IOS:
           self.patches += ['gst-plugins-base/0001-disable-orc-test-IOS.patch']

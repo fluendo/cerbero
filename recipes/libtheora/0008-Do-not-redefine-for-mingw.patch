@@ -1,0 +1,20 @@
+diff --git a/../b/examples/encoder_example.c b/examples/encoder_example.c
+index 4b73b64..13955d2 100755
+--- a/../b/examples/encoder_example.c
++++ b/examples/encoder_example.c
+@@ -52,6 +52,7 @@
+ #include <fcntl.h>
+ #include <io.h>
+ 
++#ifndef __GNUC__
+ static double rint(double x)
+ {
+   if (x < 0.0)
+@@ -60,6 +61,7 @@ static double rint(double x)
+     return (double)(int)(x + 0.5);
+ }
+ #endif
++#endif
+ 
+ const char *optstring = "b:e:o:a:A:v:V:s:S:f:F:ck:d:z:\1\2\3\4";
+ struct option options [] = {

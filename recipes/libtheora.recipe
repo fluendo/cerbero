@@ -14,7 +14,10 @@ class Recipe(recipe.Recipe):
                'libtheora/0003-Fix-linking-of-theora-encoder-library.patch',
                'libtheora/0004-Use-our-automake-version-and-not-an-older-one.patch',
                'libtheora/0005-Update-Makefile.in-too-to-avoid-needing-to-call-auto.patch',
-               'libtheora/0006-examples-Don-t-use-png_sizeof.patch']
+               'libtheora/0006-examples-Don-t-use-png_sizeof.patch',
+               'libtheora/0008-Do-not-redefine-for-mingw.patch',
+               'libtheora/0009-remove-cr-rl.patch'
+               ]
 
     files_libs = ['libtheora', 'libtheoradec', 'libtheoraenc']
     files_devel = ['include/theora', 'lib/pkgconfig/theora.pc',
