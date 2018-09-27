@@ -1,0 +1,58 @@
+commit 48a3df87c0cced325f1bf95c72c8ac0f8392f919
+Author: James Zern <jzern@google.com>
+Date:   Sat May 19 00:26:44 2018 -0700
+
+    configure,ios: add missing c++11 checks
+    
+    + bump ios minimum to 7.0; 6.0 does not have full c++11 support
+    
+    Change-Id: If838b036e7327fda514cd2e8156eeda122cf6c73
+
+diff --git a/build/make/configure.sh b/build/make/configure.sh
+index f1d0e34c3..480b2d0ea 100644
+--- a/build/make/configure.sh
++++ b/build/make/configure.sh
+@@ -832,7 +832,7 @@ process_common_toolchain() {
+     IOS_VERSION_MIN="8.0"
+   else
+     IOS_VERSION_OPTIONS=""
+-    IOS_VERSION_MIN="6.0"
++    IOS_VERSION_MIN="7.0"
+   fi
+ 
+   # Handle darwin variants. Newer SDKs allow targeting older
+diff --git a/build/make/iosbuild.sh b/build/make/iosbuild.sh
+index e102442bd..2442a282d 100755
+--- a/build/make/iosbuild.sh
++++ b/build/make/iosbuild.sh
+@@ -351,7 +351,7 @@ if [ "$ENABLE_SHARED" = "yes" ]; then
+   IOS_VERSION_MIN="8.0"
+ else
+   IOS_VERSION_OPTIONS=""
+-  IOS_VERSION_MIN="6.0"
++  IOS_VERSION_MIN="7.0"
+ fi
+ 
+ if [ "${VERBOSE}" = "yes" ]; then
+diff --git a/configure b/configure
+index 8be95d602..435302870 100755
+--- a/configure
++++ b/configure
+@@ -704,7 +704,7 @@ process_toolchain() {
+             soft_enable libyuv
+         ;;
+         *-android-*)
+-            soft_enable webm_io
++            check_add_cxxflags -std=c++11 && soft_enable webm_io
+             soft_enable libyuv
+             # GTestLog must be modified to use Android logging utilities.
+         ;;
+@@ -713,7 +713,7 @@ process_toolchain() {
+             # x86 targets.
+         ;;
+         *-iphonesimulator-*)
+-            soft_enable webm_io
++            check_add_cxxflags -std=c++11 && soft_enable webm_io
+             soft_enable libyuv
+         ;;
+         *-win*)
