@@ -65,6 +65,7 @@ class Recipe(recipe.Recipe):
         if self.config.variants.nodebug:
             self.configure_options += ' --disable-gst-debug'
 
+	
     def extract(self):
         self.stype.extract(self)
         git.checkout(self.build_dir, 'HEAD')
@@ -76,4 +77,7 @@ class Recipe(recipe.Recipe):
                                                DistroVersion.DEBIAN_STRETCH]):
             _patch = self.relative_path('gstreamer/0001-gst-parse-switch-to-lex-param.patch')
             shell.apply_patch(_patch, self.build_dir, 1)
+            _patch = self.relative_path('gstreamer/0002-also-check-for-winpthread.patch')
+            shell.apply_patch(_patch, self.build_dir, 1)
+
 
