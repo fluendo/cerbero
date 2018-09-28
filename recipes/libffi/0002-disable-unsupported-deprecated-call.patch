@@ -1,0 +1,13 @@
+diff --git a/include/ffi.h.in b/include/ffi.h.in
+index 5833525..8a50615 100644
+--- a/include/ffi.h.in
++++ b/include/ffi.h.in
+@@ -315,7 +315,7 @@ ffi_prep_closure (ffi_closure*,
+ 		  ffi_cif *,
+ 		  void (*fun)(ffi_cif*,void*,void**,void*),
+ 		  void *user_data)
+-  __attribute__((deprecated ("use ffi_prep_closure_loc instead")));
++  __attribute__((deprecated));
+ 
+ ffi_status
+ ffi_prep_closure_loc (ffi_closure*,
