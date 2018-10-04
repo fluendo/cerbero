@@ -26,7 +26,8 @@ class Recipe(recipe.Recipe):
     commit = '60e4250a77eb3fde500bfd68ec40519fe34b21bd'
     licenses = [License.BSD_like]
     patches = ['libffi/0001-enable-pic-unix64-abort-call.patch',
-              'libffi/0002-disable-unsupported-deprecated-call.patch'
+              'libffi/0002-disable-unsupported-deprecated-call.patch',
+              'libffi/0003-enhance-cfi-support.patch'
               ]
 
     files_libs = ['libffi']
