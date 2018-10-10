@@ -51,7 +51,7 @@ class DistArchive(PackagerBase):
             raise UsageError("Unsupported archive_type %s" % archive_type)
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             split=True, package_prefix='', force_empty=False, relocatable=False):
+             split=True, package_prefix='', force_empty=False, relocatable=False, lib64_link=False):
         try:
             dist_files = self.files_list(PackageType.RUNTIME, force)
         except EmptyPackageError:
@@ -77,7 +77,7 @@ class DistArchive(PackagerBase):
         if dist_files or force_empty:
             runtime = self._create_archive(output_dir, PackageType.RUNTIME,
                                            dist_files, force, package_prefix,
-                                           relocatable)
+                                           relocatable, lib64_link=lib64_link)
             filenames.append(runtime)
 
         if split and devel and (devel_files or force_empty):
@@ -105,7 +105,7 @@ class DistArchive(PackagerBase):
                 self.config.target_platform, self.config.target_arch,
                 self.package.version, package_type, ext)
 
-    def _create_tarball(self, filename, files, package_prefix, relocatable):
+    def _create_tarball(self, filename, files, package_prefix, relocatable, lib64_link=False):
 
         tar = tarfile.open(filename, "w:bz2")
 
@@ -139,9 +139,21 @@ class DistArchive(PackagerBase):
                     tar.add(filepath, arcname)
             else:
                 tar.add(filepath, arcname)
+        # This link allows to rpm packager to install the libs
+        # in lib64 instead of lib without changing where cerbero
+        # is installing its build artifacts.
+        if lib64_link:
+            filepath = os.path.join(self.prefix, 'lib64')
+            arcname = os.path.join(package_prefix, 'lib64')
+            try:
+                os.symlink('lib', filepath)
+            except OSError:
+                pass
+            tar.add(filepath, arcname)
+            os.unlink(filepath)
         tar.close()
 
-    def _create_zip(self, filename, files, package_prefix, relocatable):
+    def _create_zip(self, filename, files, package_prefix, relocatable, lib64_link=False):
 
         zip_file = zipfile.ZipFile(filename, "w")
 
@@ -155,10 +167,22 @@ class DistArchive(PackagerBase):
                     zip_file.writestr(arcname, content)
             else:
                 zip_file.write(filepath, arcname)
+        # This link allows to rpm packager to install the libs
+        # in lib64 instead of lib without changing where cerbero
+        # is installing its build artifacts.
+        if lib64_link:
+            filepath = os.path.join(self.prefix, 'lib64')
+            arcname = os.path.join(package_prefix, 'lib64')
+            try:
+                os.symlink('lib', filepath)
+            except OSError:
+                pass
+            zip_file.write( filepath, arcname)
+            os.unlink(filepath)
         zip_file.close()
 
     def _create_archive(self, output_dir, package_type, files, force,
-                        package_prefix, relocatable=False):
+                        package_prefix, relocatable=False, lib64_link=False):
         filename = os.path.join(output_dir, self.get_name(package_type))
         if os.path.exists(filename):
             if force:
@@ -166,6 +190,6 @@ class DistArchive(PackagerBase):
             else:
                 raise UsageError("File %s already exists" % filename)
 
-        self.archive_func(filename, files, package_prefix, relocatable)
+        self.archive_func(filename, files, package_prefix, relocatable, lib64_link)
 
         return filename

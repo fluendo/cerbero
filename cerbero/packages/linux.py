@@ -39,6 +39,7 @@ class LinuxPackager(PackagerBase):
         self.package_prefix = self._package_prefix(self.package)
         self.full_package_name = self._full_package_name()
         self.packager = self.config.packager
+        self.lib64_link = False
         self._check_packager()
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
@@ -62,7 +63,7 @@ class LinuxPackager(PackagerBase):
             tarball_packager = DistArchive(self.config, self.package,
                                            self.store, ArchiveType.TARBALL)
             tarball = tarball_packager.pack(tmpdir, devel, True,
-                    split=False, package_prefix=self.full_package_name)[0]
+                    split=False, package_prefix=self.full_package_name, lib64_link=self.lib64_link)[0]
             tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
         else:
             # metapackages only contains Requires dependencies with

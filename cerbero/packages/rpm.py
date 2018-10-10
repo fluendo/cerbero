@@ -31,6 +31,7 @@ from cerbero.utils import shell, _
 SPEC_TPL = '''
 %%define _topdir %(topdir)s
 %%define _package_name %(package_name)s
+%%define _unpackaged_files_terminate_build 0
 
 Name:           %(p_prefix)s%(name)s
 Version:        %(version)s
@@ -147,6 +148,8 @@ class RPMPackager(LinuxPackager):
 
     def __init__(self, config, package, store):
         LinuxPackager.__init__(self, config, package, store)
+        if config.target_arch == Architecture.X86_64:
+          self.lib64_link = True
 
     def create_tree(self, tmpdir):
         # create a tmp dir to use as topdir
@@ -289,6 +292,8 @@ class RPMPackager(LinuxPackager):
                 files.append(f + 'c')
             if f + 'o' not in files:
                 files.append(f + 'o')
+        if self.config.target_arch == Architecture.X86_64:
+            files = [x.replace('lib/', 'lib64/') for x in files]
         return '\n'.join([os.path.join('%{prefix}',  x) for x in files])
 
     def _devel_package_and_files(self):
