@@ -78,6 +78,7 @@ cp -r $RPM_BUILD_DIR/%%{_package_name}/* $RPM_BUILD_ROOT/%%{prefix}
 # Setting RPM_BUILD_DIR to $sources_dir should do the trick, setting here and
 # hoping for the best.
 export RPM_BUILD_DIR=%(sources_dir)s
+%(strip_cmd)s
 
 %%clean
 rm -rf $RPM_BUILD_ROOT
@@ -214,6 +215,7 @@ class RPMPackager(LinuxPackager):
                 'prefix': self.install_dir,
                 'source': tarname,
                 'topdir': tmpdir,
+                'strip_cmd': '%{_rpmconfigdir}/brp-strip-shared %{__strip}',
                 'devel_package': devel_package,
                 'devel_files': devel_files,
                 'files': runtime_files,
@@ -239,6 +241,9 @@ class RPMPackager(LinuxPackager):
         scripts = scripts % template_dict
 
         template_dict.update({'scripts': scripts})
+
+        if not self.package.strip:
+            template_dict.update({'strip_cmd': ''})
 
         self._spec_str = template % template_dict
 
