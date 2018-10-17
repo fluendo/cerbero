@@ -3,7 +3,9 @@
 
 class Recipe(recipe.Recipe):
     name = 'orc-tool'
-    version = '0.4.18'
+    version = '0.4.28'
+    remotes = {'origin': 'https://anongit.freedesktop.org/git/gstreamer/orc'}
+    commit = 'origin/master'
     licenses = [License.BSD_like]
     autoreconf = True
     deps = ['autoconf', 'automake', 'libtool']
@@ -12,6 +14,4 @@ class Recipe(recipe.Recipe):
     files_devel = ['include/orc-0.4', 'lib/pkgconfig/orc-0.4.pc',
         'bin/orc-bugreport%(bext)s', 'share/aclocal/orc.m4',
         'bin/orcc%(bext)s']
-
-    def prepare(self):
-        self.remotes['origin'] = ('%s/%s.git' % (self.config.git_root, 'orc'))
+    configure_options = ' --disable-gtk-doc '
