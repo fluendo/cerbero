@@ -101,7 +101,7 @@ class DebianBootstraper (UnixBootstraper):
                 'libxml-simple-perl', 'dpkg-dev', 'debhelper',
                 'devscripts', 'fakeroot', 'transfig',
                 'gperf', 'libdbus-glib-1-dev', 'wget', 'glib-networking',
-                'intltool', 'git']
+                'intltool', 'git', 'rpm']
     distro_packages = {
         DistroVersion.DEBIAN_SQUEEZE: ['libgtk2.0-dev'],
         DistroVersion.UBUNTU_MAVERICK: ['libgtk2.0-dev'],
