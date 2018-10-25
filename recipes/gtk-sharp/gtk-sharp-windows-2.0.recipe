@@ -34,8 +34,8 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
-        if self.config.target_platform != self.config.platform or self.config.target_platform != Platform.WINDOWS:
-            raise InvalidRecipeError()
+        #if self.config.target_platform != self.config.platform or self.config.target_platform != Platform.WINDOWS:
+        raise InvalidRecipeError()
 
     def install(self):
         # this needs that the proper official GtkSharp installer with the version specified in the recipe

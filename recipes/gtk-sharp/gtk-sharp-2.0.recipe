@@ -146,8 +146,7 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
-        if self.config.target_platform == self.config.platform and self.config.target_platform == Platform.WINDOWS:
-            raise InvalidRecipeError()
+        pass
 
     def post_install(self):
         for x in ['atk', 'gtk', 'gdk', 'pango', 'glib', 'glade']:
