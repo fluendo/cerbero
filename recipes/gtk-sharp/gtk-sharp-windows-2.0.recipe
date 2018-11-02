@@ -4,7 +4,7 @@ from cerbero.utils import shell
 
 class Recipe(recipe.Recipe):
     name = 'gtk-sharp'
-    version = '2.12.42'
+    version = '2.12.43'
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
