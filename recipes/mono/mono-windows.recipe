@@ -9,7 +9,12 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPL]
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
-
+    # IMPORTANT:
+    # Due to an error in mono 5.2.0 installation, bin/MonoPosixHelper.dll does not have CreateZStream symbol
+    # so we must copy bin/libMonoPosixHelper.dll which has the symbol, and later rename it to MonoPosixHelper.dll
+    # in higher version 5.12.0 they removed the library bin/libMonoPosixHelper.dll from the installation, but the
+    # bin/MonoPosixHelper.dll has the CreateZStream symbol, so we changed the config file from recipes/mono/config to remove
+    # the dll Map from MonoPosixHelper to libMonoPosixHelper, since in Mono > 5.2.0 libMonoPosixHelper is not longer distributed
     _mono = [
         'bin/al',
         'bin/mcs',
@@ -21,7 +26,8 @@ class Recipe(recipe.Recipe):
         'bin/intl.dll',
         'bin/mono-2.0-sgen.dll',
         'bin/mono-sgen.exe',
-        'bin/MonoPosixHelper.dll',
+        # Change this to bin/MonoPosixHelper.dll for mono > 5.2.0
+        'bin/libMonoPosixHelper.dll',
         'bin/resgen',
         'bin/msbuild',
         'bin/xbuild',
@@ -120,3 +126,6 @@ class Recipe(recipe.Recipe):
                     os.path.join(self.config.prefix, 'bin', 'cygpath'))
         shutil.copy(self.relative_path('config'),
                     os.path.join(self.config.prefix, 'etc', 'mono', 'config'))
+        # We rename the libMonoPosixHelper to MonoPosixHelper, in higher versions of Mono > 5.2.0 this won't be needed.
+        shutil.move(os.path.join(self.config.prefix, 'bin', 'libMonoPosixHelper.dll'),
+                    os.path.join(self.config.prefix, 'bin', 'MonoPosixHelper.dll'))
