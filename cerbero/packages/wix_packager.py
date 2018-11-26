@@ -42,6 +42,7 @@ class MergeModulePackager(PackagerBase):
         self.wix_prefix = get_wix_prefix()
         # Init wix wine prefix in the case of using it.
         self.wix_wine_prefix = None
+        self.tmpdir = None
 
     def pack(self, output_dir, devel=False, force=False, keep_temp=False):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp)
@@ -68,20 +69,19 @@ class MergeModulePackager(PackagerBase):
             mergemodule = VSMergeModule(self.config, files_list, self.package)
         else:
             mergemodule = MergeModule(self.config, files_list, self.package)
-        tmpdir = None
         # For application packages that requires stripping object files, we need
         # to copy all the files to a new tree and strip them there:
-        if self._is_app() and self.package.strip:
-            tmpdir = tempfile.mkdtemp()
+        if self.package.strip:
+            self.tmpdir = tempfile.mkdtemp()
             for f in files_list:
                 src = os.path.join(self.config.prefix, f)
-                dst = os.path.join(tmpdir, f)
+                dst = os.path.join(self.tmpdir, f)
                 if not os.path.exists(os.path.dirname(dst)):
                     os.makedirs(os.path.dirname(dst))
                 shutil.copy(src, dst)
             s = strip.Strip(self.config, self.package.strip_excludes)
             for p in self.package.strip_dirs:
-                s.strip_dir(os.path.join(tmpdir, p))
+                s.strip_dir(os.path.join(self.tmpdir, p))
 
         package_name = self._package_name(version)
 
@@ -91,8 +91,8 @@ class MergeModulePackager(PackagerBase):
         else:
           mergemodule = MergeModule(self.config, files_list, self.package)
           sources = [os.path.join(output_dir, "%s.wxs" % package_name)]
-        if tmpdir:
-            mergemodule.prefix = tmpdir
+        if self.tmpdir:
+            mergemodule.prefix = self.tmpdir
         elif self.wix_wine_prefix:
             mergemodule.prefix = self.wix_wine_prefix
 
@@ -131,8 +131,6 @@ class MergeModulePackager(PackagerBase):
                       os.remove(f.replace('.wixobj', '.wixpdb'))
                   except:
                       pass
-        if tmpdir:
-            shutil.rmtree(tmpdir)
 
         return path
 
@@ -143,6 +141,8 @@ class MergeModulePackager(PackagerBase):
     def _package_name(self, version):
         return "%s-%s-%s" % (self.package.name, self.config.target_arch,
                              version)
+    def _tmpdir(self):
+        return self.tmpdir
 
 
 class MSIPackager(PackagerBase):
@@ -162,6 +162,7 @@ class MSIPackager(PackagerBase):
           os.symlink(config.prefix, self.wix_wine_prefix)
         else:
           self.wix_wine_prefix = None
+        self.packager_tmpdirs = []
 
     def get_unique_wix_wine_prefix(self):
         return '/tmp/wix_%s' % str(uuid.uuid4())[:8]
@@ -245,6 +246,7 @@ class MSIPackager(PackagerBase):
                 packagedeps[package] = path
             except EmptyPackageError:
                 m.warning("Package %s is empty" % package)
+            self.packager_tmpdirs.append(packager._tmpdir())
         self.packagedeps = packagedeps
         self.merge_modules[package_type] = packagedeps.values()
 
@@ -299,6 +301,11 @@ class MSIPackager(PackagerBase):
                 except:
                     pass
             os.remove(config_path)
+            for t in self.packager_tmpdirs:
+                try:
+                    shutil.rmtree(t)
+                except:
+                    pass
 
         return path
 
