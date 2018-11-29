@@ -11,9 +11,6 @@ class Recipe(recipe.Recipe):
     url = 'https://fonts.google.com/download?family=Raleway'
     tarball_name = 'raleway.zip'
     files_fonts = [ 'share/fonts/truetype/raleway-font-family' ]
-    platform_files_fonts = {
-        Platform.WINDOWS: ['etc/pango/pango.aliases'],
-    }
 
     def install(self):
         fonts_dir = os.path.join(self.config.prefix, 'share', 'fonts', 'truetype', 'raleway-font-family')
@@ -23,21 +20,6 @@ class Recipe(recipe.Recipe):
             if not f.endswith(".ttf"):
                 continue
             shutil.copy(os.path.join(self.build_dir, f), fonts_dir)
-
-        if self.config.target_platform == Platform.WINDOWS:
-            pango_path = os.path.join(self.config.prefix, 'etc', 'pango')
-            if not os.path.exists(pango_path):
-                os.makedirs(pango_path)
-
-            pango_aliases_filename = os.path.join(pango_path, 'pango.aliases')
-            with open(pango_aliases_filename,'w') as f:
-                f.write('raleway = raleway\n')
-                # Simplified Chinese fonts
-                f.write('raleway += "NSimSun"\n')
-                f.write('raleway += "SimSun"\n')
-                # Japanese fonts
-                f.write('raleway += "MS PMincho"\n')
-                f.write('raleway += "MS Mincho"\n')
 
     def extract(self):
         m.action(_('Extracting tarball to %s') % self.build_dir)
