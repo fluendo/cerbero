@@ -79,9 +79,9 @@ class UnixBootstraper (BootstraperBase):
             packages += self.distro_packages[self.config.distro_version]
         if 'wine' in self.packages:
           if self.config.distro_version in [DistroVersion.DEBIAN_STRETCH]:
-            ["wine32" if x=="wine" else x for x in a]
+            self.packages=["wine32" if x=="wine" else x for x in self.packages]
           if self.config.distro_version in [DistroVersion.UBUNTU_BIONIC]:
-            ["wine-stable" if x=="wine" else x for x in a]
+            self.packages=["wine-stable" if x=="wine" else x for x in self.packages]
           shell.call('echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections')
         shell.call(self.tool % ' '.join(self.packages))
         if 'wine' in self.packages:
