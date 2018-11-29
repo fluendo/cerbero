@@ -15,6 +15,9 @@ class Recipe(recipe.Recipe):
 
     files_libs = ['libpangocairo-1.0', 'libpango-1.0', 'libpangoft2-1.0']
     files_bins = ['pango-querymodules']
+    platform_files_fonts = {
+        Platform.WINDOWS: ['etc/pango/pango.aliases'],
+    }
     files_devel = ['include/pango-1.0',
         'lib/pkgconfig/pangoft2.pc', 'lib/pkgconfig/pango.pc',
         'lib/pkgconfig/pangocairo.pc']
