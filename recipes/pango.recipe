@@ -1,4 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
 
 
 class Recipe(recipe.Recipe):
@@ -14,6 +15,9 @@ class Recipe(recipe.Recipe):
 
     files_libs = ['libpangocairo-1.0', 'libpango-1.0', 'libpangoft2-1.0']
     files_bins = ['pango-querymodules']
+    platform_files_fonts = {
+        Platform.WINDOWS: ['etc/pango/pango.aliases'],
+    }
     files_devel = ['include/pango-1.0',
         'lib/pkgconfig/pangoft2.pc', 'lib/pkgconfig/pango.pc',
         'lib/pkgconfig/pangocairo.pc']
@@ -30,3 +34,9 @@ class Recipe(recipe.Recipe):
         shell.replace(os.path.join(self.build_dir, 'Makefile'),
            {'SUBDIRS = pango modules pango-view examples docs tools tests build':
             'SUBDIRS = pango modules build'})
+
+    def post_install(self):
+        if self.config.target_platform == Platform.WINDOWS:
+            shutil.copy(self.relative_path("pango/pango.aliases"),
+                    os.path.join(self.config.prefix, "etc/pango/"))
+
