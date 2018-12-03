@@ -37,6 +37,8 @@ class Recipe(recipe.Recipe):
 
     def post_install(self):
         if self.config.target_platform == Platform.WINDOWS:
-            shutil.copy(self.relative_path("pango/pango.aliases"),
-                    os.path.join(self.config.prefix, "etc/pango/"))
+            pango_path= os.path.join(self.config.prefix, "etc/pango/")
+            if not os.path.exists(pango_path):
+                os.mkdir(pango_path)
+            shutil.copy(self.relative_path("pango/pango.aliases"), pango_path)
 
