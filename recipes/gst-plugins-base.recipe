@@ -7,7 +7,10 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2Plus]
     config_sh = 'sh ./autogen.sh --noconfigure && ./configure'
     configure_options = "--with-pic --disable-introspection --disable-examples --disable-gst_v4l --disable-gnome_vfs --with-package-origin='http://www.gstreamer.com' --with-package-name='GStreamer Base Plugins (GStreamer SDK)' "
-    remotes = {'upstream': 'git://anongit.freedesktop.org/gstreamer/gst-plugins-base'}
+    remotes = {'upstream': 'git://anongit.freedesktop.org/gstreamer/gst-plugins-base',
+               'fluendo': 'git@github.com:fluendo/gst-plugins-base.git',
+              }
+    commit = 'fluendo/sdk-0.10.36'
     deps = ['glib', 'gstreamer', 'libogg', 'pango', 'libtheora', 'libvisual',
             'libvorbis', 'zlib', 'orc']
     platform_deps = {Platform.ANDROID: [ 'tremor' ], Platform.IOS: [ 'tremor' ] }
