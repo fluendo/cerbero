@@ -18,8 +18,8 @@
 
 import os
 import traceback
-import tarfile
 
+from cerbero.build.relocatabletar import *
 from cerbero.config import Platform
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError
 from cerbero.utils import N_, _, shell, is_text_file
@@ -28,7 +28,6 @@ from cerbero.utils.shell import upload_curl, download_curl
 from cerbero.packages.distarchive import DistArchive
 from cerbero.enums import ArchiveType
 from cerbero.packages import PackageType
-from cerbero.tools.osxrelocator import OSXRelocator
 
 class Fridge (object):
     '''
@@ -56,8 +55,6 @@ class Fridge (object):
         m.message('Using config MD5: %s' % self.config.get_md5())
         if not os.path.exists(self.binaries):
             os.makedirs(self.binaries)
-        if self.config.target_platform == Platform.DARWIN:
-            self.relocator = OSXRelocator(self.config.prefix, self.config.prefix, True)
 
     def unfreeze_recipe(self, recipe_name, count, total):
         recipe = self.cookbook.get_recipe(recipe_name)
@@ -96,20 +93,13 @@ class Fridge (object):
         # As a workaround we extract first the devel package and finally the runtime
         for filename in [packages_names[PackageType.DEVEL], packages_names[PackageType.RUNTIME]]:
             if filename:
-                tar = tarfile.open(os.path.join(self.binaries,
-                                   filename), 'r:bz2')
-                tar.extractall(self.config.prefix)
-                for member in tar.getmembers():
-                    # Simple sed for .la and .pc files
-                    if os.path.splitext(member.name)[1] in ['.la', '.pc'] or (
-                            'bin' in os.path.splitext(member.name)[0] and is_text_file(os.path.join(self.config.prefix, member.name))):
-                        shell.replace(os.path.join(self.config.prefix, member.name),
-                            {"CERBERO_PREFIX": self.config.prefix})
-                    if os.path.splitext(member.name)[1] in ['.dylib'] and self.config.target_platform == Platform.DARWIN:
-                        extracted_object = os.path.join(self.config.prefix, member.name)
-                        # When extracting, we change the install_name of the library to match the path
-                        if not os.path.islink(extracted_object):
-                            self.relocator.change_id(extracted_object, extracted_object)
+                if self.config.target_platform == Platform.DARWIN:
+                    tarclass =  RelocatableTarOSX
+                else:
+                    tarclass =  RelocatableTar
+                tar =  tarclass.open(os.path.join(self.binaries,
+                                    filename), 'r:bz2')
+                tar.extractAndRelocate(self.config.prefix)
                 tar.close()
 
     def generate_binary(self, recipe):
