@@ -1,0 +1,14 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+class Recipe(recipe.Recipe):
+    name = 'mpc'
+    version = '1.1.0'
+    url = 'https://ftp.gnu.org/gnu/mpc/mpc-%(version)s.tar.gz'
+    stype = SourceType.TARBALL
+    licenses = [License.LGPLv2_1Plus]
+    configure_options = "--disable-shared --enable-static"
+
+    def configure(self):
+        shell.call('chmod +w config.guess', self.build_dir)
+        shell.call('chmod +w config.sub', self.build_dir)
+        super(Recipe, self).configure()

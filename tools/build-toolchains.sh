@@ -5,33 +5,25 @@ WIPE=$1
 CURDIR=`pwd`
 set -e
 
-for a in "w64" "w32"
+for p in "lin" "win"
 do
-  for p in "lin" "win"
-  do
-      echo "Building $p-$a toolchain"
-      if test "x$WIPE" = "x1"; then
-        ./cerbero-uninstalled -c config/mingw-$a-$p.cbc wipe --force
-      fi
-    ./cerbero-uninstalled -c config/mingw-$a-$p.cbc build toolchain
-
-
-    if test "x$a" = "xw64"; then
-        ARCH=x86_64
-    else
-        ARCH=x86
+    echo "Building $p-w64 toolchain"
+    if test "x$WIPE" = "x1"; then
+      ./cerbero-uninstalled -c config/mingw-w64-$p.cbc wipe --force
     fi
-    if test "x$p" = "xwin"; then
-        PLAT=windows
-    else
-        PLAT=linux
-    fi
-    TC=mingw-$a-gcc-4.7.3-$PLAT-$ARCH.tar.xz
-    echo "Creating tarball $TC"
-    cd  ~/mingw/$PLAT/$a
-    XZ_OPT=-9 tar cJf $CURDIR/$TC *
-    cd $CURDIR
-    md5sum  $TC | awk '{print $1}' > $TC.md5
-    sha1sum $TC | awk '{print $1}' > $TC.sha1
-  done
+  ./cerbero-uninstalled -c config/mingw-w64-$p.cbc build toolchain
+
+  ARCH=x86_64
+  if test "x$p" = "xwin"; then
+      PLAT=windows
+  else
+      PLAT=linux
+  fi
+  TC=mingw-w64-gcc-8.2.0-$PLAT-$ARCH.tar.xz
+  echo "Creating tarball $TC"
+  cd  ~/mingw/$PLAT/w64
+  XZ_OPT=-9 tar cJf $CURDIR/$TC *
+  cd $CURDIR
+  md5sum  $TC | awk '{print $1}' > $TC.md5
+  sha1sum $TC | awk '{print $1}' > $TC.sha1
 done

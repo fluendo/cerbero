@@ -1,0 +1,57 @@
+import shutil
+
+class Recipe(recipe.Recipe):
+    name = 'gcc-final'
+    version = '8.2.0'
+    licenses = [License.GPLv3]
+    stype = SourceType.CUSTOM
+    make = 'make all'
+    make_install = 'make install-strip'
+    add_host_build_target = False
+    deps = ['mingw-w64-crt', 'winpthreads']
+    # The configure checks are failing on this function
+    # which ends in a double definition, so let's override it.
+    new_env = {'ac_cv_func_powf': 'yes',
+               'CPP': None
+              }
+
+    configure_options = '--with-host-libstdcxx=\'-static-libgcc -Wl,-Bstatic,-lstdc++,-Bdynamic -lm\' ' \
+                        '--disable-shared ' \
+                        '--disable-libgomp ' \
+                        '--disable-libquadmath ' \
+                        '--disable-libquadmath-support ' \
+                        '--disable-libmudflap ' \
+                        '--disable-libmpx ' \
+                        '--disable-libssp ' \
+                        '--disable-nls ' \
+                        '--enable-threads=posix ' \
+                        '--enable-__cxa_atexit ' \
+                        '--enable-lto ' \
+                        '--enable-plugin ' \
+                        '--enable-multiarch ' \
+                        '--enable-languages=c,c++ ' \
+                        '--enable-long-long ' \
+                        '--enable-sjlj-exceptions ' \
+                        ''
+
+    def prepare(self):
+        if self.config.target_arch == Architecture.X86:
+            raise InvalidRecipeError(self)
+        target = 'x86_64-w64-mingw32'
+        sysroot = os.path.join(self.config.prefix, target, 'sysroot')
+        self.configure_options += ' --with-sysroot=%s ' % sysroot
+        self.configure_options += ' --with-local-prefix=%s ' % sysroot
+        self.configure_options += ' --target=%s' % target
+        if self.config.target_platform == Platform.WINDOWS:
+            self.configure_options += ' --host=%s' % target
+        self.build_dir = os.path.join(self.config.sources,
+                'gcc-%s' % self.version)
+        self.make_dir = os.path.join(self.build_dir, 'gcc_build_final')
+        self.config_sh = '../configure'
+
+    def configure(self):
+        try:
+            os.mkdir(self.make_dir)
+        except:
+            pass
+        super(Recipe, self).configure()

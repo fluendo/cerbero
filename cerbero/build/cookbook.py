@@ -469,6 +469,8 @@ class CookBook (object):
                 except Exception, ex:
                     m.warning("Error loading recipe in file %s %s" %
                               (filepath, ex))
+                    import traceback
+                    traceback.print_exc()
             if self._config.target_arch == Architecture.UNIVERSAL:
                 if not recipe.is_empty():
                     recipes[recipe.name] = recipe

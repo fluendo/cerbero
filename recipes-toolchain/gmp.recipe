@@ -2,13 +2,13 @@
 
 
 class Recipe(recipe.Recipe):
-    name = 'gmp-toolchain'
-    version = '5.0.5'
+    name = 'gmp'
+    version = '6.1.2'
+    url = 'https://gmplib.org/download/gmp/gmp-%(version)s.tar.bz2'
+    tarball_dirname = 'gmp-%(version)s'
+    stype = SourceType.TARBALL
     licenses = [License.LGPLv3Plus]
     configure_options = "--disable-shared --enable-static"
 
     files_libs = ['libgmp']
     files_devel = ['include/gmp.h']
-
-    def prepare(self):
-        self.remotes = {'origin': '%s/%s' % (self.config.git_root, 'gmp')}

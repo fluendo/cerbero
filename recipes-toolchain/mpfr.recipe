@@ -2,7 +2,9 @@
 
 class Recipe(recipe.Recipe):
     name = 'mpfr'
-    version = '3.1.0'
+    version = '4.0.1'
+    stype = SourceType.TARBALL
+    url = 'https://ftpmirror.gnu.org/gnu/mpfr/mpfr-%(version)s.tar.bz2'
     licenses = [License.LGPLv3Plus]
     configure_options = "--disable-shared --enable-static"
-    deps = ['gmp-toolchain']
+    deps = ['gmp']

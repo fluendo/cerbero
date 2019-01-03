@@ -1,0 +1,23 @@
+class Recipe(recipe.Recipe):
+    name = 'gendef'
+    version = 'v6.0.0'
+    licenses = [License.LGPL]
+    stype = SourceType.CUSTOM
+    files_bin = ['bin/gendef.exe']
+    # Since we are cross-compiling we have to reset all the env
+    # variables set by cerbero (eg: we don't want -m64 overriding
+    # a i386 build or gcc being used instead of x86_64-mingw32-w64-gcc)
+    new_env = {'CC': None, 'LD': None, 'CPP': None, 'AS': None, 'AR': None,
+               'RC':None, 'CXX': None, 'CFLAGS': None, 'LDFLAGS': None,
+               'CXXFLAGS': None}
+
+
+    def prepare(self):
+        if self.config.target_arch == Architecture.X86:
+            raise InvalidRecipeError(self)
+        self.host = 'x86_64-w64-mingw32'
+        sysroot = os.path.join(self.config.prefix, self.host, 'sysroot')
+        self.configure_options += ' --host=%s' % self.host
+        self.configure_options += ' --with-sysroot=%s ' % sysroot
+        self.build_dir = os.path.join(self.config.sources, 'mingw-w64-%s' % self.version)
+        self.make_dir = os.path.join(self.build_dir, 'mingw-w64-tools', 'gendef')
