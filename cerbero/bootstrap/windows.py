@@ -29,13 +29,12 @@ from cerbero.utils import shell, _, fix_winpath, to_unixpath, git
 from cerbero.utils import messages as m
 
 # Toolchain
-GCC_VERSION = '4.7.3'
-MINGW_DOWNLOAD_TPL = 'https://gstreamer.freedesktop.org/data/cerbero/toolchain/windows/mingw-%s-gcc-%s-%s-%s.tar.xz'
-MINGW_CHECKSUMS = {
-    'mingw-w32-gcc-4.7.3-linux-x86.tar.xz': '16a3ad2584f0dc25ec122029143b186c99f362d1be1a77a338431262491004ae',
-    'mingw-w64-gcc-4.7.3-linux-x86_64.tar.xz': 'e673536cc89a778043789484f691d7e35458a5d72638dc4b0123f92ecf868592',
-    'mingw-w32-gcc-4.7.3-windows-x86.tar.xz': 'da783488ab3a2b28471c13ece97c643f8e8ec774308fb2a01152b23618f13a33',
-    'mingw-w64-gcc-4.7.3-windows-x86_64.tar.xz': '820fa7490b3d738b9cf8c360cdd9a7aeb0592510a8ea50486e721b5b92722b08',
+TOOLCHAIN_BASE_URL = 'https://gstreamer.freedesktop.org/data/cerbero/toolchain/windows/'
+TOOLCHAIN_PLATFORM = {
+    Platform.LINUX: ('mingw-6.0.0-gcc-8.2.0-linux-multilib.tar.xz',
+        'b12d06c798d00d16dd454b7041f22ffbcf28e2fd91599d9d6391266ed6e8209d'),
+    Platform.WINDOWS: ('mingw-6.0.0-gcc-8.2.0-windows-multilib.tar.xz',
+        '4811211e5c5a624437861fdb3a9ad3fa59cfef8eda19497b9569ab0072dbe1f6'),
 }
 
 # MinGW Perl
@@ -69,23 +68,22 @@ class WindowsBootstrapper(BootstrapperBase):
         self.perl_prefix = self.config.mingw_perl_prefix
         self.platform = self.config.target_platform
         self.arch = self.config.target_arch
-        if self.arch == Architecture.X86:
-            self.version = 'w32'
-        else:
-            self.version = 'w64'
         self.platform = self.config.platform
         # Register all network resources this bootstrapper needs. They will all
         # be downloaded into self.config.local_sources
         #
         # MinGW toolchain
-        url = MINGW_DOWNLOAD_TPL % (self.version, GCC_VERSION, self.platform, self.arch)
-        self.fetch_urls.append((url, MINGW_CHECKSUMS[os.path.basename(url)]))
+        filename, checksum = TOOLCHAIN_PLATFORM[self.config.platform]
+        url = TOOLCHAIN_BASE_URL + filename
+        self.fetch_urls.append((url, checksum))
         self.extract_steps.append((url, True, self.prefix))
         # wglext.h
         url = KHRONOS_WGL_TPL.format(OPENGL_COMMIT)
         self.fetch_urls.append((url, WGL_CHECKSUM))
-        inst_path = os.path.join(self.prefix, self.config.host, 'include/GL')
-        self.extract_steps.append((url, False, inst_path))
+        sysroot = os.path.join(self.prefix,
+                'x86_64-w64-mingw32/sysroot/usr/x86_64-w64-mingw32')
+        gl_inst_path = os.path.join(sysroot, 'include/GL/')
+        self.extract_steps.append((url, False, gl_inst_path))
         if self.platform == Platform.WINDOWS:
             # MinGW Perl needed by openssl
             url = MINGW_PERL_TPL.format(PERL_VERSION)
@@ -106,7 +104,6 @@ class WindowsBootstrapper(BootstrapperBase):
                     "$git config core.autocrlf false")
         self.check_dirs()
         self.fix_mingw()
-        self.fix_non_prefixed_strings()
         if self.platform == Platform.WINDOWS:
             self.fix_openssl_mingw_perl()
             self.fix_bin_deps()
@@ -124,12 +121,16 @@ class WindowsBootstrapper(BootstrapperBase):
             os.makedirs(etc_path)
 
     def fix_mingw(self):
-        self.fix_lib_paths()
         if self.arch == Architecture.X86:
             try:
                 shutil.rmtree('/mingw/lib')
             except Exception:
                 pass
+        # Tar does not create correctly the mingw symlink
+        if self.platform == Platform.WINDOWS:
+            sysroot = os.path.join(self.prefix, 'x86_64-w64-mingw32/sysroot')
+            shell.call('rm -rf mingw', sysroot)
+            shell.call('ln -s usr/x86_64-w64-mingw32 mingw', sysroot)
 
     def fix_openssl_mingw_perl(self):
         '''
@@ -157,33 +158,6 @@ class WindowsBootstrapper(BootstrapperBase):
             shell.replace(os.path.join(self.prefix, f),
                           {'/opt/perl/bin/perl': '/bin/perl'})
 
-    def fix_lib_paths(self):
-        orig_sysroot = self._find_mingw_sys_root()
-        if self.config.platform != Platform.WINDOWS:
-            new_sysroot = os.path.join(self.prefix, 'mingw', 'lib')
-        else:
-            new_sysroot = os.path.join(self.prefix, 'lib')
-        lib_path = new_sysroot
-
-        # Replace the old sysroot in all .la files
-        for path in [f for f in os.listdir(lib_path) if f.endswith('la')]:
-            path = os.path.abspath(os.path.join(lib_path, path))
-            shell.replace(path, {orig_sysroot: new_sysroot})
-
-    def _find_mingw_sys_root(self):
-        if self.config.platform != Platform.WINDOWS:
-            f = os.path.join(self.prefix, 'mingw', 'lib', 'libstdc++.la')
-        else:
-            f = os.path.join(self.prefix, 'lib', 'libstdc++.la')
-        with open(f, 'r') as f:
-            # get the "libdir=/path" line
-            libdir = [x for x in f.readlines() if x.startswith('libdir=')][0]
-            # get the path
-            libdir = libdir.split('=')[1]
-            # strip the surrounding quotes
-            print("Replacing old libdir : ", libdir)
-            return libdir.strip()[1:-1]
-
     def fix_mingw_unused(self):
         mingw_get_exe = shutil.which('mingw-get')
         if not mingw_get_exe:
@@ -206,24 +180,6 @@ class WindowsBootstrapper(BootstrapperBase):
         msys_link_bindir = msys_link_exe.parent
         if msys_link_exe.is_file() and 'msys/1.0/bin/link' in msys_link_exe.as_posix():
             os.replace(msys_link_exe, msys_link_bindir / 'link.exe.bck')
-
-    def fix_non_prefixed_strings(self):
-        # libtool m4 macros uses non-prefixed 'strings' command. We need to
-        # create a copy here
-        if self.config.platform == Platform.WINDOWS:
-            ext = '.exe'
-        else:
-            ext = ''
-        if self.config.target_arch == Architecture.X86:
-            host = 'i686-w64-mingw32'
-        else:
-            host = 'x86_64-w64-mingw32'
-        bindir = os.path.join(self.config.toolchain_prefix, 'bin')
-        p_strings = os.path.join(bindir, '%s-strings%s' % (host, ext))
-        strings = os.path.join(bindir, 'strings%s' % ext)
-        if os.path.exists(strings):
-            os.remove(strings)
-        shutil.copy(p_strings, strings)
 
 
 def register_all():
