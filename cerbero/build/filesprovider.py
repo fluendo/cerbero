@@ -21,6 +21,7 @@ import re
 import glob
 import inspect
 from functools import partial
+import shlex
 from pathlib import Path
 
 from cerbero.config import Platform
@@ -55,7 +56,7 @@ def find_dll_implib(libname, prefix, libdir, ext, regex):
             implib_notfound.append(implib)
             continue
         try:
-            dllname = shell.check_call([dlltool, '-I', path])
+            dllname = shell.check_call(shlex.split(dlltool) + ['-I', path])
         except FatalError:
             continue
         dllname = dllname.strip()
