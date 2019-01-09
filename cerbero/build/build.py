@@ -344,6 +344,10 @@ class MakefilesBase (Build, ModifyEnvBase):
 class Autotools (MakefilesBase):
     '''
     Build handler for autotools project
+
+    @cvar override_libtool: overrides ltmain.sh to generate a libtool
+                            script with the one built by cerbero.
+    @type override_libtool: boolean
     '''
 
     autoreconf = False
@@ -356,6 +360,7 @@ class Autotools (MakefilesBase):
     can_use_configure_cache = True
     supports_cache_variables = True
     disable_introspection = False
+    override_libtool = True
 
     def configure(self):
         # Only use --disable-maintainer mode for real autotools based projects
@@ -393,7 +398,7 @@ class Autotools (MakefilesBase):
             shutil.copy(o, f)
 
         # ensure our libtool modifications are actually picked up by recipes
-        if self.name != 'libtool':
+        if self.name != 'libtool' and self.override_libtool:
             files = shell.check_call('find %s -type f -name ltmain.sh' %
                                      self.config_src_dir).split('\n')
             files.remove('')
