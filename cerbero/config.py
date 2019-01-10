@@ -102,7 +102,7 @@ class Config (object):
                    'build_tools_prefix', 'build_tools_sources',
                    'build_tools_cache', 'home_dir', 'recipes_commits',
                    'ios_platform', 'extra_build_tools', 'target_arch_flags',
-                   'extra_bootstrap_packages', 'binary_commits', 'cache_url',
+                   'extra_bootstrap_packages', 'cache_url',
                    'ignore_runtime_deps', 'binaries', 'binary_repo',
                    'binary_repo_username', 'binary_repo_password', 'custom_cflags']
 
@@ -327,7 +327,6 @@ class Config (object):
         self.set_property('build_tools_sources', None)
         self.set_property('build_tools_cache', None)
         self.set_property('recipes_commits', {})
-        self.set_property('binary_commits', {})
         self.set_property('cache_url', None)
         self.set_property('extra_build_tools', [])
         self.set_property('extra_bootstrap_packages', {})
