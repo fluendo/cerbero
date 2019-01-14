@@ -1,0 +1,25 @@
+from cerbero.utils import shell
+from cerbero.bootstrap.windows import TOOLCHAIN_PLATFORM, TOOLCHAIN_BASE_URL
+
+
+# This recipes extracts and patches the gcc sources that
+# will be used by gcc-bootstrap and gcc recipes
+class Recipe(recipe.Recipe):
+    name = 'mingw-toolchain'
+    version = '8.2.0'
+    url = 'dynamic'
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+
+    def prepare(self):
+        try:
+            name, checksum = TOOLCHAIN_PLATFORM[self.config.platform]
+        except Exception:
+            raise InvalidRecipeError(self)
+        self.url = TOOLCHAIN_BASE_URL + name
+        self.tarball_checksum = checksum
+        self.download_path = os.path.join(self.download_dir, name)
+
+    def extract(self):
+        self.extract_tarball(self.config.toolchain_prefix)
+        self.extract_tarball(self.config.prefix)
