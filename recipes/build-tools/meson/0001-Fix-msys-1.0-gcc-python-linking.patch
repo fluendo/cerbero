@@ -1,0 +1,74 @@
+From cb19ecebfdce80e4f9475612efef19eb7c1dae94 Mon Sep 17 00:00:00 2001
+From: Cerbero <nacho.garglez@gmail.com>
+Date: Mon, 28 Jan 2019 17:39:05 +0100
+Subject: [PATCH 1/1] Fix msys 1-mingw linker compatibility with python
+
+Old mingw doesn't link correctly with pythonXX.lib in
+all cases.
+This patch forces to link against pyhthonXX.dll in
+case a gcc compiler is being used, even in
+Windows platforms.
+Note that msys 1.0 platform is detected as windows
+instead of 'mingw'
+
+ Please enter the commit message for your changes. Lines starting
+---
+ mesonbuild/dependencies/misc.py | 11 +++++++----
+ mesonbuild/modules/python.py    | 10 +++++++---
+ 2 files changed, 14 insertions(+), 7 deletions(-)
+
+diff --git a/mesonbuild/dependencies/misc.py b/mesonbuild/dependencies/misc.py
+index 9e0a65a..e88ae98 100644
+--- a/mesonbuild/dependencies/misc.py
++++ b/mesonbuild/dependencies/misc.py
+@@ -280,7 +280,6 @@ class ThreadDependency(ExternalDependency):
+ class Python3Dependency(ExternalDependency):
+     def __init__(self, environment, kwargs):
+         super().__init__('python3', environment, None, kwargs)
+-
+         if self.want_cross:
+             return
+ 
+@@ -337,10 +336,14 @@ class Python3Dependency(ExternalDependency):
+         if pyplat.startswith('win'):
+             vernum = sysconfig.get_config_var('py_version_nodot')
+             if self.static:
+-                libname = 'libpython{}.a'.format(vernum)
++                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
+             else:
+-                libname = 'python{}.lib'.format(vernum)
+-            lib = Path(sysconfig.get_config_var('base')) / 'libs' / libname
++                comp =self.get_compiler()
++                if comp.id is "gcc":
++                    libpath = 'python{}.dll'.format(vernum)
++                else:
++                    libpath =  Path('libs') / 'python{}.lib'.format(vernum)
++            lib = Path(sysconfig.get_config_var('base')) / libpath
+         elif pyplat == 'mingw':
+             if self.static:
+                 libname = sysconfig.get_config_var('LIBRARY')
+diff --git a/mesonbuild/modules/python.py b/mesonbuild/modules/python.py
+index 9cfbd6f..84d71a6 100644
+--- a/mesonbuild/modules/python.py
++++ b/mesonbuild/modules/python.py
+@@ -183,10 +183,14 @@ class PythonDependency(ExternalDependency):
+         if self.platform.startswith('win'):
+             vernum = self.variables.get('py_version_nodot')
+             if self.static:
+-                libname = 'libpython{}.a'.format(vernum)
++                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
+             else:
+-                libname = 'python{}.lib'.format(vernum)
+-            lib = Path(self.variables.get('base')) / 'libs' / libname
++                comp =self.get_compiler()
++                if comp.id is "gcc":
++                    libpath = 'python{}.dll'.format(vernum)
++                else:
++                    libpath =  Path('libs') / 'python{}.lib'.format(vernum)
++            lib = Path(self.variables.get('base')) / libpath
+         elif self.platform == 'mingw':
+             if self.static:
+                 libname = self.variables.get('LIBRARY')
+-- 
+2.16.1.windows.1
+
