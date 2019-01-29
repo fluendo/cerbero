@@ -30,6 +30,9 @@ class Recipe(recipe.Recipe):
         if self.config.platform != Platform.WINDOWS:
             self.patches += ['libsoup/4b924e57-tld-parser-use-Python-3.patch']
 
+        if self.config.target_platform == Platform.WINDOWS:
+            self.configure_options += ' --enable-introspection=no'
+
         if self.config.target_platform != Platform.LINUX or \
            self.config.target_distro_version in \
                 [DistroVersion.DEBIAN_SQUEEZE,
