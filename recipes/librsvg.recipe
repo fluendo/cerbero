@@ -31,6 +31,8 @@ class Recipe(recipe.Recipe):
     def prepare(self):
         if self.config.target_platform in [Platform.DARWIN, Platform.IOS]:
             self.configure_options += ' --disable-Bsymbolic'
+        if self.config.target_platform == Platform.WINDOWS:
+            self.configure_options += ' --enable-introspection=no'
 
     def compile(self):
         # glib-mkenums has #!/usr/bin/env python3, which looks for `python3`,
