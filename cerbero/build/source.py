@@ -66,7 +66,7 @@ class Source (object):
         '''
         return string % {'name': self.name, 'version': self.version}
 
-    def built_version(self):
+    def built_version(self, update = False):
         '''
         Gets the current built version of the recipe, defaulting to the recipe
         version.
@@ -175,7 +175,9 @@ class GitCache (Source):
             commit = self.config.recipe_commit(self.name) or self.commit
             git.checkout(self.repo_dir, commit)
 
-    def built_version(self):
+    def built_version(self, update = False):
+        if (update):
+          git.fetch(self.repo_dir, fail=False)
         return '%s+git~%s' % (self.version, git.get_hash(self.repo_dir, self.commit))
 
 
@@ -329,7 +331,7 @@ class Svn(Source):
 
         shutil.copytree(self.repo_dir, self.build_dir)
 
-    def built_version(self):
+    def built_version(self, update = False):
         return '%s+svn~%s' % (self.version, svn.revision(self.repo_dir))
 
 

@@ -47,7 +47,10 @@ class Build(Command):
                     help=_('after a recipe is built upload the corresponding binary package')),
                 ArgparseArgument('--build-missing', action='store_true',
                     default=False,
-                    help=_('in case a binary package is missing try to build it'))]
+                    help=_('in case a binary package is missing try to build it')),
+                ArgparseArgument('--check-recipes-version', action='store_true',
+                    default=False,
+                    help=_('in case a recipe version changes in its remote repository'))]
             if force is None:
                 args.append(
                     ArgparseArgument('--force', action='store_true',
@@ -73,11 +76,12 @@ class Build(Command):
                      self.no_deps, dry_run=args.dry_run,
                      use_binaries=args.use_binaries,
                      upload_binaries=args.upload_binaries,
-                     build_missing=args.build_missing)
+                     build_missing=args.build_missing,
+                     check_recipes_version = args.check_recipes_version)
 
     def runargs(self, config, recipes, missing_files=False, force=False,
                 no_deps=False, store=None, dry_run=False, use_binaries=False,
-                upload_binaries=False, build_missing=False):
+                upload_binaries=False, build_missing=False, check_recipes_version = False):
         if not store:
             store = PackagesStore(config)
         cookbook = store.cookbook
@@ -92,6 +96,12 @@ class Build(Command):
             ordered_recipes = recipes
         else:
             ordered_recipes = cookbook.list_recipes_deps(recipes)
+
+        if check_recipes_version:
+          for recipe_name in ordered_recipes:
+            recipe = cookbook.get_recipe(recipe_name)
+            cookbook.update_build_status(recipe.name, recipe.built_version(update=True))
+
         oven.start_cooking(ordered_recipes, use_binaries, upload_binaries,
                 build_missing)
 

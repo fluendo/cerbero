@@ -111,7 +111,7 @@ class Oven (object):
         for desc, step in recipe.steps:
             m.build_step(count, total, recipe.name, step)
             # check if the current step needs to be done
-            if self.cookbook.step_done(recipe.name, step) and not self.force:
+            if self.cookbook.step_done(recipe.name, step) and not self.force and not self.cookbook.recipe_needs_build(recipe_name):
                 m.action(_("Step done"))
                 continue
 

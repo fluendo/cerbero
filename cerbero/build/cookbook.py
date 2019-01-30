@@ -200,7 +200,7 @@ class CookBook (object):
         @type built_version: str
         '''
         status = self._recipe_status(recipe_name)
-        status.needs_build = built_version == None
+        status.needs_build = (built_version != status.built_version)
         status.built_version = built_version
         status.touch()
         self.status[recipe_name] = status

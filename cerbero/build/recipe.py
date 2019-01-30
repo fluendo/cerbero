@@ -182,7 +182,7 @@ class Recipe(FilesProvider):
         '''
         pass
 
-    def built_version(self):
+    def built_version(self, update = False):
         '''
         Gets the current built version of the recipe.
         Sources can override it to provide extended info in the version
@@ -190,7 +190,7 @@ class Recipe(FilesProvider):
         master: eg (1.2.0~git+2345435)
         '''
         try:
-            return self.stype.built_version(self)
+            return self.stype.built_version(self, update)
         except:
             pass
         return None
