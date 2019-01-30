@@ -102,6 +102,11 @@ class Build(Command):
             recipe = cookbook.get_recipe(recipe_name)
             cookbook.update_build_status(recipe.name, recipe.built_version(update=True))
 
+            if cookbook.recipe_needs_build(recipe.name):
+              recipes_deps = cookbook.list_recipe_reverse_deps(recipe.name)
+              for recipe_deps_name in recipes_deps:
+                cookbook.update_force_build(recipe_deps_name)
+
         oven.start_cooking(ordered_recipes, use_binaries, upload_binaries,
                 build_missing)
 

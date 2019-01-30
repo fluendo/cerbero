@@ -206,6 +206,19 @@ class CookBook (object):
         self.status[recipe_name] = status
         self.save()
 
+    def update_force_build(self, recipe_name):
+        '''
+        Force the recipe's build need
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        '''
+        status = self._recipe_status(recipe_name)
+        status.needs_build = True
+        status.touch()
+        self.status[recipe_name] = status
+        self.save()
+
     def recipe_built_version (self, recipe_name):
         '''
         Get the last built version of a recipe from the build status
