@@ -1,0 +1,21 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    name = 'pygobject'
+    version = '3.31.2'
+    licenses = [License.LGPLv2_1Plus]
+    deps = ['glib', 'pycairo','gobject-introspection']
+    stype = SourceType.TARBALL
+    url = r'https://ftp.acc.umu.se/pub/GNOME/sources/pygobject/3.31/pygobject-3.31.2.tar.xz'
+    tarball_checksum = 'e75c9bc1f220863cea8386c121a6313fbc80bfe17e825538063252ffb28861c6'
+    configure_options = '--disable-introspection'
+    make_check = None  # disabled until we fix the checks
+
+    btype = BuildType.MESON
+    files_python = ['site-packages/gi',
+                    'site-packages/cairo',
+                    'site-packages/pygtkcompat',
+                    ]
+    files_devel = ['include/pygobject-3.0/pygobject.h',
+                   'lib/pkgconfig/pygobject-3.0.pc']
