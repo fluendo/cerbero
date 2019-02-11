@@ -1,0 +1,12 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    name = 'pycairo'
+    version = '1.18.0'
+    licenses = [License.LGPLv2_1Plus]
+    url='https://github.com/pygobject/pycairo/releases/download/v1.18.0/pycairo-1.18.0.tar.gz'
+    tarball_checksum='abd42a4c9c2069febb4c38fe74bfc4b4a9d3a89fea3bc2e4ba7baff7a20f783f'
+    deps = ['glib','cairo']
+    stype=SourceType.TARBALL
+    btype=BuildType.MESON
