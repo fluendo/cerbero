@@ -85,10 +85,12 @@ class FetchRecipes(Fetch):
                 ]
         Fetch.__init__(self, args)
 
-    def run(self, config, args):
+    def runargs (self,config, recipes, no_deps=False, reset_rdeps=False):
         cookbook = CookBook(config)
-        return self.fetch(cookbook, args.recipes, args.no_deps,
-                args.reset_rdeps)
+        return self.fetch(cookbook, recipes, no_deps, reset_rdeps)
+
+    def run(self, config, args):
+        self.runargs(config, args.recipes, args.no_deps, args.reset_rdeps)
 
 
 class FetchPackage(Fetch):

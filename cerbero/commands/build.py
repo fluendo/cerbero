@@ -18,7 +18,7 @@
 
 
 #from cerbero.oven import Oven
-from cerbero.commands import Command, register_command
+from cerbero.commands import Command, register_command, fetch
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.build.oven import Oven
 from cerbero.utils import _, N_, ArgparseArgument
@@ -47,7 +47,10 @@ class Build(Command):
                     help=_('after a recipe is built upload the corresponding binary package')),
                 ArgparseArgument('--build-missing', action='store_true',
                     default=False,
-                    help=_('in case a binary package is missing try to build it'))]
+                    help=_('in case a binary package is missing try to build it')),
+                ArgparseArgument('--fetch', action='store_true',
+                    default=False,
+                    help=_('Fetch first dependencies in reset dependencies if needed'))]
             if force is None:
                 args.append(
                     ArgparseArgument('--force', action='store_true',
@@ -73,15 +76,14 @@ class Build(Command):
                      self.no_deps, dry_run=args.dry_run,
                      use_binaries=args.use_binaries,
                      upload_binaries=args.upload_binaries,
-                     build_missing=args.build_missing)
+                     build_missing=args.build_missing,fetch=args.fetch)
 
     def runargs(self, config, recipes, missing_files=False, force=False,
                 no_deps=False, store=None, dry_run=False, use_binaries=False,
-                upload_binaries=False, build_missing=False):
+                upload_binaries=False, build_missing=False, fetch=False):
         if not store:
             store = PackagesStore(config)
         cookbook = store.cookbook
-
         oven = Oven(cookbook, force=self.force, missing_files=missing_files,
                     dry_run=dry_run, store=store)
 
@@ -92,9 +94,14 @@ class Build(Command):
             ordered_recipes = recipes
         else:
             ordered_recipes = cookbook.list_recipes_deps(recipes)
+        if fetch:
+          self._fetch(config, ordered_recipes, no_deps=False, reset_rdeps=True)
         oven.start_cooking(ordered_recipes, use_binaries, upload_binaries,
                 build_missing)
 
+    def _fetch(self, config, recipes, no_deps=False, reset_rdeps=False):
+        fetch_command = fetch.FetchRecipes()
+        fetch_command.runargs(config, recipes, no_deps, reset_rdeps)
 
 class BuildOne(Build):
     doc = N_('Build or rebuild a single recipe without its dependencies')
