@@ -4,25 +4,21 @@ import sys
 
 class Recipe(recipe.Recipe):
     name = 'gobject-introspection'
-    version = '1.56.1'
+    version = '1.59.3'
     stype = SourceType.TARBALL
     url = 'gnome://'
-    tarball_checksum = '5b2875ccff99ff7baab63a34b67f8c920def240e178ff50add809e267d9ea24b'
+    tarball_checksum = '1960d441cad2cb7659d1411765fb8e7e818599fa01cf8d817d4b72ca399f54e1'
     licenses = [License.LGPLv2Plus]
     licenses_bins = [License.GPLv2Plus]
     configure_options = '--with-python=python3'
     deps = ['glib']
+    btype=BuildType.MESON
+    can_msvc=False
     patches = [
         # https://gitlab.gnome.org/GNOME/gobject-introspection/issues/222
-        name + '/0001-giscanner-Fix-shared-library-name-with-Meson-on-macO.patch',
-        # Taken from upstream, remove on bump
-        # https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/73
-        name + '/0002-Fix-non-libtool-build.patch',
-        # Taken from upstream, remove on bump
-        # https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/38
-        name + '/0003-giscanner-Fix-shared-library-name-with-Meson-on-macO.patch',
-    ]
-
+        # FIXME: Probably this has to be re-patched for 1.59.3
+        #name + '/0001-giscanner-Fix-shared-library-name-with-Meson-on-macO.patch'
+        ]
     files_bins = ['g-ir-annotation-tool', 'g-ir-compiler', 'g-ir-doc-tool', 'g-ir-generate', 'g-ir-scanner']
     files_libs = ['libgirepository-1.0']
     files_typelibs = ['cairo-1.0',
@@ -43,16 +39,13 @@ class Recipe(recipe.Recipe):
         'xrandr-1.3',
         'xlib-2.0']
     files_gi = [
-        'lib/gobject-introspection/giscanner/__init__.py',
         'lib/gobject-introspection/giscanner/_giscanner%(pext)s',
         'lib/gobject-introspection/giscanner/annotationmain.py',
         'lib/gobject-introspection/giscanner/annotationparser.py',
         'lib/gobject-introspection/giscanner/ast.py',
         'lib/gobject-introspection/giscanner/cachestore.py',
+        'lib/gobject-introspection/giscanner/ccompiler.py',
         'lib/gobject-introspection/giscanner/codegen.py',
-        'lib/gobject-introspection/giscanner/collections/__init__.py',
-        'lib/gobject-introspection/giscanner/collections/counter.py',
-        'lib/gobject-introspection/giscanner/collections/ordereddict.py',
         'lib/gobject-introspection/giscanner/docmain.py',
         'lib/gobject-introspection/giscanner/docwriter.py',
         'lib/gobject-introspection/giscanner/dumper.py',
@@ -62,7 +55,10 @@ class Recipe(recipe.Recipe):
         'lib/gobject-introspection/giscanner/introspectablepass.py',
         'lib/gobject-introspection/giscanner/libtoolimporter.py',
         'lib/gobject-introspection/giscanner/maintransformer.py',
+        'lib/gobject-introspection/giscanner/mdextensions.py',
         'lib/gobject-introspection/giscanner/message.py',
+        'lib/gobject-introspection/giscanner/msvccompiler.py',
+        'lib/gobject-introspection/giscanner/pkgconfig.py',
         'lib/gobject-introspection/giscanner/scannermain.py',
         'lib/gobject-introspection/giscanner/sectionparser.py',
         'lib/gobject-introspection/giscanner/shlibs.py',
@@ -70,7 +66,8 @@ class Recipe(recipe.Recipe):
         'lib/gobject-introspection/giscanner/testcodegen.py',
         'lib/gobject-introspection/giscanner/transformer.py',
         'lib/gobject-introspection/giscanner/utils.py',
-        'lib/gobject-introspection/giscanner/xmlwriter.py'
+        'lib/gobject-introspection/giscanner/xmlwriter.py',
+        'lib/gobject-introspection/giscanner/_version.py'
     ]
     files_devel = [
         'include/gobject-introspection-1.0',
