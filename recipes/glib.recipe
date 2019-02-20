@@ -46,7 +46,8 @@ class Recipe(recipe.Recipe):
                # https://gitlab.gnome.org/GNOME/glib/merge_requests/686
                'glib/0001-gio-Also-support-modules-built-with-MSVC.patch',
                # https://gitlab.gnome.org/GNOME/glib/merge_requests/187
-               'glib/0001-meson-use-the-new-python-module-instead-of-the-pytho.patch',
+               #'glib/0001-meson-use-the-new-python-module-instead-of-the-pytho.patch',
+               'glib/0001-Make-it-compile-for-Android-API-18.patch',
               ]
 
     files_libs = [

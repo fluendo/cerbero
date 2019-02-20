@@ -1,0 +1,41 @@
+From 91ad4110bb216adbf0c290aef5833978b7a03e47 Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Fri, 29 Mar 2019 01:08:13 +0100
+Subject: [PATCH] Make it compile for Android API < 18
+
+Checking for auxv.h is not enough, the header might be there
+but the definition of the call did not appear until API 18 or
+21 depending on the platform
+---
+ glib/gutils.c | 2 +-
+ meson.build   | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/glib/gutils.c b/glib/gutils.c
+index 2b750ab..5df70b8 100644
+--- a/glib/gutils.c
++++ b/glib/gutils.c
+@@ -2503,7 +2503,7 @@ const gchar *g_get_tmp_dir_utf8 (void) { return g_get_tmp_dir (); }
+ gboolean
+ g_check_setuid (void)
+ {
+-#if defined(HAVE_SYS_AUXV_H)
++#if defined(HAVE_SYS_AUXV_H) && defined(HAVE_GETAUXVAL)
+   unsigned long value;
+   int errsv;
+ 
+diff --git a/meson.build b/meson.build
+index 88d51dc..e19172d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -396,6 +396,7 @@ functions = [
+   'fchown',
+   'fdwalk',
+   'fsync',
++  'getauxval',
+   'getc_unlocked',
+   'getfsstat',
+   'getgrgid_r',
+-- 
+2.7.4
+
