@@ -2,21 +2,16 @@
 
 class Recipe(recipe.Recipe):
     name = 'glib-tools'
-    version = '2.56.1'
+    version = '2.58.0'
     stype = SourceType.TARBALL
     url = 'gnome://glib/%(maj_ver)s/glib-%(version)s.tar.xz'
     tarball_dirname = 'glib-%(version)s'
-    tarball_checksum = '40ef3f44f2c651c7a31aedee44259809b6f03d3d20be44545cd7d177221c0b8d'
+    tarball_checksum = 'c0f4ce0730b4f95c47b711613b5406a887c2ee13ea6d25930d72a4fa7fdb77f6'
     licenses = [License.LGPLv2Plus]
     btype = BuildType.MESON
     meson_options = {'internal_pcre': 'true', 'libmount': 'false',
                      'dtrace': 'false', 'iconv': 'libc', 'selinux' : 'false'}
     deps = ['libffi', 'zlib']
-    patches = ['../glib/glib-2.57-meson-backported-fixes.patch',
-               '../glib/0001-gengiotypefuncs.py-Read-and-parse-files-in-binary-mo.patch',
-               # XXX: Remove when we upgrade our mingw toolchain
-               'glib-tools/0001-meson-Disable-tests-fail-on-our-ancient-MinGW.patch',
-              ]
 
     def prepare(self):
         if self.config.target_platform != Platform.LINUX:
