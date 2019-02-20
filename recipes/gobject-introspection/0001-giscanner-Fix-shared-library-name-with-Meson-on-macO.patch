@@ -1,21 +1,17 @@
-From e900cab3d70924044c05f00d6da3870d0535c5b5 Mon Sep 17 00:00:00 2001
-From: Nirbheek Chauhan <nirbheek@centricular.com>
-Date: Fri, 17 Aug 2018 21:13:15 +0530
-Subject: [PATCH] giscanner: Fix shared-library name with Meson on macOS
+From 879ce7dc294083fca8df35b7db387f8c9824c1a4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Nacho=20Garc=C3=ADa?= <nacho.garglez@gmail.com>
+Date: Wed, 20 Feb 2019 15:44:38 +0100
+Subject: [PATCH] Giscanner fix shared library name with Meson on macOS
 
-Also handle some other install_name cases which are not currently used
-by Meson, but may be in the future.
-
-Closes https://gitlab.gnome.org/GNOME/gobject-introspection/issues/222
 ---
- giscanner/shlibs.py | 18 +++++++++++++++++-
- 1 file changed, 17 insertions(+), 1 deletion(-)
+ giscanner/shlibs.py | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/giscanner/shlibs.py b/giscanner/shlibs.py
-index c93d20c..4d4915d 100644
+index 8b4924d..7396342 100644
 --- a/giscanner/shlibs.py
 +++ b/giscanner/shlibs.py
-@@ -43,6 +43,22 @@ def _resolve_libtool(options, binary, libraries):
+@@ -38,6 +38,21 @@ def _resolve_libtool(options, binary, libraries):
  
      return shlibs
  
@@ -34,19 +30,18 @@ index c93d20c..4d4915d 100644
 +    if install_name.startswith('@executable_path/'):
 +        return install_name[17:]
 +    raise RuntimeError('Unknown install_name {!r}'.format(install_name))
-+
  
  # Assume ldd output is something vaguely like
  #
-@@ -121,7 +137,7 @@ def _resolve_non_libtool(options, binary, libraries):
-                 m = pattern.search(line)
+@@ -131,7 +146,7 @@ def resolve_from_ldd_output(libraries, output, basename=False):
+                 m = pattern.match(word)
                  if m:
                      del patterns[library]
--                    shlibs.append(m.group(1))
-+                    shlibs.append(_sanitize_install_name(m.group(1)))
+-                    shlibs.append(m.group())
++                    shlibs.append(_sanitize_install_name(m.group()))
                      break
  
-         if len(patterns) > 0:
+     if len(patterns) > 0:
 -- 
-2.15.2 (Apple Git-101.1)
+2.11.0
 
