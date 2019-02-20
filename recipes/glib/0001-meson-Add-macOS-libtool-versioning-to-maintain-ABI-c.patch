@@ -1,8 +1,7 @@
-From 8e675287782534e7e6e2549a5e96f03caf5304b2 Mon Sep 17 00:00:00 2001
-From: Nirbheek Chauhan <nirbheek@centricular.com>
-Date: Tue, 28 Aug 2018 20:27:40 +0530
-Subject: [PATCH] meson: Add macOS libtool versioning to maintain ABI
- compatibility
+From a372663895fd88d0970dcf14cc225553738caee6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Nacho=20Garc=C3=ADa?= <nacho.garglez@gmail.com>
+Date: Wed, 20 Feb 2019 11:51:27 +0100
+Subject: [PATCH] [PATCH] meson: Add macOS libtool versioning to maintain ABI
 
 ---
  gio/meson.build     | 1 +
@@ -14,10 +13,10 @@ Subject: [PATCH] meson: Add macOS libtool versioning to maintain ABI
  6 files changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/gio/meson.build b/gio/meson.build
-index 12a3eca..d0837c7 100644
+index b83d8f5..0fb6bf5 100644
 --- a/gio/meson.build
 +++ b/gio/meson.build
-@@ -788,6 +788,7 @@ libgio = library('gio-2.0',
+@@ -786,6 +786,7 @@ libgio = library('gio-2.0',
    gio_dtrace_hdr, gio_dtrace_obj,
    version : library_version,
    soversion : soversion,
@@ -26,19 +25,19 @@ index 12a3eca..d0837c7 100644
    include_directories : [configinc, gioinc],
    link_with : internal_deps,
 diff --git a/glib/meson.build b/glib/meson.build
-index 9f3e087..96dc782 100644
+index 9dd94ef..b8efd77 100644
 --- a/glib/meson.build
 +++ b/glib/meson.build
-@@ -240,6 +240,7 @@ libglib = library('glib-2.0',
+@@ -247,6 +247,7 @@ libglib = library('glib-2.0',
    sources : [deprecated_sources, glib_sources],
    version : library_version,
    soversion : soversion,
 +  darwin_versions : darwin_versions,
    install : true,
    # intl.lib is not compatible with SAFESEH
-   link_args : noseh_link_args,
+   link_args : [noseh_link_args, glib_link_flags, win32_ldflags],
 diff --git a/gmodule/meson.build b/gmodule/meson.build
-index 3b57fb4..9137f00 100644
+index 8bb6189..2c8a5ea 100644
 --- a/gmodule/meson.build
 +++ b/gmodule/meson.build
 @@ -99,6 +99,7 @@ libgmodule = library('gmodule-2.0',
@@ -50,7 +49,7 @@ index 3b57fb4..9137f00 100644
    include_directories : [configinc, gmoduleinc],
    dependencies : [libdl_dep, libglib_dep],
 diff --git a/gobject/meson.build b/gobject/meson.build
-index 1bf0e00..abd7331 100644
+index d8d421d..d426f12 100644
 --- a/gobject/meson.build
 +++ b/gobject/meson.build
 @@ -66,6 +66,7 @@ libgobject = library('gobject-2.0',
@@ -62,7 +61,7 @@ index 1bf0e00..abd7331 100644
    include_directories : [configinc],
    dependencies : [libffi_dep, libglib_dep],
 diff --git a/gthread/meson.build b/gthread/meson.build
-index 3787dba..4f296fc 100644
+index 6b0748f..6cda620 100644
 --- a/gthread/meson.build
 +++ b/gthread/meson.build
 @@ -16,6 +16,7 @@ libgthread = library('gthread-2.0',
@@ -72,12 +71,12 @@ index 3787dba..4f296fc 100644
 +  darwin_versions : darwin_versions,
    install : true,
    dependencies : [libglib_dep],
-   c_args : ['-DG_LOG_DOMAIN="GThread"' ] + glib_hidden_visibility_args)
+   c_args : ['-DG_LOG_DOMAIN="GThread"' ] + glib_hidden_visibility_args,
 diff --git a/meson.build b/meson.build
-index fbccab7..427e776 100644
+index aa7d8e4..88d51dc 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -43,7 +43,9 @@ binary_age = 100 * minor_version + micro_version
+@@ -45,7 +45,9 @@ binary_age = 100 * minor_version + micro_version
  soversion = 0
  # Maintain compatibility with previous libtool versioning
  # current = minor * 100 + micro
@@ -89,5 +88,5 @@ index fbccab7..427e776 100644
  configinc = include_directories('.')
  glibinc = include_directories('glib')
 -- 
-2.15.2 (Apple Git-101.1)
+2.11.0
 

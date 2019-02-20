@@ -1,17 +1,18 @@
-From 4d5183a847b0f958d1fa8ac8cc1d4f6166c384ab Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Sebastian=20Dr=C3=B6ge?= <sebastian@centricular.com>
-Date: Fri, 12 Dec 2014 16:40:23 +0100
-Subject: [PATCH 09/13] Implementation of Cocoa event loop integration in
- GMainContext
+From adbe315de2e4ffc1df7a7e536a1594c5708fb28d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Nacho=20Garc=C3=ADa?= <nacho.garglez@gmail.com>
+Date: Wed, 20 Feb 2019 10:54:54 +0100
+Subject: [PATCH] Cocoa event loop integration in  GMainContext
 
+Implementation of Cocoa event loop integration in
+ GMainContext, repatched for 2.58
 ---
- configure.ac     |   2 +-
  glib/Makefile.am |   6 +-
  glib/gmain.c     | 985 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 991 insertions(+), 2 deletions(-)
+ glib/meson.build |  13 +-
+ 3 files changed, 1001 insertions(+), 3 deletions(-)
 
 diff --git a/glib/Makefile.am b/glib/Makefile.am
-index d755853..611eb5b 100644
+index 8f6536c..5e731a6 100644
 --- a/glib/Makefile.am
 +++ b/glib/Makefile.am
 @@ -44,6 +44,10 @@ AM_CPPFLAGS = 				\
@@ -25,17 +26,17 @@ index d755853..611eb5b 100644
  AM_CFLAGS = $(GLIB_WARN_CFLAGS)
  
  MIRRORING_TAB_SOURCE = 				\
-@@ -353,7 +357,7 @@ pcre_inc =
+@@ -369,7 +373,7 @@ pcre_inc =
  endif
  
  libglib_2_0_la_CFLAGS = $(AM_CFLAGS) $(GLIB_HIDDEN_VISIBILITY_CFLAGS) $(LIBSYSTEMD_CFLAGS)
--libglib_2_0_la_LIBADD = libcharset/libcharset.la $(printf_la) @GIO@ @GSPAWN@ @PLATFORMDEP@ @ICONV_LIBS@ @G_LIBS_EXTRA@ $(pcre_lib) $(G_THREAD_LIBS_EXTRA) $(G_THREAD_LIBS_FOR_GTHREAD) $(LIBSYSTEMD_LIBS)
-+libglib_2_0_la_LIBADD = libcharset/libcharset.la $(printf_la) @GIO@ @GSPAWN@ @PLATFORMDEP@ @ICONV_LIBS@ @G_LIBS_EXTRA@ $(pcre_lib) $(G_THREAD_LIBS_EXTRA) $(G_THREAD_LIBS_FOR_GTHREAD) $(LIBSYSTEMD_LIBS) $(COCOA_LIBS)
- libglib_2_0_la_DEPENDENCIES = libcharset/libcharset.la $(printf_la) @GIO@ @GSPAWN@ @PLATFORMDEP@ $(glib_win32_res) $(glib_def)
+-libglib_2_0_la_LIBADD = libcharset/libcharset.la $(printf_la) @ICONV_LIBS@ @G_LIBS_EXTRA@ $(pcre_lib) $(G_THREAD_LIBS_EXTRA) $(G_THREAD_LIBS_FOR_GTHREAD) $(LIBSYSTEMD_LIBS)
++libglib_2_0_la_LIBADD = libcharset/libcharset.la $(printf_la) @ICONV_LIBS@ @G_LIBS_EXTRA@ $(pcre_lib) $(G_THREAD_LIBS_EXTRA) $(G_THREAD_LIBS_FOR_GTHREAD) $(LIBSYSTEMD_LIBS) $(COCOA_LIBS)
+ libglib_2_0_la_DEPENDENCIES = libcharset/libcharset.la $(printf_la) $(glib_win32_res) $(glib_def)
  
  libglib_2_0_la_LDFLAGS = $(GLIB_LINK_FLAGS) \
 diff --git a/glib/gmain.c b/glib/gmain.c
-index 27c0234..2a88474 100644
+index 0a6857c..abe8418 100644
 --- a/glib/gmain.c
 +++ b/glib/gmain.c
 @@ -72,6 +72,10 @@
@@ -49,7 +50,7 @@ index 27c0234..2a88474 100644
  #ifdef HAVE_MACH_MACH_TIME_H
  #include <mach/mach_time.h>
  #endif
-@@ -450,6 +454,85 @@ static GMainContext *glib_worker_context;
+@@ -449,6 +453,85 @@ static GMainContext *glib_worker_context;
  G_LOCK_DEFINE_STATIC (main_loop);
  static GMainContext *default_main_context;
  
@@ -67,7 +68,7 @@ index 27c0234..2a88474 100644
 +/* Run loop level at which we acquired ownership of the GLib main
 + * loop. See note in run_loop_entry(). -1 means that we don’t have
 + * ownership
-+ */ 
++ */
 +static int cocoa_acquired_loop_level = -1;
 +
 +/* Between run_loop_before_waiting() and run_loop_after_waiting();
@@ -135,7 +136,7 @@ index 27c0234..2a88474 100644
  #ifndef G_OS_WIN32
  
  
-@@ -3298,6 +3381,35 @@ g_main_context_acquire (GMainContext *context)
+@@ -3246,6 +3329,35 @@ g_main_context_acquire (GMainContext *context)
      {
        context->owner = self;
        g_assert (context->owner_count == 0);
@@ -171,7 +172,7 @@ index 27c0234..2a88474 100644
        TRACE (GLIB_MAIN_CONTEXT_ACQUIRE (context, TRUE  /* success */));
      }
  
-@@ -3354,6 +3466,24 @@ g_main_context_release (GMainContext *context)
+@@ -3302,6 +3414,24 @@ g_main_context_release (GMainContext *context)
  	  if (!loop_internal_waiter)
  	    g_mutex_unlock (waiter->mutex);
  	}
@@ -196,14 +197,14 @@ index 27c0234..2a88474 100644
      }
  
    UNLOCK_CONTEXT (context); 
-@@ -5857,3 +5987,858 @@ g_get_worker_context (void)
+@@ -5894,3 +6024,858 @@ g_get_worker_context (void)
  
    return glib_worker_context;
  }
 +
 +#ifdef HAVE_COCOA
 +
-+/* 
++/*
 + * Here follows the integration between the GLib main loop and
 + * the native system of the Core Foundation run loop and Cocoa event
 + * handling. There are basically two different cases that we need to
@@ -336,7 +337,7 @@ index 27c0234..2a88474 100644
 +cocoa_select_thread_func (void *arg)
 +{
 +  char c;
-+  
++
 +  COCOA_SELECT_THREAD_LOCK ();
 +
 +  while (TRUE)
@@ -347,22 +348,22 @@ index 27c0234..2a88474 100644
 +	  /* The select thread has not been started yet
 +	   */
 +	  g_assert_not_reached ();
-+	  
++
 +	case COCOA_WAITING:
 +	  /* Waiting for a set of file descriptors to be submitted by the main thread
 +	   *
 +	   *  => POLLING_QUEUED: main thread thread submits a set of file descriptors
-+	   */ 
++	   */
 +	  COCOA_SELECT_THREAD_WAIT ();
 +	  break;
-+	  
++
 +	case COCOA_POLLING_QUEUED:
 +	  /* Waiting for a set of file descriptors to be submitted by the main thread
 +	   *
 +	   *  => POLLING_DESCRIPTORS: select thread picks up the file descriptors to begin polling
-+	   */ 
++	   */
 +	  g_free (cocoa_current_pollfds);
-+	  
++
 +	  cocoa_current_pollfds = cocoa_next_pollfds;
 +	  cocoa_current_n_pollfds = cocoa_next_n_pollfds;
 +
@@ -371,7 +372,7 @@ index 27c0234..2a88474 100644
 +
 +	  cocoa_select_thread_set_state (COCOA_POLLING_DESCRIPTORS);
 +	  break;
-+	  
++
 +	case COCOA_POLLING_RESTART:
 +	  /* Select thread is currently polling a set of file descriptors, main thread has
 +	   * began a new iteration with the same set of file descriptors. We don't want to
@@ -391,7 +392,7 @@ index 27c0234..2a88474 100644
 +	   *  => WAITING: polling completes when a file descriptor becomes active
 +	   *  => POLLING_QUEUED: main thread submits a new set of file descriptors to be polled
 +	   *  => POLLING_RESTART: main thread begins a new iteration with the same set file descriptors
-+	   */ 
++	   */
 +	  COCOA_SELECT_THREAD_UNLOCK ();
 +	  cocoa_old_poll_func (cocoa_current_pollfds, cocoa_current_n_pollfds, -1);
 +	  COCOA_SELECT_THREAD_LOCK ();
@@ -408,7 +409,7 @@ index 27c0234..2a88474 100644
 +    }
 +}
 +
-+static void 
++static void
 +cocoa_got_fd_activity (void *info)
 +{
 +  NSEvent *event;
@@ -421,7 +422,7 @@ index 27c0234..2a88474 100644
 +	                 windowNumber: 0
 +	                      context: nil
 +                              subtype: GMAIN_COCOA_EVENT_SUBTYPE_EVENTLOOP
-+	                        data1: 0 
++	                        data1: 0
 +	                        data2: 0];
 +
 +  [NSApp postEvent:event atStart:YES];
@@ -437,11 +438,11 @@ index 27c0234..2a88474 100644
 +
 +  CFRunLoopSourceContext source_context = {0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, cocoa_got_fd_activity };
 +  cocoa_select_main_thread_source = CFRunLoopSourceCreate (NULL, 0, &source_context);
-+  
++
 +  CFRunLoopAddSource (CFRunLoopGetMain (), cocoa_select_main_thread_source, kCFRunLoopCommonModes);
 +
 +  cocoa_select_thread_state = COCOA_WAITING;
-+  
++
 +  while (TRUE)
 +    {
 +      if ((cocoa_select_thread = g_thread_new ("CocoaSelectThread", cocoa_select_thread_func, NULL)))
@@ -485,7 +486,7 @@ index 27c0234..2a88474 100644
 +	       guint    new_n_pollfds)
 +{
 +  gint i;
-+  
++
 +  if (old_n_pollfds != new_n_pollfds)
 +    return FALSE;
 +
@@ -499,7 +500,7 @@ index 27c0234..2a88474 100644
 +  return TRUE;
 +}
 +
-+/* Begins a polling operation with the specified GPollFD array; the 
++/* Begins a polling operation with the specified GPollFD array; the
 + * timeout is used only to tell if the polling operation is blocking
 + * or non-blocking.
 + *
@@ -524,7 +525,7 @@ index 27c0234..2a88474 100644
 +	poll_fd_index = i;
 +	break;
 +      }
-+  
++
 +  if (nfds == 0 ||
 +      (nfds == 1 && poll_fd_index >= 0))
 +    {
@@ -555,17 +556,17 @@ index 27c0234..2a88474 100644
 +	}
 +#endif
 +#endif
-+  
++
 +      return n_ready;
 +    }
-+  
++
 +  COCOA_SELECT_THREAD_LOCK ();
 +
 +  if (cocoa_select_thread_state == COCOA_BEFORE_START)
 +    {
 +      cocoa_select_thread_start ();
 +    }
-+  
++
 +  if (cocoa_select_thread_state == COCOA_POLLING_QUEUED)
 +    {
 +      /* If the select thread hasn't picked up the set of file descriptors yet
@@ -576,7 +577,7 @@ index 27c0234..2a88474 100644
 +	  g_free (cocoa_next_pollfds);
 +	  cocoa_next_pollfds = NULL;
 +	  cocoa_next_n_pollfds = 0;
-+	  
++
 +	  have_new_pollfds = TRUE;
 +	}
 +    }
@@ -600,7 +601,7 @@ index 27c0234..2a88474 100644
 +       *  Marks polling as complete
 +       *  Wakes main thread
 +       *                             Receives old stale file descriptor state
-+       * 
++       *
 +       * To avoid this, when the new set of poll descriptors is the same as the current
 +       * one, we transition to the POLLING_RESTART stage at the point marked (*). When
 +       * the select thread wakes up from the poll because a file descriptor is active, if
@@ -633,16 +634,16 @@ index 27c0234..2a88474 100644
 +#ifdef G_MAIN_POLL_DEBUG
 +      g_print ("EventLoop: Submitting a new set of file descriptor to the select thread\n");
 +#endif
-+      
++
 +      g_assert (cocoa_next_pollfds == NULL);
-+      
++
 +      cocoa_next_n_pollfds = nfds + 1;
 +      cocoa_next_pollfds = g_new (GPollFD, nfds + 1);
 +      memcpy (cocoa_next_pollfds, ufds, nfds * sizeof (GPollFD));
-+  
++
 +      cocoa_next_pollfds[nfds].fd = cocoa_select_thread_wakeup_pipe[0];
 +      cocoa_next_pollfds[nfds].events = G_IO_IN;
-+  
++
 +      if (cocoa_select_thread_state != COCOA_POLLING_QUEUED && cocoa_select_thread_state != COCOA_WAITING)
 +	{
 +	  if (cocoa_select_thread_wakeup_pipe[1])
@@ -651,10 +652,10 @@ index 27c0234..2a88474 100644
 +	      write (cocoa_select_thread_wakeup_pipe[1], &c, 1);
 +	    }
 +	}
-+      
++
 +      cocoa_select_thread_set_state (COCOA_POLLING_QUEUED);
 +    }
-+  
++
 +  COCOA_SELECT_THREAD_UNLOCK ();
 +
 +  return -1;
@@ -674,7 +675,7 @@ index 27c0234..2a88474 100644
 +{
 +  gint i;
 +  gint n_ready = 0;
-+  
++
 +  COCOA_SELECT_THREAD_LOCK ();
 +
 +  if (cocoa_select_thread_state == COCOA_WAITING) /* The poll completed */
@@ -683,7 +684,7 @@ index 27c0234..2a88474 100644
 +	{
 +	  if (ufds[i].fd == -1)
 +	    continue;
-+	  
++
 +	  g_assert (ufds[i].fd == cocoa_current_pollfds[i].fd);
 +	  g_assert (ufds[i].events == cocoa_current_pollfds[i].events);
 +
@@ -817,7 +818,7 @@ index 27c0234..2a88474 100644
 +		    int          *timeout)
 +{
 +  gint nfds;
-+  
++
 +  if (!cocoa_run_loop_pollfds)
 +    {
 +      cocoa_run_loop_pollfds_size = RUN_LOOP_POLLFDS_INITIAL_SIZE;
@@ -887,7 +888,7 @@ index 27c0234..2a88474 100644
 +   * on to the BeforeWaiting stage where we check for lower priority sources.
 +   */
 +
-+  g_main_context_prepare (context, &max_priority); 
++  g_main_context_prepare (context, &max_priority);
 +  max_priority = MIN (max_priority, G_PRIORITY_DEFAULT);
 +
 +  /* We ignore the timeout that query_main_context () returns since we'll
@@ -927,9 +928,9 @@ index 27c0234..2a88474 100644
 +   * go ahead and sleep. Before doing that, if there was a timeout from
 +   * GLib, we set up a CFRunLoopTimer to wake us up.
 +   */
-+  
-+  g_main_context_prepare (context, &cocoa_run_loop_max_priority); 
-+  
++
++  g_main_context_prepare (context, &cocoa_run_loop_max_priority);
++
 +  cocoa_run_loop_n_pollfds = cocoa_query_main_context (context, cocoa_run_loop_max_priority, &timeout);
 +
 +  n_ready = cocoa_select_thread_start_poll (cocoa_run_loop_pollfds, cocoa_run_loop_n_pollfds, timeout);
@@ -948,7 +949,7 @@ index 27c0234..2a88474 100644
 +#ifdef G_MAIN_POLL_DEBUG
 +      g_print ("EventLoop: Adding timer to wake us up in %d milliseconds\n", timeout);
 +#endif
-+      
++
 +      cocoa_run_loop_timer = CFRunLoopTimerCreate (NULL, /* allocator */
 +					     CFAbsoluteTimeGetCurrent () + timeout / 1000.,
 +					     0, /* interval (0=does not repeat) */
@@ -959,7 +960,7 @@ index 27c0234..2a88474 100644
 +
 +      CFRunLoopAddTimer (CFRunLoopGetMain (), cocoa_run_loop_timer, kCFRunLoopCommonModes);
 +    }
-+  
++
 +  cocoa_run_loop_polling_async = n_ready < 0;
 +}
 +
@@ -978,13 +979,13 @@ index 27c0234..2a88474 100644
 +      CFRelease (cocoa_run_loop_timer);
 +      cocoa_run_loop_timer = NULL;
 +    }
-+  
++
 +  if (cocoa_run_loop_polling_async)
 +    {
 +      cocoa_select_thread_collect_poll (cocoa_run_loop_pollfds, cocoa_run_loop_n_pollfds);
 +      cocoa_run_loop_polling_async = FALSE;
 +    }
-+  
++
 +  if (g_main_context_check (context, cocoa_run_loop_max_priority, cocoa_run_loop_pollfds, cocoa_run_loop_n_pollfds))
 +    {
 +#ifdef G_MAIN_POLL_DEBUG
@@ -1055,30 +1056,11 @@ index 27c0234..2a88474 100644
 +}
 +
 +#endif
--- 
-2.7.4
-
-From a21db5fbba13c5bdf693a9ea4e4253cc41fcc1ba Mon Sep 17 00:00:00 2001
-From: Matthew Waters <matthew@centricular.com>
-Date: Fri, 3 Aug 2018 12:08:31 +1000
-Subject: [PATCH] build: fix GMainLoop on macos for meson
-
-Meson only takes the filename extension into account when choosing what
-compiler to run so we need to copy the gmain.c which now contains objc
-files and rename it to .m
-
-Note: this is not upstream because it's only needed by us in Cerbero
-because we apply an upstream WONTFIX patch that adds Cocoa event loop
-integration to GMainContext.
----
- glib/meson.build | 13 +++++++++++--
- 1 file changed, 11 insertions(+), 2 deletions(-)
-
 diff --git a/glib/meson.build b/glib/meson.build
-index ea9bf41..9f3e087 100644
+index c05c694..9dd94ef 100644
 --- a/glib/meson.build
 +++ b/glib/meson.build
-@@ -145,7 +145,7 @@ glib_sources = files(
+@@ -149,7 +149,7 @@ glib_sources = files(
    'glib-init.c',
    'glib-private.c',
    'glist.c',
@@ -1087,7 +1069,7 @@ index ea9bf41..9f3e087 100644
    'gmappedfile.c',
    'gmarkup.c',
    'gmem.c',
-@@ -196,6 +196,14 @@ glib_sources = files(
+@@ -203,6 +203,14 @@ glib_sources = files(
    'gprintf.c',
  )
  
@@ -1102,7 +1084,7 @@ index ea9bf41..9f3e087 100644
  if host_system == 'windows'
    glib_win_rc = configure_file(
      input: 'glib.rc.in',
-@@ -238,7 +246,8 @@ libglib = library('glib-2.0',
+@@ -245,7 +253,8 @@ libglib = library('glib-2.0',
    include_directories : configinc,
    link_with : [charset_lib, gnulib_lib],
    dependencies : [pcre, thread_dep, libintl, librt] + libiconv + platform_deps,
@@ -1113,5 +1095,5 @@ index ea9bf41..9f3e087 100644
  
  libglib_dep = declare_dependency(
 -- 
-2.14.3 (Apple Git-98)
+2.11.0
 
