@@ -35,10 +35,10 @@ class Recipe(custom.GStreamer):
         if self.config.platform != Platform.WINDOWS:
             # validatedefaultinjection plugin isn't built on Windows
             self.files_gst_validate_plugins = ['lib/gstreamer-1.0/validate/libgstvalidatefaultinjection%(mext)s']
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
 
     def post_install(self):
         super().post_install()
-
         if self.config.target_platform == Platform.LINUX:
             LibtoolLibrary('gstvalidate-default-overrides-1.0',
                     None, None, None, self.config.libdir,

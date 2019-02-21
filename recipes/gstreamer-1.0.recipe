@@ -83,3 +83,6 @@ class Recipe(custom.GStreamer):
 
         if self.using_msvc():
             self.meson_options['dbghlp'] = 'enabled'
+
+        if self.config.target_platform == Platform.WINDOWS:
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')

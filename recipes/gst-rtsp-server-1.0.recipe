@@ -13,3 +13,7 @@ class Recipe(custom.GStreamer):
     files_plugins_net_devel = [
         'lib/gstreamer-1.0/libgstrtspclientsink.a', 'lib/gstreamer-1.0/libgstrtspclientsink.la',
     ]
+
+    def prepare(self):
+        if self.config.target_platform == Platform.WINDOWS:
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
