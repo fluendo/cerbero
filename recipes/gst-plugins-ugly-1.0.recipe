@@ -53,3 +53,5 @@ class Recipe(custom.GStreamer):
 
         if self.config.variants.nodebug:
             self.append_env('CFLAGS', '-DGST_LEVEL_MAX=GST_LEVEL_FIXME')
+        if self.config.target_platform == Platform.WINDOWS:
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')

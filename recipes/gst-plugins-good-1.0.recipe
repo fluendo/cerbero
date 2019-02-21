@@ -233,6 +233,7 @@ class Recipe(custom.GStreamer):
 
         if self.config.target_platform == Platform.WINDOWS:
             self.meson_options['directsound'] = 'enabled'
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
         elif self.config.target_platform == Platform.DARWIN:
             self.meson_options['osxaudio'] = 'enabled'
             self.meson_options['osxvideo'] = 'enabled'

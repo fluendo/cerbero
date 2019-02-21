@@ -23,3 +23,5 @@ class Recipe(custom.GStreamer):
             self.meson_options['target'] = 'rpi'
         else:
             self.meson_options['target'] = 'generic'
+        if self.config.target_platform == Platform.WINDOWS:
+            self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
