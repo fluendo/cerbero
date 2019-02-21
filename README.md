@@ -264,6 +264,17 @@ These steps are necessary for using Cerbero on Windows.
 
 Download the [Windows executable installer](https://www.python.org/downloads/) and run it.
 
+**NOTE**: If you build pygobject recipe (Python bindings), Python modules will be created for the
+python version that is being used by Cerbero.
+Some Python versions (3.6 and 3.7 are confirmed) need a little patch in the library.
+Localize the file Lib/distutils/cygwinccompiler.py in your Python installation and change
+
+ elif msc_ver == '1600':
+
+by
+
+ elif msc_ver >= '1600':
+
 * On the first page of the installer, select the following:
 
 ![Enable Add Python to PATH, then click Customize Installation](/data/images/py-installer-page1.png)
