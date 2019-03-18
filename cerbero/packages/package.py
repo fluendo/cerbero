@@ -94,10 +94,16 @@ class PackageBase(object):
     @type rpm_obsoletes = str
     @cvar rpm_provides = list of RPM provided packages
     @type rpm_provides = str
+    @cvar package_subdir = package subdirectory for beta resources
+    @type package_subdir = str
+    @cvar executable_name = package exectutable name used in wix installer.wxs
+    @type executable_name = str
     '''
     name = 'default'
     shortdesc = 'default'
     longdesc = 'default'
+    package_subdir = ''
+    executable_name = None
     version = '1.0'
     codename = None
     org = 'default'

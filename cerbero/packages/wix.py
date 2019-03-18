@@ -380,8 +380,10 @@ class WixConfig(WixBase):
             "@Platform@": self._platform(),
             "@UIType@": self.ui_type,
             "@CerberoPackageDir@": self.package.package_dir(),
+            "@CerberoPackageSubDir@": self.package.package_subdir,
             "@CerberoPrefixDir@": self.prefix,
             "@CustomVariables@": self._custom_variables(),
+            "@ExecutableName@": self.package.executable_name [Platform.Windows],
         }
 
     def _product_name(self):
@@ -551,7 +553,9 @@ class MSI(WixBase):
                 etree.SubElement(self.product, 'WixVariable',
                         Id='WixUI%s' % var, Value=path)
         # Icon
-        path = self.package.relative_path(self.ICON)
+        path = os.path.join(self.package.package_subdir, self.ICON)
+        if not os.path.exists(path):
+            path = self.package.relative_path(self.ICON)
         if os.path.exists(path):
             etree.SubElement(self.product, 'Icon',
                 Id='MainIcon', SourceFile=path)
