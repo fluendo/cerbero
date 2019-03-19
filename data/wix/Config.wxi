@@ -16,5 +16,7 @@
 <?define UIType = "@UIType@" ?>
 <?define CerberoPackageDir = "@CerberoPackageDir@" ?>
 <?define CerberoPrefixDir = "@CerberoPrefixDir@" ?>
+<?define ExecutableName = "@ExecutableName@" ?>
+<?define CerberoPackageSubDir = "@CerberoPackageSubDir@" ?>
 @CustomVariables@
 </Include>
