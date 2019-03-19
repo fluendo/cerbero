@@ -103,7 +103,9 @@ class PackageBase(object):
     shortdesc = 'default'
     longdesc = 'default'
     package_subdir = ''
-    executable_name = None
+    executable_name = {
+        Platform.WINDOWS: None
+    }
     version = '1.0'
     codename = None
     org = 'default'
