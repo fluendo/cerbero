@@ -313,6 +313,7 @@ class BurnPackager(MSIPackager):
     """Packager for Burn bundles"""
     BURN_EXT = '-ext WixBalExtension'
     UTIL_EXT = '-ext WixUtilExtension'
+    NETFX_EXT = '-ext WixNetFxExtension'
 
     def __init__(self, config, package, store):
         super(BurnPackager, self).__init__(config, package, store)
@@ -340,23 +341,26 @@ class BurnPackager(MSIPackager):
         burn.write(sources[0])
 
         wixobjs = ["%s.wixobj" % p.rsplit('.',1)[0] for p in sources]
-        for x in ['utils']:
+        extra_sources = ['utils']
+        if self.package.wix_bundle_netframework:
+            extra_sources.append ('netfx472')
+
+        for x in extra_sources:
             wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
             sources.append(os.path.join(os.path.abspath(self.config.data_dir),
                            'wix/%s.wxs' % x))
-
         if self._with_wine:
             final_wixobjs = [to_winepath(x) for x in wixobjs]
             final_sources = [to_winepath(x) for x in sources]
         else:
             final_wixobjs = wixobjs
             final_sources = sources
-
-        candle = Candle(self.wix_prefix, self._with_wine,
-                        "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
+        extras = "%s %s" % (self.BURN_EXT, self.UTIL_EXT)
+        if self.package.wix_bundle_netframework:
+            extras = "%s %s" % (extras, self.NETFX_EXT)
+        candle = Candle(self.wix_prefix, self._with_wine, extras)
         candle.compile(' '.join(final_sources), self.output_dir)
-        light = Light(self.wix_prefix, self._with_wine,
-                      "%s %s" % (self.BURN_EXT, self.UTIL_EXT))
+        light = Light(self.wix_prefix, self._with_wine, extras)
         path = light.compile(final_wixobjs, self._package_name(), self.output_dir, extension='exe')
 
         # Clean up
