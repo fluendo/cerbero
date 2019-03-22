@@ -632,6 +632,8 @@ class App(PackageBase):
     @type osx_create_dmg: bool
     @cvar osx_create_pkg: Packages the app in a pkg
     @type osx_create_pkg: bool
+    @cvar wix_bundle_netframework: Bundles .NetFramework 4.7.2
+    @type wix_bundle_netframework: bool
     '''
 
     app_name = None
@@ -643,6 +645,7 @@ class App(PackageBase):
     wrapper = 'app_wrapper.tpl'
     resources_wix_bundle = None
     resources_wix_installer = None
+    wix_bundle_netframework = False
     config_wix_custom = None
     resources_info_plist = 'Info.plist'
     resources_distribution = 'distribution.xml'
