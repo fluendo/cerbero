@@ -12,7 +12,8 @@ class Recipe(recipe.Recipe):
     autoreconf = True
     autoreconf_sh = 'gtkdocize && autoreconf --force --install --verbose'
     configure_options = '--without-gnome --disable-more-warnings --disable-vala --with-gssapi=no \
-                         --disable-always-build-tests --disable-glibtest --disable-installed-tests'
+                         --disable-always-build-tests --disable-glibtest \
+                         --disable-installed-tests --disable-tls-check '
     deps = ['libxml2', 'glib', 'glib-networking']
     patches = ['libsoup/0001-Rip-out-sqlite-based-cookie-storage.patch',
                'libsoup/0001-build-Fix-enumtypes-on-MinGW-inside-MSYS-Windows.patch',
@@ -39,8 +40,6 @@ class Recipe(recipe.Recipe):
                  DistroVersion.UBUNTU_MAVERICK,
                  DistroVersion.UBUNTU_LUCID]:
             self.deps += [ 'glib-networking' ]
-        if self.config.target_platform in [Platform.WINDOWS, Platform.IOS]:
-            self.configure_options += ' --disable-tls-check'
 
     def compile(self):
         # glib-mkenums has #!/usr/bin/env python3, which looks for `python3`,
