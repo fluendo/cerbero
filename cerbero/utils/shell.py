@@ -595,12 +595,12 @@ start bash.exe --rcfile %s
         with open(msysbat, 'w+') as f:
             f.write(MSYSBAT % bashrc)
         with open(bashrc, 'w+') as f:
-            f.write(BASHRC % (sourcedirsh, platform,arch))
+            f.write(BASHRC % (sourcedirsh, platform, arch))
         subprocess.check_call(msysbat, shell=True)
         # We should remove the temporary directory
         # but there is a race with the bash process
     else:
-        ps1 = os.environ.get('PS1', '')
+        ps1 = os.environ.get('PS1', ':\[\033[01;34m\]\w\[\033[00m\]\$ ')
         bashrc = tempfile.NamedTemporaryFile()
         bashrc.write((BASHRC % (sourcedirsh, platform, arch, ps1)).encode())
         bashrc.flush()
