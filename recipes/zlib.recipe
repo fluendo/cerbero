@@ -46,3 +46,5 @@ class Recipe(recipe.Recipe):
                         os.path.join (self.config.prefix, 'lib', 'libz.so'))
             except OSError:
                 pass
+
+zlib_recipe = Recipe
