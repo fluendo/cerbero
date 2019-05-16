@@ -126,11 +126,15 @@ class WindowsBootstrapper(BootstrapperBase):
                 shutil.rmtree('/mingw/lib')
             except Exception:
                 pass
-        # Tar does not create correctly the mingw symlink
         if self.platform == Platform.WINDOWS:
+            # Tar does not create correctly the mingw symlink
             sysroot = os.path.join(self.prefix, 'x86_64-w64-mingw32/sysroot')
-            shell.call('rm -rf mingw', sysroot)
+            shutil.rmtree(os.path.join(sysroot, 'mingw'))
             shell.call('ln -s usr/x86_64-w64-mingw32 mingw', sysroot)
+            # In cross-compilation gcc does not create a prefixed cpp
+            cpp_exe = os.path.join(self.prefix, 'bin', 'cpp.exe')
+            host_cpp_exe = os.path.join(self.prefix, 'bin', 'x86_64-w64-mingw32-cpp.exe')
+            shutil.copyfile(cpp_exe, host_cpp_exe)
 
     def fix_openssl_mingw_perl(self):
         '''
