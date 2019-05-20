@@ -637,6 +637,8 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         @return: absolute path relative to the pacakge's directory
         @rtype: str
         '''
+        if os.path.isabs(path):
+            return path
         return os.path.abspath(os.path.join(self.recipe_dir(), path))
 
     def get_checksum(self):

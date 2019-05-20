@@ -124,6 +124,8 @@ class PackageBase(object):
         @return: absolute path relative to the pacakge's directory
         @rtype: str
         '''
+        if os.path.isabs(path):
+            return path
         return os.path.abspath(os.path.join(self.package_dir(), path))
 
     def files_list(self):
