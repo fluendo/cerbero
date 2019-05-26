@@ -29,14 +29,15 @@ class AndroidPackager(DistTarball):
     ''' Creates a distribution tarball for Android '''
 
     def _create_tarball(self, output_dir, package_type, files, force,
-                        package_prefix):
+                        package_prefix, relocatable, lib64_link):
         # Filter out some unwanted directories for the development package
         if package_type == PackageType.DEVEL:
             for filt in ['bin/', 'share/aclocal']:
                 files = [x for x in files if not x.startswith(filt)]
-        return super()._create_tarball(output_dir, package_type, files, force, package_prefix)
+        return super()._create_tarball(output_dir, package_type, files, force, package_prefix,
+                                       relocatable, lib64_link)
 
-    def _get_name(self, package_type, ext=None):
+    def get_name(self, package_type, ext=None):
         if ext is None:
             ext = 'tar.' + self.compress
 

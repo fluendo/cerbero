@@ -359,7 +359,7 @@ class CookBook (object):
             # filepath attribute was added afterwards
             if not hasattr(st, 'filepath') or not getattr(st, 'filepath'):
                 st.filepath = recipe.__file__
-            # if filepath has changed, force using file_hash(), this will
+            # if filepath has changed, force using file_md5(), this will
             # allow safe relocation of the recipes.
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__

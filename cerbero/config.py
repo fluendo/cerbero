@@ -23,11 +23,13 @@ import sysconfig
 import itertools
 from functools import lru_cache
 from pathlib import PurePath, Path
+import hashlib
+import re
 
 from cerbero import enums
 from cerbero.errors import FatalError, ConfigurationError
 from cerbero.utils import _, system_info, validate_packager, to_unixpath,\
-    shell, parse_file, detect_qt5
+    shell, parse_file, detect_qt5, replace_prefix
 from cerbero.utils import messages as m
 from cerbero.ide.vs.env import get_vs_version
 
@@ -132,7 +134,8 @@ class Config (object):
                    'meson_cross_properties', 'manifest', 'extra_properties',
                    'qt5_qmake_path', 'qt5_pkgconfigdir', 'for_shell',
                    'package_tarball_compression', 'extra_mirrors',
-                   'extra_bootstrap_packages', 'moltenvk_prefix']
+                   'extra_bootstrap_packages', 'moltenvk_prefix',
+                   'binaries_local', 'binaries_remote']
 
     cookbook = None
 
@@ -270,6 +273,8 @@ class Config (object):
     @lru_cache(maxsize=None)
     def get_env(self, prefix, libdir, py_prefix):
         # Get paths for environment variables
+        cc = os.environ['CC']
+        cflags = os.environ['CFLAGS']
         includedir = os.path.join(prefix, 'include')
         bindir = os.path.join(prefix, 'bin')
         manpathdir = os.path.join(prefix, 'share', 'man')
@@ -355,10 +360,11 @@ class Config (object):
             includedir = self._join_path(includedir,
                 os.path.join(self.toolchain_prefix, 'include'))
 
-
         # Most of these variables are extracted from jhbuild
         env = {'LD_LIBRARY_PATH': ld_library_path,
                'LDFLAGS': ldflags,
+               'CC' : cc,
+               'CFLAGS' : cflags,
                'C_INCLUDE_PATH': includedir,
                'CPLUS_INCLUDE_PATH': includedir,
                'PATH': path,
@@ -463,6 +469,8 @@ class Config (object):
         self.set_property('extra_mirrors', [])
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('bash_completions', set())
+        self.set_property('binaries_local', os.path.join(self.home_dir, "binaries",
+        "%s_%s" % (self.target_platform, self.target_arch)))
         # Increase open-files limits
         set_nofile_ulimit()
 
@@ -531,6 +539,44 @@ class Config (object):
     def target_distro_version_gte(self, distro_version):
         assert distro_version.startswith(self.target_distro + "_")
         return self.target_distro_version >= distro_version
+
+    @lru_cache(maxsize=None)
+    def _get_sanitized_env(self):
+        ret_env = {}
+        unixpath = to_unixpath(self.libdir)
+        for e in self.env.keys():
+            # envvars to avoid
+            if e in ['PATH']:
+                continue
+            # Remove the prefix
+            v = replace_prefix(self.prefix, self.env[e], '{PREFIX}')
+            # Remove the prefix in unix format, used in windows for PERL5LIB
+            v = replace_prefix(unixpath, v, '{prefix}')
+            # Remove the cerbero's home dir
+            v = replace_prefix(self.home_dir, v, '{HOME}')
+            # Remove the user's home dir
+            v = replace_prefix(os.path.expanduser('~'), v, '{USER}')
+            ret_env[e] = re.sub(r'\s+', ' ', v.strip())
+
+        # We need to add the compiler version at the very end since it cannot be
+        # included in the environment from the very beginning because during the
+        # bootstrap phase there is no compiler installed yet and get_env is cached
+        ret_env['CC_VERSION'] = shell.check_compiler_version(self, ret_env['CC'])
+        return ret_env
+
+    @lru_cache(maxsize=None)
+    def get_string_for_checksum(self):
+        env = self._get_sanitized_env()
+        string = ''
+        for e in env:
+            string += '{}={}\n'.format(e, env[e])
+        return string
+
+    @lru_cache(maxsize=None)
+    def get_checksum(self):
+        md5 = hashlib.md5()
+        md5.update(self.get_string_for_checksum().encode('utf-8'))
+        return md5.hexdigest()
 
     def _parse(self, filename, reset=True):
         config = {'os': os, '__file__': filename, 'env' : self.config_env}

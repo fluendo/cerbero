@@ -24,10 +24,12 @@ import asyncio
 from subprocess import CalledProcessError
 
 from cerbero.enums import Architecture, Platform, LibraryType
-from cerbero.errors import BuildStepError, FatalError, AbortedError
+from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
 from cerbero.build.recipe import Recipe, BuildSteps
 from cerbero.utils import _, N_, shell
 from cerbero.utils import messages as m
+from cerbero.build.fridge import Fridge
+from cerbero.packages.packagesstore import PackagesStore
 
 import inspect
 
@@ -84,7 +86,7 @@ class Oven (object):
         self.deps_only = deps_only
         shell.DRY_RUN = dry_run
 
-    def start_cooking(self):
+    def start_cooking(self, use_binaries=False, upload_binaries=False, build_missing=True):
         '''
         Cooks the recipe and all its dependencies
         '''
@@ -106,11 +108,32 @@ class Oven (object):
         m.message(_("Building the following recipes: %s") %
                   ' '.join([x.name for x in ordered_recipes]))
 
+        length = len(ordered_recipes)
+        if use_binaries or upload_binaries:
+            fridge = Fridge(PackagesStore(self.config), force=self.force, dry_run=shell.DRY_RUN)
+
         i = 1
         self._static_libraries_built = []
         for recipe in ordered_recipes:
             try:
-                self._cook_recipe(recipe, i, len(ordered_recipes))
+                def _build_and_upload_if_needed():
+                    self._cook_recipe(recipe, i, length)
+                    if upload_binaries:
+                        try:
+                            fridge.freeze_recipe(recipe, i, length)
+                        except RecipeNotFreezableError:
+                            pass
+
+                if use_binaries and (self.cookbook.recipe_needs_build(recipe.name) or \
+                    self.force):
+                    try:
+                        fridge.unfreeze_recipe(recipe, i, len(recipes))
+                    except:
+                        _build_and_upload_if_needed()
+
+                else:
+                    _build_and_upload_if_needed()
+
             except BuildStepError as be:
                 if not self.interactive:
                     raise be

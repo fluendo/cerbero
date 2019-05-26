@@ -78,6 +78,25 @@ def to_unixpath(path):
         path = '/%s%s' % (path[0], path[2:])
     return path
 
+def to_odd_cased_unixpath(path):
+    if path[1] == ':':
+        # from winpath
+        drive_letter = path[0]
+        if drive_letter.isupper():
+            drive_letter = drive_letter.lower()
+        else:
+            drive_letter = drive_letter.upper()
+        path = drive_letter + path[1:]
+        path = to_unixpath(path)
+    elif path[0] == '/':
+        # from unixpath
+        drive_letter = path[1]
+        if drive_letter.isupper():
+            drive_letter = drive_letter.lower()
+        else:
+            drive_letter = drive_letter.upper()
+        path = path[0] + drive_letter + path[2:]
+    return path
 
 def to_winepath(path):
         path = path.replace('/', '\\\\')
@@ -510,3 +529,34 @@ def detect_qt5(platform, arch, is_universal):
     if ret == (None, None):
         m.warning('Unsupported arch {!r} on platform {!r}'.format(arch, platform))
     return ret
+
+def replace_prefix(prefix, string, replacement='{PREFIX}'):
+    '''
+    Replace all possible ways of writing the prefix.
+    This function replaces in a string.
+
+    @return: replaced string
+    @rtype: str
+
+    @cvar prefix: prefix to be replaced
+    @rtype: str
+    @cvar string: the original string
+    @rtype: str
+    @cvar replacement: the placeholder to put instead of the prefix
+    @rtype: str
+    '''
+    for p in [prefix, to_unixpath(prefix), to_winpath(prefix),
+              to_winepath(prefix), to_odd_cased_unixpath(prefix),
+              os.path.normpath(prefix)]:
+        string = string.replace(p, replacement)
+    return string
+
+def is_text_file(filename):
+    '''
+    Check if a file is text or binary.
+    This uses the same logic as file(1).
+    Adapted from https://stackoverflow.com/a/7392391/1324984.
+    '''
+    textchars = bytearray(set([7,8,9,10,12,13,27]) | set(range(0x20, 0x100)) - set([0x7f]))
+    with open(filename, 'rb') as f:
+        return f.read(1024).translate(None, textchars) == ''

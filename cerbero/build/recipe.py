@@ -196,6 +196,7 @@ class Recipe(FilesProvider, metaclass=MetaRecipe):
     platform_deps = None
     runtime_dep = False
     bash_completions = None
+    allow_package_creation = True
 
     # Internal properties
     force = False

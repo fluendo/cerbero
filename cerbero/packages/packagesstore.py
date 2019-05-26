@@ -168,6 +168,28 @@ class PackagesStore (object):
         # Add recipes by asceding pripority
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
+        # Add a package for every recipe
+        for recipe in self.cookbook.get_recipes_list():
+            if not recipe.allow_package_creation:
+                continue
+            p = self._package_from_recipe(recipe)
+            if p.name in self._packages.keys():
+                m.warning("Package with name '%s' already exists, not including it", p.name)
+            else:
+                self._packages[p.name] = p
+
+    def _package_from_recipe(self, recipe):
+        p = package.Package(self._config, self, self.cookbook)
+        p.name = '%s-pkg' % recipe.name
+        p.license = recipe.licenses
+        if recipe.built_version():
+            version = recipe.built_version()
+        else:
+            version = recipe.version
+        p.version = '%s-%s' % (version, recipe.get_checksum().hex())
+        p.files = ['%s' % recipe.name]
+        p.load_files()
+        return p
 
     def _load_packages_from_dir(self, repo):
         packages_dict = {}

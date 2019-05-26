@@ -40,8 +40,13 @@ class BuildTools (BootstrapperBase, Fetch):
         Platform.LINUX: ['intltool-m4'],
     }
 
-    def __init__(self, config, offline):
+    def __init__(self, config, offline, use_binaries=False, upload_binaries=False,
+            build_missing=False):
         BootstrapperBase.__init__(self, config, offline)
+
+        self.use_binaries = use_binaries
+        self.upload_binaries = upload_binaries
+        self.build_missing = build_missing
 
         if self.config.platform == Platform.WINDOWS:
             self.BUILD_TOOLS.remove('m4')
@@ -88,7 +93,7 @@ class BuildTools (BootstrapperBase, Fetch):
         config.build_tools_cache = self.config.build_tools_cache
         config.external_recipes = self.config.external_recipes
         config.extra_mirrors = self.config.extra_mirrors
-        config.cached_sources = self.config.cached_sources
+        config.binaries_remote = self.config.binaries_remote
 
         if config.toolchain_prefix and not os.path.exists(config.toolchain_prefix):
             os.makedirs(config.toolchain_prefix)
@@ -104,7 +109,7 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def start(self):
         oven = Oven(self.recipes, self.cookbook)
-        oven.start_cooking()
+        oven.start_cooking(self.use_binaries, self.upload_binaries, self.build_missing)
 
     def fetch_recipes(self):
         Fetch.fetch(self.cookbook, self.recipes, False, False, False, False)

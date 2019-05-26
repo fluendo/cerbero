@@ -35,8 +35,10 @@ def register_bootstrapper(distro, klass, distro_version=None):
 
 class Bootstrapper (object):
     def __new__(klass, config, build_tools_only, offline, assume_yes,
-            system_only):
+            system_only, use_binaries=False, upload_binaries=False,
+            build_missing=False):
         bs = []
+        bs.append(BuildTools(config, use_binaries, upload_binaries, build_missing))
 
         if not system_only:
             bs.append(BuildTools(config, offline))
