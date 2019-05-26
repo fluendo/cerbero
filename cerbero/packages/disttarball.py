@@ -22,11 +22,14 @@ import tarfile
 import tempfile
 
 import cerbero.utils.messages as m
-from cerbero.utils import shell, _
+from cerbero.utils import shell, _, replace_prefix, is_text_file
 from cerbero.enums import Platform
 from cerbero.errors import FatalError, UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.tools import strip
+from functools import lru_cache
+
+RESTORE_SUFFIX = '.relocation_restore'
 
 
 class DistTarball(PackagerBase):
@@ -43,21 +46,17 @@ class DistTarball(PackagerBase):
         if self.compress not in ('bz2', 'xz'):
             raise UsageError('Invalid compression type {!r}'.format(self.compress))
 
-    def pack(self, output_dir, devel=True, force=False, keep_temp=False):
-        return self.pack_full(output_dir, devel=devel, force=force, keep_temp=keep_temp,
-                              slipt=True, strip_binaries=self.package.strip)
-
-    def pack_full(self, output_dir, devel=True, force=False, keep_temp=False,
-                  split=True, package_prefix='', strip_binaries=False):
+    @lru_cache(maxsize=None)
+    def _files_list(self, devel=True, force=True, split=True):
         try:
-            dist_files = self.files_list(PackageType.RUNTIME, force)
+            dist_files = super().files_list(PackageType.RUNTIME, force)
         except EmptyPackageError:
             m.warning(_("The runtime package is empty"))
             dist_files = []
 
         if devel:
             try:
-                devel_files = self.files_list(PackageType.DEVEL, force)
+                devel_files = super().files_list(PackageType.DEVEL, force)
             except EmptyPackageError:
                 m.warning(_("The development package is empty"))
                 devel_files = []
@@ -70,23 +69,33 @@ class DistTarball(PackagerBase):
         if not dist_files and not devel_files:
             raise EmptyPackageError(self.package.name)
 
+        return dist_files, devel_files
+
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False,
+             split=True, package_prefix='', strip_binaries=False, force_empty=False,
+             relocatable=False, lib64_link=False):
+        dist_files = []
+        devel_files = []
+        try:
+            dist_files, devel_files = self._files_list(force=force, devel=devel, split=split)
+        except EmptyPackageError:
+            pass
         filenames = []
-        if dist_files:
-            if not strip_binaries:
-                runtime = self._create_tarball(output_dir, PackageType.RUNTIME,
-                                               dist_files, force, package_prefix)
-            else:
-                runtime = self._create_tarball_stripped(output_dir, PackageType.RUNTIME,
-                                                        dist_files, force, package_prefix)
+        create_tarball_func = self._create_tarball if not strip_binaries else self._create_tarball_stripped
+        if dist_files or force_empty:
+            runtime = create_tarball_func(output_dir, PackageType.RUNTIME,
+                                          dist_files, force, package_prefix,
+                                          relocatable, lib64_link)
             filenames.append(runtime)
 
-        if split and devel and len(devel_files) != 0:
-            devel = self._create_tarball(output_dir, PackageType.DEVEL,
-                                         devel_files, force, package_prefix)
+        if split and devel and (len(devel_files) != 0 or force_empty):
+            devel = create_tarball_func(output_dir, PackageType.DEVEL,
+                                        devel_files, force, package_prefix,
+                                        relocatable, lib64_link)
             filenames.append(devel)
         return filenames
 
-    def _get_name(self, package_type, ext=None):
+    def get_name(self, package_type, ext=None):
         if ext is None:
             ext = 'tar.' + self.compress
 
@@ -97,11 +106,28 @@ class DistTarball(PackagerBase):
         else:
             platform = 'mingw'
 
+        # Use files_list() and devel_files_list() just to check whether the package
+        # is an empty package or not. In case of any error attempting to collect the files,
+        # we assume there are files needed for the package. Errors when the files do not
+        # exist may occur because both methods were created for generating a package,
+        # and hence, they error if they do not find the libraries generated.
+        try:
+            dist_files = self.package.files_list()
+        except Exception:
+            dist_files = [True]
+        try:
+            devel_files = self.package.devel_files_list()
+        except Exception:
+            devel_files = [True]
+
+        if package_type == PackageType.RUNTIME and not dist_files or \
+           package_type == PackageType.DEVEL and not devel_files:
+            return ""
         return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name, platform,
-                self.config.target_arch, self.package.version, package_type, ext)
+                                       self.config.target_arch, self.package.version, package_type, ext)
 
     def _create_tarball_stripped(self, output_dir, package_type, files, force,
-                                 package_prefix):
+                                 package_prefix, relocatable, lib64_link):
         tmpdir = tempfile.mkdtemp(dir=self.config.home_dir)
 
         if hasattr(self.package, 'strip_excludes'):
@@ -121,24 +147,65 @@ class DistTarball(PackagerBase):
         prefix_restore = self.prefix
         self.prefix = tmpdir
         tarball = self._create_tarball(output_dir, package_type,
-                                       files, force, package_prefix)
+                                       files, force, package_prefix,
+                                       relocatable, lib64_link)
         self.prefix = prefix_restore
         shutil.rmtree(tmpdir)
 
         return tarball
 
     def _create_tarball(self, output_dir, package_type, files, force,
-                        package_prefix):
-        filename = os.path.join(output_dir, self._get_name(package_type))
+                        package_prefix, relocatable, lib64_link):
+        filename = os.path.join(output_dir, self.get_name(package_type))
         if os.path.exists(filename):
             if force:
                 os.remove(filename)
             else:
                 raise UsageError("File %s already exists" % filename)
+
+        tar_files = []
+        restore_files = []
+        for f in files:
+            filepath = os.path.join(self.prefix, f)
+            if relocatable and not os.path.islink(filepath):
+                if os.path.splitext(f)[1] in ['.la', '.pc'] or ('bin' in os.path.splitext(f)[0] and is_text_file(filepath)):
+                    shutil.copy(filepath, filepath + RESTORE_SUFFIX)
+                    restore_files.append(f)
+                    with open(filepath, 'w+') as fo:
+                        content = fo.read()
+                        content = replace_prefix(self.config.prefix, content, 'CERBERO_PREFIX')
+                        fo.write(content)
+                        fo.flush()
+                        tar_files.append(filepath)
+                else:
+                    tar_files.append(filepath)
+            else:
+                tar_files.append(filepath)
+
+        # This link allows to rpm packager to install the libs
+        # in lib64 instead of lib without changing where cerbero
+        # is installing its build artifacts.
+        if lib64_link:
+            filepath = os.path.join(self.prefix, 'lib64')
+            try:
+                os.symlink('lib', filepath)
+            except OSError:
+                pass
+            files.append(filepath)
+
         if self.config.platform == Platform.WINDOWS:
-            self._write_tarfile(filename, package_prefix, files)
+            self._write_tarfile(filename, package_prefix, tar_files)
         else:
-            self._write_tar(filename, package_prefix, files)
+            self._write_tar(filename, package_prefix, tar_files)
+
+        # Restore original files
+        for f in restore_files:
+            if os.path.isfile(f) and os.path.isfile(f + RESTORE_SUFFIX):
+                shutil.copy(f + RESTORE_SUFFIX, f)
+
+        if lib64_link:
+            os.unlink(filepath)
+
         return filename
 
     def _write_tarfile(self, filename, package_prefix, files):
@@ -153,9 +220,12 @@ class DistTarball(PackagerBase):
 
     def _write_tar(self, filename, package_prefix, files):
         tar_cmd = ['tar', '-C', self.prefix, '-cf', filename]
-        # ensure we provide a unique list of files to tar to avoid
-        # it creating hard links/copies
-        files = sorted(set(files))
+        # convert absolute paths to relative paths to the prefix
+        for i, file in enumerate(files):
+            if self.prefix in file:
+                files[i] = file.replace(self.prefix, '')
+                files[i] = files[i].lstrip(
+                    '/') if self.config.platform != Platform.WINDOWS else files[i].rstrip('\\')
         if package_prefix:
             # Only transform the files (and not symbolic/hard links)
             tar_cmd += ['--transform', 'flags=r;s|^|{}/|'.format(package_prefix)]
@@ -178,7 +248,6 @@ class Packager(object):
 
     def __new__(klass, config, package, store):
         return DistTarball(config, package, store)
-
 
 
 def register():

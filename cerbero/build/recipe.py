@@ -193,6 +193,7 @@ class Recipe(FilesProvider, metaclass=MetaRecipe):
     deps = None
     platform_deps = None
     runtime_dep = False
+    allow_package_creation = True
 
     # Internal properties
     force = False

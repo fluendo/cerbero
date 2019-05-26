@@ -319,7 +319,7 @@ def unpack(filepath, output_dir, logfile=None):
     else:
         raise FatalError("Unknown tarball format %s" % filepath)
 
-def download_wget(url, destination=None, check_cert=True, overwrite=False):
+def download_wget(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Downloads a file with wget
 
@@ -336,6 +336,11 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False):
     if not check_cert:
         cmd += " --no-check-certificate"
 
+    if user:
+        cmd += " --user %s" % user
+        if password:
+            cmd += " --password \"%s\"" % password
+
     cmd += " --tries=2"
     cmd += " --timeout=10.0"
     cmd += " --progress=dot:giga"
@@ -347,7 +352,7 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download_urllib2(url, destination=None, check_cert=True, overwrite=False):
+def download_urllib2(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Download a file with urllib2, which does not rely on external programs
 
@@ -376,7 +381,7 @@ def download_urllib2(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download_curl(url, destination=None, check_cert=True, overwrite=False):
+def download_curl(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Downloads a file with cURL
 
@@ -387,6 +392,12 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False):
     '''
     path = None
     cmd = "curl -L --fail "
+    if user:
+        cmd += "--user %s" % user
+        if password:
+            cmd += ":\"%s\" " % password
+        else:
+            cmd += " "
     if not check_cert:
         cmd += " -k "
     if destination is not None:
@@ -400,7 +411,7 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None):
+def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None, user=None, password=None):
     '''
     Downloads a file
 
@@ -450,11 +461,42 @@ def download(url, destination=None, check_cert=True, overwrite=False, logfile=No
     errors = []
     for murl in urls:
         try:
-            return download_func(murl, destination, check_cert, overwrite)
+            return download_func(murl, destination, check_cert, overwrite, user, password)
         except Exception as ex:
             errors.append(ex)
     raise Exception (errors)
 
+def upload_curl(source, url, user=None, password=None):
+    if not os.path.exists(source):
+        raise FatalError(_("File %s does not exist.") % source)
+
+    path = None
+    cmd = "curl -T "
+    cmd += "%s %s" % (source, url)
+    if user:
+        cmd += " --user %s" % user
+        if password:
+            cmd += ":\"%s\" " % password
+        else:
+            cmd += " "
+
+    cmd += " --ftp-create-dirs "
+    logging.info("Uploading %s to %s", source, url)
+    call(cmd, path)
+
+def curl_file_exists(url, user=None, password=None):
+    cmd = 'curl ' + url
+    if user:
+        cmd += " --user %s" % user
+        if password:
+            cmd += ":\"%s\" " % password
+        else:
+            cmd += " "
+    cmd += ' --head'
+    try:
+        return call(cmd, None) == 0
+    except:
+        return False
 
 def _splitter(string, base_url):
     lines = string.split('\n')
@@ -550,12 +592,17 @@ def touch(path, create_if_not_exists=False, offset=0):
     os.utime(path, (t, t))
 
 
-def file_hash(path):
+def file_md5(path):
     '''
     Get the file md5 hash
     '''
     return hashlib.md5(open(path, 'rb').read()).digest()
 
+def file_sha256(path):
+    '''
+    Get the file SHA256 hash
+    '''
+    return hashlib.sha256(open(path, 'rb').read()).digest()
 
 def files_checksum(paths):
     '''
@@ -569,7 +616,7 @@ def files_checksum(paths):
     m = hashlib.md5()
     for f in paths:
         m.update(open(f, 'rb').read())
-    return m.digest()
+    return m.hexdigest()
 
 
 def enter_build_environment(platform, arch, sourcedir=None):
@@ -642,6 +689,16 @@ def check_perl_version(needed, env):
     found = m.group()[1:]
     newer = StrictVersion(found) >= StrictVersion(needed)
     return perl, found, newer
+
+def check_compiler_version(config, cc):
+    if not config.msvc_version:
+        result = re.search(r'\s(\d+\.\d+\.\d+(\.\d+)?)\s', check_output(cc + ' --version'))
+        if result.groups():
+            return result.groups()[0]
+        else:
+            raise FatalError(_('Cannot retrieve version of the compiler'))
+    else:
+        return config.msvc_version
 
 def windows_proof_rename(from_name, to_name):
     '''
