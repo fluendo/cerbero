@@ -32,9 +32,9 @@ from cerbero.utils import messages as m
 TOOLCHAIN_BASE_URL = 'https://gstreamer.freedesktop.org/data/cerbero/toolchain/windows/'
 TOOLCHAIN_PLATFORM = {
     Platform.LINUX: ('mingw-6.0.0-gcc-8.2.0-linux-multilib.tar.xz',
-        'b12d06c798d00d16dd454b7041f22ffbcf28e2fd91599d9d6391266ed6e8209d'),
+        '396ceb50161720b19971e2c71c87ce08150213b091ed8ffc00782df8759921bf'),
     Platform.WINDOWS: ('mingw-6.0.0-gcc-8.2.0-windows-multilib.tar.xz',
-        '4811211e5c5a624437861fdb3a9ad3fa59cfef8eda19497b9569ab0072dbe1f6'),
+        '77fc1319b13894d7340d4994150e3af615e23a63113a9947412d11be95f4d8a9'),
 }
 
 # MinGW Perl
