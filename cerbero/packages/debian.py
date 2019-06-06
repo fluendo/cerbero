@@ -157,7 +157,7 @@ binary-arch: build install
 	dh_fixperms -a
 	dh_makeshlibs -a -V
 	dh_installdeb -a
-	dh_shlibdeps -a
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -a
 	dh_gencontrol -a
 	dh_md5sums -a
 	dh_builddeb -a
