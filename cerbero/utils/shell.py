@@ -301,10 +301,12 @@ def unpack(filepath, output_dir, logfile=None):
     log('Unpacking {} in {}'.format(filepath, output_dir), logfile)
 
     if filepath.endswith('tar.gz') or filepath.endswith('tgz') or \
-        filepath.endswith('tar.bz2') or filepath.endswith('tbz2') or \
-        filepath.endswith('tar.bz2') or filepath.endswith('tbz2') or \
-        filepath.endswith('tar.xz'):
-      call("tar -xf {} -C {}".format(filepath, output_dir))
+            filepath.endswith('tar.bz2') or filepath.endswith('tbz2') or \
+            filepath.endswith('tar.bz2') or filepath.endswith('tbz2') or \
+            filepath.endswith('tar.xz'):
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        call("tar -xf {} -C {}".format(filepath, output_dir))
     elif filepath.endswith('.zip'):
         zf = zipfile.ZipFile(filepath, "r")
         zf.extractall(path=output_dir)
