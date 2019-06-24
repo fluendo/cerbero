@@ -19,7 +19,14 @@ class Recipe(recipe.Recipe):
         # https://github.com/mesonbuild/meson/pull/4864, in 0.50
         'meson/0001-macos-lipo-outputs-aarch64-as-arm64-fix-it.patch',
         # https://github.com/mesonbuild/meson/pull/4959, in 0.51
-        'meson/0001-Fix-msys-1.0-gcc-python-linking.patch'
+        'meson/0001-Fix-msys-1.0-gcc-python-linking.patch',
+        # https://github.com/mesonbuild/meson/pull/5274, fixed in 0.50.1
+        # Not actually in 0.50.1, but it's just not needed in 0.50.*
+        'meson/0001-meson-Add-a-quick-hack-to-support-VS2019.patch',
+        # https://github.com/mesonbuild/meson/pull/5517, in 0.51.1
+        'meson/0001-compilers-Fix-bitcode-and-other-options-for-objc-cod.patch',
+        # Not needed with 0.50, code changed
+        'meson/0001-ninja-backend-Quote-args-to-compiler-rules.patch'
     ]
     deps = ['ninja']
 
