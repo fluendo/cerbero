@@ -51,8 +51,8 @@ class VSTemplatePackage(Package):
     def devel_files_list(self):
         files = []
         for f in [self.vs_template_dir, self.vs_wizard_dir]:
-            files  += shell.ls_dir (os.path.join(self.config.prefix,f),
-                self.config.prefix)
+            files += shell.ls_dir(os.path.join(self.config.prefix, f),
+                                  self.config.prefix)
         return files
 
 
@@ -110,25 +110,30 @@ class WixBase():
             ret = '%s_%s' % (ret, self.ids[ret])
         return ret
 
+    def _format_dir_id(self, string, path, replace_dots=False):
+        return self._format_id(string, replace_dots) + '_' +\
+            self._format_path_id(path, replace_dots)
+
+    def _format_group_id(self, string, replace_dots=False):
+        return self._format_id(string, replace_dots) + '_group'
+
     def _get_uuid(self):
         return "%s" % uuid.uuid1()
 
     def _format_version(self, version):
-        # mayor and minor must be less than 256 on windows,
-        # so 2012.5 must be changed to 20.12.5
-        versions = version.split('.')
-        tversions = []
-        for version in versions:
-            i = int(version)
-            if i > 9999:
-                raise FatalError("Unsupported version number, mayor and minor "
-                        "must be less than 9999")
-            elif i > 255:
-                tversions.append(version[:-2])
-                tversions.append(version[-2:])
-            else:
-                tversions.append(version)
-        return '.'.join(tversions)
+        # The heuristics to generate a valid version can get
+        # very complicated, so we leave it to the user
+        url = "https://docs.microsoft.com/en-us/windows/desktop/Msi/productversion"
+        versions = (version.split(".", 3) + ["0", "0", "0"])[:3]
+        for idx, val in enumerate(versions):
+            i = int(val)
+            if idx in [0, 1] and i > 255:
+                raise FatalError("Invalid version string, major and minor"
+                                 "must have a maximum value of 255.\nSee: {}".format(url))
+            elif idx in [2] and i > 65535:
+                raise FatalError("Invalid version string, build "
+                                 "must have a maximum value of 65535.\nSee: {}".format(url))
+        return ".".join(versions)
 
 
 class MergeModule(WixBase):
@@ -153,20 +158,20 @@ class MergeModule(WixBase):
 
     def _add_module(self):
         self.module = etree.SubElement(self.root, "Module",
-            Id=self._format_id(self.package.name),
-            Version=self._format_version(self.package.version),
-            Language='1033')
+                                       Id=self._format_id(self.package.name),
+                                       Version=self._format_version(self.package.version),
+                                       Language='1033')
 
     def _add_package(self):
         self.pkg = etree.SubElement(self.module, "Package",
-            Id=self.package.uuid or self._get_uuid(),
-            Description=self.package.shortdesc,
-            Comments=self.package.longdesc,
-            Manufacturer=self.package.vendor)
+                                    Id=self.package.uuid or self._get_uuid(),
+                                    Description=self.package.shortdesc,
+                                    Comments=self.package.longdesc,
+                                    Manufacturer=self.package.vendor)
 
     def _add_root_dir(self):
         self.rdir = etree.SubElement(self.module, "Directory",
-            Id='TARGETDIR', Name='SourceDir')
+                                     Id='TARGETDIR', Name='SourceDir')
         self._dirnodes[''] = self.rdir
 
     def _add_files(self):
@@ -185,8 +190,8 @@ class MergeModule(WixBase):
 
         parent = self._dirnodes[parentpath]
         dirnode = etree.SubElement(parent, "Directory",
-            Id=self._format_path_id(dirpath),
-            Name=os.path.split(dirpath)[1])
+                                   Id=self._format_path_id(dirpath),
+                                   Name=os.path.split(dirpath)[1])
         self._dirnodes[dirpath] = dirnode
 
     def _add_file(self, filepath):
@@ -195,10 +200,82 @@ class MergeModule(WixBase):
         dirnode = self._dirnodes[dirpath]
 
         component = etree.SubElement(dirnode, 'Component',
-            Id=self._format_path_id(filepath), Guid=self._get_uuid())
+                                     Id=self._format_path_id(filepath), Guid=self._get_uuid())
 
         filepath = os.path.join(self.prefix, filepath)
         p_id = self._format_path_id(filepath, True)
+        if self._with_wine:
+            filepath = to_winepath(filepath)
+        etree.SubElement(component, 'File', Id=p_id, Name=filename,
+                         Source=filepath)
+
+
+class Fragment(WixBase):
+    '''
+    Creates WiX fragment from cerbero packages
+
+    @ivar package: package with the info to build the merge package
+    @type pacakge: L{cerbero.packages.package.Package}
+    '''
+
+    def __init__(self, config, files_list, package):
+        WixBase.__init__(self, config, package)
+        self.files_list = files_list
+        self._dirnodes = {}
+        self._dirids = {}
+
+    def _fill(self):
+        self._add_root()
+        self._add_fragment()
+        self._add_component_group()
+        self._add_root_dir()
+        self._add_files()
+
+    def _add_fragment(self):
+        self.fragment = etree.SubElement(self.root, "Fragment")
+
+    def _add_component_group(self):
+        self.component_group = etree.SubElement(self.fragment, "ComponentGroup",
+                                                Id=self._format_group_id(self.package.name))
+
+    def _add_root_dir(self):
+        self.rdir = etree.SubElement(self.fragment, "DirectoryRef",
+                                     Id='SDKROOTDIR')
+        self._dirnodes[''] = self.rdir
+
+    def _add_files(self):
+        for f in self.files_list:
+            self._add_file(f)
+
+    def _add_directory(self, dirpath):
+        if dirpath in self._dirnodes:
+            return
+
+        parentpath = os.path.split(dirpath)[0]
+        if parentpath == []:
+            parentpath = ['']
+
+        if parentpath not in self._dirnodes:
+            self._add_directory(parentpath)
+
+        parent = self._dirnodes[parentpath]
+        dirid = self._format_dir_id(self.package.name, dirpath)
+        dirnode = etree.SubElement(parent, "Directory",
+                                   Id=dirid,
+                                   Name=os.path.split(dirpath)[1])
+        self._dirnodes[dirpath] = dirnode
+        self._dirids[dirpath] = dirid
+
+    def _add_file(self, filepath):
+        dirpath, filename = os.path.split(filepath)
+        self._add_directory(dirpath)
+        dirid = self._dirids[dirpath]
+
+        component = etree.SubElement(self.component_group, 'Component',
+                                     Id=self._format_dir_id(self.package.name, filepath),
+                                     Guid=self._get_uuid(), Directory=dirid)
+        filepath = os.path.join(self.prefix, filepath)
+        p_id = self._format_dir_id(self.package.name, filepath, True)
         if self._with_wine:
             filepath = to_winepath(filepath)
         etree.SubElement(component, 'File', Id=p_id, Name=filename,
@@ -222,28 +299,28 @@ class VSMergeModule(MergeModule):
 
     def _add_vs_templates(self):
         etree.SubElement(self.module, 'PropertyRef',
-            Id='VS_PROJECTTEMPLATES_DIR')
+                         Id='VS_PROJECTTEMPLATES_DIR')
         etree.SubElement(self.module, 'PropertyRef',
-            Id='VS_WIZARDS_DIR')
+                         Id='VS_WIZARDS_DIR')
         etree.SubElement(self.module, 'CustomActionRef',
-            Id='VS2010InstallVSTemplates')
+                         Id='VS2010InstallVSTemplates')
         etree.SubElement(self.module, 'CustomActionRef',
-            Id='VC2010InstallVSTemplates')
+                         Id='VC2010InstallVSTemplates')
         prop = etree.SubElement(self.module, 'SetProperty',
-            Id="VSPROJECTTEMPLATESDIR", After="AppSearch",
-            Value="[VS_PROJECTTEMPLATES_DIR]\\%s" % \
-                self.package.vs_template_name or "")
+                                Id="VSPROJECTTEMPLATESDIR", After="AppSearch",
+                                Value="[VS_PROJECTTEMPLATES_DIR]\\%s" %
+                                self.package.vs_template_name or "")
         prop.text = "VS_PROJECTTEMPLATES_DIR"
         prop = etree.SubElement(self.module, 'SetProperty',
-            Id="VSWIZARDSDIR", After="AppSearch",
-            Value="[VS_WIZARDS_DIR]\\%s" % \
-                os.path.split(self.package.vs_template_dir)[1])
+                                Id="VSWIZARDSDIR", After="AppSearch",
+                                Value="[VS_WIZARDS_DIR]\\%s" %
+                                os.path.split(self.package.vs_template_dir)[1])
         prop.text = "VS_WIZARDS_DIR"
 
         self._wizard_dir = etree.SubElement(self.rdir, 'Directory',
-            Id='VSPROJECTTEMPLATESDIR')
+                                            Id='VSPROJECTTEMPLATESDIR')
         self._tpl_dir = etree.SubElement(self.rdir, 'Directory',
-            Id='VSWIZARDSDIR')
+                                         Id='VSWIZARDSDIR')
         self._dirnodes[self.package.vs_template_dir] = self._tpl_dir
         self._dirnodes[self.package.vs_wizard_dir] = self._wizard_dir
 
@@ -263,9 +340,9 @@ class WixConfig(WixBase):
 
     def write(self, output_dir):
         config_out_path = os.path.join(output_dir,
-                os.path.basename(self.wix_config))
+                                       os.path.basename(self.wix_config))
         shutil.copy(self.config_path, os.path.join(output_dir,
-                    os.path.basename(self.wix_config)))
+                                                   os.path.basename(self.wix_config)))
         replacements = {
             "@ProductID@": '*',
             "@UpgradeCode@": self.package.get_wix_upgrade_code(),
@@ -279,7 +356,7 @@ class WixConfig(WixBase):
             "@ProgramFilesFolder@": self._program_folder(),
             "@Platform@": self._platform(),
             "@UIType@": self.ui_type
-            }
+        }
         shell.replace(config_out_path, replacements)
         return config_out_path
 
@@ -325,7 +402,7 @@ class MSI(WixBase):
 
     def _parse_sources(self):
         sources_path = self.package.resources_wix_installer or \
-                os.path.join(self.config.data_dir, self.wix_sources)
+            os.path.join(self.config.data_dir, self.wix_sources)
         with open(sources_path, 'r') as f:
             self.root = etree.fromstring(f.read())
         for element in self.root.iter():
@@ -342,7 +419,7 @@ class MSI(WixBase):
     def _fill(self):
         self._add_install_dir()
         if isinstance(self.package, App):
-            self._add_application_merge_module ()
+            self._add_application_merge_module()
         else:
             self._add_merge_modules()
         if isinstance(self.package, SDKPackage):
@@ -355,21 +432,23 @@ class MSI(WixBase):
 
     def _add_application_merge_module(self):
         self.main_feature = etree.SubElement(self.product, "Feature",
-            Id=self._format_id(self.package.name + '_app'),
-            Title=self.package.title, Level='1', Display="expand",
-            AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
-
-        self._add_merge_module(self.package, True, True, [])
-
-        etree.SubElement(self.installdir, 'Merge',
-            Id=self._package_id(self.package.name), Language='1033',
-            SourceFile=self.packages_deps[self.package], DiskId='1')
+                                             Id=self._format_id(self.package.name + '_app'),
+                                             Title=self.package.title, Level='1', Display="expand",
+                                             AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
+        if self.package.wix_use_fragment:
+            etree.SubElement(self.main_feature, 'ComponentGroupRef',
+                             Id=self._format_group_id(self.package.name))
+        else:
+            self._add_merge_module(self.package, True, True, [])
+            etree.SubElement(self.installdir, 'Merge',
+                             Id=self._package_id(self.package.name), Language='1033',
+                             SourceFile=self.packages_deps[self.package], DiskId='1')
 
     def _add_merge_modules(self):
         self.main_feature = etree.SubElement(self.product, "Feature",
-            Id=self._format_id(self.package.name),
-            Title=self.package.title, Level='1', Display="expand",
-            AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
+                                             Id=self._format_id(self.package.name),
+                                             Title=self.package.title, Level='1', Display="expand",
+                                             AllowAdvertise="no", ConfigurableDirectory="INSTALLDIR")
 
         packages = [(self.store.get_package(x[0]), x[1], x[2]) for x in
                     self.package.packages]
@@ -378,29 +457,35 @@ class MSI(WixBase):
         packages = [x for x in packages if x[0] in list(self.packages_deps.keys())]
         if len(packages) == 0:
             raise FatalError("All packages are empty: %s" %
-                    [x[0] for x in self.package.packages])
+                             [x[0] for x in self.package.packages])
 
         # Fill the list of required packages, which are the ones installed by
         # a package that is always installed
-        req = [x[0] for x in packages if x[1] == True]
+        req = [x[0] for x in packages if x[1] is True]
         required_packages = req[:]
         for p in req:
             required_packages.extend(self.store.get_package_deps(p, True))
 
-        for package, required, selected in packages:
-            if package in self.packages_deps:
-                self._add_merge_module(package, required, selected,
-                                       required_packages)
+        if not self.package.wix_use_fragment:
+            for package, required, selected in packages:
+                if package in self.packages_deps:
+                    self._add_merge_module(package, required, selected,
+                                           required_packages)
 
-        # Add a merge module ref for all the packages
+        # Add a merge module ref for all the packages or use ComponentGroupRef when using
+        # wix_use_fragment
         for package, path in self.packages_deps.items():
-            etree.SubElement(self.installdir, 'Merge',
-                Id=self._package_id(package.name), Language='1033',
-                SourceFile=path, DiskId='1')
+            if self.package.wix_use_fragment:
+                etree.SubElement(self.main_feature, 'ComponentGroupRef',
+                                 Id=self._format_group_id(package.name))
+            else:
+                etree.SubElement(self.installdir, 'Merge',
+                                 Id=self._package_id(package.name), Language='1033',
+                                 SourceFile=path, DiskId='1')
 
     def _add_dir(self, parent, dir_id, name):
         tdir = etree.SubElement(parent, "Directory",
-            Id=dir_id, Name=name)
+                                Id=dir_id, Name=name)
         return tdir
 
     def _add_install_dir(self):
@@ -408,13 +493,13 @@ class MSI(WixBase):
         # FIXME: Add a way to install to ProgramFilesFolder
         if isinstance(self.package, App):
             installdir = self._add_dir(self.target_dir,
-                    '$(var.PlatformProgramFilesFolder)', 'ProgramFilesFolder')
+                                       '$(var.PlatformProgramFilesFolder)', 'ProgramFilesFolder')
             self.installdir = self._add_dir(installdir, 'INSTALLDIR',
-                    '$(var.ProductName)')
+                                            '$(var.ProductName)')
             self.bindir = self._add_dir(self.installdir, 'INSTALLBINDIR', 'bin')
         else:
             installdir = self._add_dir(self.target_dir, 'INSTALLDIR',
-                    self.package.get_install_dir())
+                                       self.package.get_install_dir())
             versiondir = self._add_dir(installdir, "Version", self.package.sdk_version)
             archdir = self._add_dir(versiondir, 'Architecture',
                                     self.config.target_arch)
@@ -436,30 +521,30 @@ class MSI(WixBase):
     def _customize_ui(self):
         # Banner Dialog and License
         for path, var in [(self.BANNER_BMP, 'BannerBmp'),
-                (self.DIALOG_BMP, 'DialogBmp'),
-                (self.LICENSE_RTF, 'LicenseRtf')]:
+                          (self.DIALOG_BMP, 'DialogBmp'),
+                          (self.LICENSE_RTF, 'LicenseRtf')]:
             path = self.package.relative_path(path)
             if self._with_wine:
                 path = to_winepath(path)
             if os.path.exists(path):
                 etree.SubElement(self.product, 'WixVariable',
-                        Id='WixUI%s' % var, Value=path)
+                                 Id='WixUI%s' % var, Value=path)
         # Icon
         path = self.package.relative_path(self.ICON)
         if self._with_wine:
             path = to_winepath(path)
         if os.path.exists(path):
             etree.SubElement(self.product, 'Icon',
-                Id='MainIcon', SourceFile=path)
+                             Id='MainIcon', SourceFile=path)
 
     def _add_sdk_root_env_variable(self):
         envcomponent = etree.SubElement(self.installdir, 'Component',
-                Id='EnvironmentVariables', Guid=self._get_uuid())
+                                        Id='EnvironmentVariables', Guid=self._get_uuid())
         env = etree.SubElement(envcomponent, 'Environment', Id="SdkRootEnv",
-                Action="set", Part="all", Name=self.package.get_root_env_var(),
-                Permanent="no", Value='[SDKROOTDIR]')
+                               Action="set", Part="all", Name=self.package.get_root_env_var(),
+                               Permanent="no", Value='[SDKROOTDIR]')
         etree.SubElement(self.main_feature, 'ComponentRef',
-                Id='EnvironmentVariables')
+                         Id='EnvironmentVariables')
 
     def _add_registry_install_dir(self):
         # Get the package name. Both devel and runtime will share the same
@@ -469,25 +554,25 @@ class MSI(WixBase):
         # Add INSTALLDIR in the registry only for the runtime package
         if self.package.package_mode == PackageType.RUNTIME:
             regcomponent = etree.SubElement(self.installdir, 'Component',
-                    Id='RegistryInstallDir', Guid=self._get_uuid())
+                                            Id='RegistryInstallDir', Guid=self._get_uuid())
             regkey = etree.SubElement(regcomponent, 'RegistryKey',
-                    Id='RegistryInstallDirRoot',
-                    Action='createAndRemoveOnUninstall',
-                    Key=self._registry_key(name),
-                    Root=self.REG_ROOT)
+                                      Id='RegistryInstallDirRoot',
+                                      Action='createAndRemoveOnUninstall',
+                                      Key=self._registry_key(name),
+                                      Root=self.REG_ROOT)
             etree.SubElement(regkey, 'RegistryValue',
-                    Id='RegistryInstallDirValue',
-                    Type='string', Name='InstallDir', Value='[INSTALLDIR]')
+                             Id='RegistryInstallDirValue',
+                             Type='string', Name='InstallDir', Value='[INSTALLDIR]')
             etree.SubElement(regkey, 'RegistryValue',
-                    Id='RegistryVersionValue',
-                    Type='string', Name='Version',
-                    Value=self.package.version)
+                             Id='RegistryVersionValue',
+                             Type='string', Name='Version',
+                             Value=self.package.version)
             etree.SubElement(regkey, 'RegistryValue',
-                    Id='RegistrySDKVersionValue',
-                    Type='string', Name='SdkVersion',
-                    Value=self.package.sdk_version)
+                             Id='RegistrySDKVersionValue',
+                             Type='string', Name='SdkVersion',
+                             Value=self.package.sdk_version)
             etree.SubElement(self.main_feature, 'ComponentRef',
-                    Id='RegistryInstallDir')
+                             Id='RegistryInstallDir')
 
     def _add_get_install_dir_from_registry(self):
         name = self._package_var().replace(' ', '')
@@ -498,17 +583,17 @@ class MSI(WixBase):
 
         # Get INSTALLDIR from the registry key
         installdir_prop = etree.SubElement(self.product, 'Property',
-                Id='INSTALLDIR')
+                                           Id='INSTALLDIR')
         etree.SubElement(installdir_prop, 'RegistrySearch', Id=name,
-                Type="raw", Root=self.REG_ROOT, Key=key, Name='InstallDir')
+                         Type="raw", Root=self.REG_ROOT, Key=key, Name='InstallDir')
 
     def _add_merge_module(self, package, required, selected,
                           required_packages):
         # Create a new feature for this package
         feature = etree.SubElement(self.main_feature, 'Feature',
-                Id=self._format_id(package.name), Title=package.shortdesc,
-                Level=self._format_level(selected),
-                Display='expand', Absent=self._format_absent(required))
+                                   Id=self._format_id(package.name), Title=package.shortdesc,
+                                   Level=self._format_level(selected),
+                                   Display='expand', Absent=self._format_absent(required))
         deps = self.store.get_package_deps(package, True)
 
         # Add all the merge modules required by this package, but excluding
@@ -533,28 +618,28 @@ class MSI(WixBase):
     def _add_start_menu_shortcuts(self):
         # Create a folder with the application name in the Start Menu folder
         programs = etree.SubElement(self.target_dir, 'Directory',
-                Id='ProgramMenuFolder')
+                                    Id='ProgramMenuFolder')
         etree.SubElement(programs, 'Directory', Id='ApplicationProgramsFolder',
-                Name='$(var.ProductName)')
+                         Name='$(var.ProductName)')
         # Add the shortcut to the installer package
         appf = etree.SubElement(self.product, 'DirectoryRef',
-                Id='ApplicationProgramsFolder')
+                                Id='ApplicationProgramsFolder')
         apps = etree.SubElement(appf, 'Component', Id='ApplicationShortcut',
-                Guid=self._get_uuid())
+                                Guid=self._get_uuid())
         for desc, path, _, _ in self.package.commands[self.config.target_platform]:
             etree.SubElement(apps, 'Shortcut',
-                    Id='ApplicationStartMenuShortcut', Name=desc,
-                    Description=desc, Target='[INSTALLBINDIR]' + path,
-                    WorkingDirectory='INSTALLBINDIR',
-                    Icon='MainIcon')
+                             Id='ApplicationStartMenuShortcut', Name=desc,
+                             Description=desc, Target='[INSTALLBINDIR]' + path,
+                             WorkingDirectory='INSTALLBINDIR',
+                             Icon='MainIcon')
         etree.SubElement(apps, 'RemoveFolder', Id='ApplicationProgramsFolder',
-                On='uninstall')
+                         On='uninstall')
         etree.SubElement(apps, 'RegistryValue', Root='HKCU',
-                Key='Software\Microsoft\%s' % self.package.name,
-                Name='installed', Type='integer', Value='1', KeyPath='yes')
+                         Key='Software\Microsoft\%s' % self.package.name,
+                         Name='installed', Type='integer', Value='1', KeyPath='yes')
         # Ref it in the main feature
         etree.SubElement(self.main_feature, 'ComponentRef',
-                Id='ApplicationShortcut')
+                         Id='ApplicationShortcut')
 
     def _add_vs_properties(self):
         etree.SubElement(self.product, 'PropertyRef', Id='VS2010DEVENV')
