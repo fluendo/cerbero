@@ -66,3 +66,27 @@ def revision(repo):
     if rev[-1] == 'M':
         rev = rev[:-1]
     return rev
+
+
+def revert_all(repo):
+    '''
+    Reverts all changes in a repository
+
+    @param repo: the path to the repository
+    @type  repo: str
+    '''
+    shell.call('svn cleanup', repo)
+    shell.call('svn revert -R .', repo)
+
+
+def is_ignored(url, repo):
+    '''
+    Check that the given file is being ignored
+
+    @param url: file URL
+    @type url: str
+    @param repo: the path to the repository
+    @type  repo: str
+    '''
+    status = shell.check_call('svn status --no-ignore %s'  % url, repo)
+    return (status != '')
