@@ -115,7 +115,7 @@ class DistTarball(PackagerBase):
             tmp_file_dir = os.path.dirname(tmp_file)
             if not os.path.exists(tmp_file_dir):
                 os.makedirs(tmp_file_dir)
-            shutil.copy(orig_file, tmp_file)
+            shutil.copy(orig_file, tmp_file, follow_symlinks=False)
             s.strip_file(tmp_file)
 
         prefix_restore = self.prefix
