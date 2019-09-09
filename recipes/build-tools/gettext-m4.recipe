@@ -45,7 +45,7 @@ class Recipe(recipe.Recipe):
             'share/aclocal/wchar_t.m4',
             'share/aclocal/wint_t.m4',
             'share/aclocal/xsize.m4',
-            ]
+            'share/aclocal/extern-inline.m4']
 
     def post_install(self):
         m4dir = os.path.join(self.build_dir, 'gettext-runtime', 'm4')
