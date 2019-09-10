@@ -3,11 +3,12 @@ from cerbero.tools.libtool import LibtoolLibrary
 
 class Recipe(recipe.Recipe):
     name = 'orc'
-    version = '0.4.28'
+    version = '0.4.30'
     remotes = {'origin': 'https://gitlab.freedesktop.org/gstreamer/orc.git'}
-    commit = 'origin/master'
+    commit = '0.4.30'
     btype = BuildType.MESON
     licenses = [{License.BSD_like: ['COPYING']}]
+    patches = ['orc/0001-Fix-OrcTargetPowerPCFlags-enum-typedef.patch']
     meson_options = {'benchmarks': 'disabled', 'tests': 'disabled',
                      'tools': 'enabled', 'orc-test': 'enabled'}
 
