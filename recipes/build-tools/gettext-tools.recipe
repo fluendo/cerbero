@@ -14,6 +14,74 @@ class Recipe(recipe.Recipe):
     tarball_dirname = 'gettext-%(version)s'
     tarball_checksum = '105556dbc5c3fbbc2aa0edb46d22d055748b6f5c7cd7a8d99f8e7eb84e938be4'
 
+    files_bin = [
+        'bin/autopoint',
+        'bin/gettextize',
+        'bin/msgattrib',
+        'bin/msgcat',
+        'bin/msgcmp',
+        'bin/msgcomm',
+        'bin/msgconv',
+        'bin/msgen',
+        'bin/msgexec',
+        'bin/msgfilter',
+        'bin/msgfmt',
+        'bin/msggrep',
+        'bin/msginit',
+        'bin/msgmerge',
+        'bin/msgunfmt',
+        'bin/msguniq',
+        'bin/recode-sr-latin',
+        'bin/xgettext',
+        'lib/gettext/cldr-plurals',
+        'lib/gettext/hostname',
+        'lib/gettext/project-id',
+        'lib/gettext/urlget',
+        'lib/gettext/user-email',
+    ]
+
+    files_libs = [
+        'libgettextlib',
+        'libgettextpo',
+        'libgettextsrc',
+        'libintl',
+    ]
+
+    files_share = [
+        'share/aclocal/codeset.m4',
+        'share/aclocal/extern-inline.m4',
+        'share/aclocal/fcntl-o.m4',
+        'share/aclocal/gettext.m4',
+        'share/aclocal/glibc2.m4',
+        'share/aclocal/glibc21.m4',
+        'share/aclocal/iconv.m4',
+        'share/aclocal/intdiv0.m4',
+        'share/aclocal/intl.m4',
+        'share/aclocal/intldir.m4',
+        'share/aclocal/intlmacosx.m4',
+        'share/aclocal/intmax.m4',
+        'share/aclocal/inttypes-pri.m4',
+        'share/aclocal/inttypes_h.m4',
+        'share/aclocal/lcmessage.m4',
+        'share/aclocal/lib-ld.m4',
+        'share/aclocal/lib-link.m4',
+        'share/aclocal/lib-prefix.m4',
+        'share/aclocal/lock.m4',
+        'share/aclocal/longlong.m4',
+        'share/aclocal/nls.m4',
+        'share/aclocal/po.m4',
+        'share/aclocal/printf-posix.m4',
+        'share/aclocal/progtest.m4',
+        'share/aclocal/size_max.m4',
+        'share/aclocal/stdint_h.m4',
+        'share/aclocal/threadlib.m4',
+        'share/aclocal/uintmax_t.m4',
+        'share/aclocal/visibility.m4',
+        'share/aclocal/wchar_t.m4',
+        'share/aclocal/wint_t.m4',
+        'share/aclocal/xsize.m4',
+    ]
+
     platform_deps = {
             Platform.DARWIN:  ['sed'],
             Platform.WINDOWS: ['libiconv', 'mingw-runtime', 'automake'],}
