@@ -108,7 +108,8 @@ class Oven (object):
 
         length = len(ordered_recipes)
         if use_binaries or upload_binaries:
-            fridge = Fridge(PackagesStore(self.config), force=self.force, dry_run=shell.DRY_RUN)
+            fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes),
+                            force=self.force, dry_run=shell.DRY_RUN)
 
         i = 1
         self._static_libraries_built = []

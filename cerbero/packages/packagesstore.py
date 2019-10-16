@@ -37,7 +37,7 @@ class PackagesStore (object):
 
     PKG_EXT = '.package'
 
-    def __init__(self, config, load=True, offline=False):
+    def __init__(self, config, load=True, offline=False, recipes=None):
         self._config = config
 
         self._packages = {}  # package_name -> package
@@ -50,7 +50,7 @@ class PackagesStore (object):
         if not os.path.exists(config.packages_dir):
             raise FatalError(_("Packages dir %s not found") %
                              config.packages_dir)
-        self._load_packages()
+        self._load_packages(recipes)
 
     def get_packages_list(self):
         '''
@@ -158,7 +158,7 @@ class PackagesStore (object):
         # remove duplicates and sort
         return sorted(list(set(l)))
 
-    def _load_packages(self):
+    def _load_packages(self, recipes=None):
         self._packages = {}
         packages = defaultdict(dict)
         repos = self._config.get_packages_repos()
@@ -169,7 +169,8 @@ class PackagesStore (object):
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
         # Add a package for every recipe
-        for recipe in self.cookbook.get_recipes_list():
+        recipes = self.cookbook.get_recipes_list() if recipes is None else recipes
+        for recipe in recipes:
             if not recipe.allow_package_creation:
                 continue
             p = self._package_from_recipe(recipe)
