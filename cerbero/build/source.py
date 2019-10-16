@@ -334,7 +334,7 @@ class GitCache (Source):
 
 
     def built_version(self):
-        return '%s+git~%s' % (self.version, git.get_hash(self.repo_dir, self.commit))
+        return '%s+git~%s' % (self.version, git.get_hash(self.repo_dir, self.commit, self.remotes['origin']))
 
 
 class LocalTarball (GitCache):

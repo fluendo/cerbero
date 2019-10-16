@@ -179,7 +179,7 @@ def checkout(git_dir, commit, logfile=None):
     return shell.call('%s reset --hard %s' % (GIT, commit), git_dir, logfile=logfile)
 
 
-def get_hash(git_dir, commit):
+def get_hash(git_dir, commit, remote=None):
     '''
     Get a commit hash from a valid commit.
     Can be used to check if a commit exists
@@ -187,13 +187,18 @@ def get_hash(git_dir, commit):
     @param git_dir: path of the git repository
     @type git_dir: str
     @param commit: the commit to log
+    @param remote: the repo's remote
     @type commit: str
     '''
+    # In case this hash is taken when the repo has not been cloned yet
+    # (e.g. changing stype from tarball to git, during fridge), we need
+    # to collect the actual commit we would checkout. Otherwise, fridge
+    # wouldn't be able to reuse the same package.
     if not os.path.isdir(os.path.join(git_dir, '.git')):
-        # If a recipe's source type is switched from tarball to git, then we
-        # can get called from built_version() when the directory isn't git.
-        # Return a fixed string to trigger a full fetch.
-        return 'not-git'
+        if remote:
+            return shell.check_call('%s ls-remote %s %s' % (GIT, remote, commit)).split()[0]
+        else:
+            raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
     return shell.check_call('%s rev-parse %s' %
                             (GIT, commit), git_dir).rstrip()
 
