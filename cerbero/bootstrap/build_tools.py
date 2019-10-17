@@ -41,12 +41,13 @@ class BuildTools (BootstrapperBase, Fetch):
     }
 
     def __init__(self, config, offline, use_binaries=False, upload_binaries=False,
-            build_missing=False):
+                 build_missing=False, missing_files=False):
         BootstrapperBase.__init__(self, config, offline)
 
         self.use_binaries = use_binaries
         self.upload_binaries = upload_binaries
         self.build_missing = build_missing
+        self.missing_files = missing_files
 
         if self.config.platform == Platform.WINDOWS:
             self.BUILD_TOOLS.remove('m4')
@@ -110,7 +111,7 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def start(self):
         self._setup_env()
-        oven = Oven(self.recipes, self.cookbook)
+        oven = Oven(self.recipes, self.cookbook, missing_files=self.missing_files)
         oven.start_cooking(self.use_binaries, self.upload_binaries, self.build_missing)
         self.config.do_setup_env()
 
