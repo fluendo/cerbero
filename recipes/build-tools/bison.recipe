@@ -30,6 +30,13 @@ class Recipe(recipe.Recipe):
         'share/bison/location.cc',
         'share/bison/m4sugar/foreach.m4',
         'share/bison/m4sugar/m4sugar.m4',
+        'share/bison/stack.hh',
+        'share/bison/variant.hh',
+        'share/bison/xslt/bison.xsl',
+        'share/bison/xslt/xml2dot.xsl',
+        'share/bison/xslt/xml2text.xsl',
+        'share/bison/xslt/xml2xhtml.xsl',
+        'share/bison/yacc.c',
     ]
     def extract(self):
         if os.path.exists(self.build_dir):

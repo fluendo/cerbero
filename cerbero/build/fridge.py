@@ -44,7 +44,7 @@ class FtpBinaryRemote (BinaryRemote):
     FtpBinaryRemote is a simple and unsecure implementation
     '''
 
-    def __init__(self, remote='', username='', password=''):
+    def __init__(self, remote, username='', password=''):
         self.remote = 'ftp://' + remote
         self.username = username
         self.password = password

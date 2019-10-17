@@ -80,8 +80,15 @@ class Recipe(recipe.Recipe):
         'share/aclocal/wchar_t.m4',
         'share/aclocal/wint_t.m4',
         'share/aclocal/xsize.m4',
+        'share/gettext/archive.dir.tar.xz',
     ]
 
+    files_devel = [
+        'include/gettext-po.h',
+        'include/libintl.h',
+    ]
+
+    deps = ['libtool', 'automake']
     platform_deps = {
             Platform.DARWIN:  ['sed'],
             Platform.WINDOWS: ['libiconv', 'mingw-runtime', 'automake'],}

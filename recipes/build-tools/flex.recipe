@@ -11,5 +11,5 @@ class Recipe(recipe.Recipe):
     files_bins = ['flex', 'flex++']
     patches = ['flex/flex-prevent-to-build-doc.patch']
     autoreconf = True
-    deps = ['gettext-tools']
+    deps = ['gettext-tools', 'bison']
     platform_deps = {Platform.WINDOWS: ['mingw-gettext']}

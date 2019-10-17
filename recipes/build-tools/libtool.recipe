@@ -23,7 +23,14 @@ class Recipe(recipe.Recipe):
         'share/aclocal/ltoptions.m4',
         'share/aclocal/ltsugar.m4',
         'share/aclocal/ltversion.m4',
-        'share/aclocal/lt~obsolete.m4']
+        'share/aclocal/lt~obsolete.m4',
+        'share/aclocal/ltargz.m4'
+    ]
+    files_devel = [
+        'include/libltdl/lt_error.h',
+        'include/libltdl/lt_system.h',
+        'include/ltdl.h'
+    ]
 
     def extract(self):
         if os.path.exists(self.build_dir):
