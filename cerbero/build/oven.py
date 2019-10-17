@@ -107,6 +107,7 @@ class Oven (object):
                   ' '.join([x.name for x in ordered_recipes]))
 
         length = len(ordered_recipes)
+        fridge = None
         if use_binaries or upload_binaries:
             fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes),
                             force=self.force, dry_run=shell.DRY_RUN)
@@ -115,24 +116,7 @@ class Oven (object):
         self._static_libraries_built = []
         for recipe in ordered_recipes:
             try:
-                def _build_and_upload_if_needed():
-                    self._cook_recipe(recipe, i, length)
-                    if upload_binaries:
-                        try:
-                            fridge.freeze_recipe(recipe, i, length)
-                        except RecipeNotFreezableError:
-                            pass
-
-                if use_binaries and (self.cookbook.recipe_needs_build(recipe.name) or \
-                    self.force):
-                    try:
-                        fridge.unfreeze_recipe(recipe, i, len(recipes))
-                    except:
-                        _build_and_upload_if_needed()
-
-                else:
-                    _build_and_upload_if_needed()
-
+                self._cook_recipe(recipe, i, length, fridge, use_binaries, upload_binaries)
             except BuildStepError as be:
                 if not self.interactive:
                     raise be
@@ -146,9 +130,9 @@ class Oven (object):
                 elif action == RecoveryActions.RETRY_ALL:
                     shutil.rmtree(recipe.get_for_arch (be.arch, 'build_dir'))
                     self.cookbook.reset_recipe_status(recipe.name)
-                    self._cook_recipe(recipe, i, len(ordered_recipes))
+                    self._cook_recipe(recipe, i, len(ordered_recipes), fridge, use_binaries, upload_binaries)
                 elif action == RecoveryActions.RETRY_STEP:
-                    self._cook_recipe(recipe, i, len(ordered_recipes))
+                    self._cook_recipe(recipe, i, len(ordered_recipes), fridge, use_binaries, upload_binaries)
                 elif action == RecoveryActions.SKIP:
                     i += 1
                     continue
@@ -156,7 +140,7 @@ class Oven (object):
                     raise AbortedError()
             i += 1
 
-    def _cook_recipe(self, recipe, count, total):
+    def _cook_recipe(self, recipe, count, total, fridge=None, use_binaries=False, upload_binaries=False):
         # A Recipe depending on a static library that has been rebuilt
         # also needs to be rebuilt to pick up the latest build.
         if recipe.library_type != LibraryType.STATIC:
@@ -166,6 +150,13 @@ class Oven (object):
                 not self.force:
             m.build_step(count, total, recipe.name, _("already built"))
             return
+
+        if use_binaries:
+            try:
+                fridge.unfreeze_recipe(recipe, count, total)
+                return
+            except:
+                self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
 
         if self.missing_files:
             # create a temp file that will be used to find newer files
@@ -219,6 +210,12 @@ class Oven (object):
         if self.missing_files:
             self._print_missing_files(recipe, tmp)
             tmp.close()
+
+        if upload_binaries:
+            try:
+                fridge.freeze_recipe(recipe, count, total)
+            except RecipeNotFreezableError:
+                pass
 
     def _handle_build_step_error(self, recipe, step, trace, arch):
         if step in [BuildSteps.FETCH, BuildSteps.EXTRACT]:
