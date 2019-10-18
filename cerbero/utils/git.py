@@ -196,7 +196,14 @@ def get_hash(git_dir, commit, remote=None):
     # wouldn't be able to reuse the same package.
     if not os.path.isdir(os.path.join(git_dir, '.git')):
         if remote:
-            return shell.check_call('%s ls-remote %s %s' % (GIT, remote, commit)).split()[0]
+            remote_commit = shell.check_call('%s ls-remote %s %s' % (GIT, remote, commit))
+            # If the commit/tag/branch given doesn't show up using ls-remote, it means
+            # it is not the HEAD of any refs. Hence, it must be a previous commit
+            # that we can use directly
+            if remote_commit:
+                return remote_commit.split()[0]
+            else:
+                return commit
         else:
             raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
     return shell.check_call('%s rev-parse %s' %
