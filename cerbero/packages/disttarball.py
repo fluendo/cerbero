@@ -170,11 +170,13 @@ class DistTarball(PackagerBase):
             if relocatable and not os.path.islink(filepath):
                 if os.path.splitext(f)[1] in ['.la', '.pc'] or ('bin' in os.path.splitext(f)[0] and is_text_file(filepath)):
                     shutil.copy(filepath, filepath + RESTORE_SUFFIX)
-                    restore_files.append(f)
-                    with open(filepath, 'w+') as fo:
+                    restore_files.append(filepath)
+                    with open(filepath, 'r+') as fo:
                         content = fo.read()
                         content = replace_prefix(self.config.prefix, content, 'CERBERO_PREFIX')
+                        fo.seek(0)
                         fo.write(content)
+                        fo.truncate()
                         fo.flush()
                         tar_files.append(filepath)
                 else:
@@ -202,6 +204,7 @@ class DistTarball(PackagerBase):
         for f in restore_files:
             if os.path.isfile(f) and os.path.isfile(f + RESTORE_SUFFIX):
                 shutil.copy(f + RESTORE_SUFFIX, f)
+                os.remove(f + RESTORE_SUFFIX)
 
         if lib64_link:
             os.unlink(filepath)
