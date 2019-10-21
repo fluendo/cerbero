@@ -94,7 +94,7 @@ class FtpBinaryRemote (BinaryRemote):
                         f.write('%s %s' % (sha256.hex(), filename))
 
                 try:
-                    tmp_sha256 = tempfile.NamedTemporaryFile()
+                    tmp_sha256 = tempfile.NamedTemporaryFile(delete=False)
                     tmp_sha256_filename = tmp_sha256.name
                     download(remote_filename + '.sha256',
                              tmp_sha256_filename,
@@ -107,9 +107,11 @@ class FtpBinaryRemote (BinaryRemote):
                         remote_sha256 = file.read().split(' ')[0]
                     if local_sha256 == remote_sha256:
                         upload_needed = False
-                    tmp_sha256.close()
                 except Exception:
                     pass
+
+                if tmp_sha256 and os.path.exists(tmp_sha256.name):
+                    os.remove(tmp_sha256.name)
 
                 if upload_needed:
                     upload_curl(local_filename,
