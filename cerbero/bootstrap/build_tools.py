@@ -50,7 +50,8 @@ class BuildTools (BootstrapperBase, Fetch):
         self.missing_files = missing_files
 
         if self.config.platform == Platform.WINDOWS:
-            self.BUILD_TOOLS.remove('m4')
+            if 'm4' in self.BUILD_TOOLS:
+                self.BUILD_TOOLS.remove('m4')
             self.BUILD_TOOLS.append('gperf')
         if self.config.platform == Platform.DARWIN:
             self.BUILD_TOOLS.append('gperf')
