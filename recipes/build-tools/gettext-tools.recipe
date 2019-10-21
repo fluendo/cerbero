@@ -44,7 +44,6 @@ class Recipe(recipe.Recipe):
         'libgettextlib',
         'libgettextpo',
         'libgettextsrc',
-        'libintl',
     ]
 
     files_share = [
@@ -85,7 +84,6 @@ class Recipe(recipe.Recipe):
 
     files_devel = [
         'include/gettext-po.h',
-        'include/libintl.h',
     ]
 
     deps = ['libtool', 'automake']
@@ -102,6 +100,11 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform == Platform.WINDOWS:
             self.configure_options += ' --enable-threads=win32'
             self.append_env('LDFLAGS', '-liconv')
+        if self.config.target_platform in [Platform.IOS, Platform.DARWIN]:
+            self.files_libs.append('libintl')
+            self.files_devel.append('include/libintl.h')
+        if self.config.platform == Platform.LINUX:
+            self.files_libs.append('preloadable_libintl')
 
     def post_install(self):
         if self.config.platform == Platform.WINDOWS:
