@@ -102,9 +102,9 @@ class FtpBinaryRemote (BinaryRemote):
                              user=self.username,
                              password=self.password)
                     with open(local_sha256_filename, 'r') as file:
-                        local_sha256 = file.read().split(' ')[0]
+                        local_sha256 = file.read().split()[0]
                     with open(tmp_sha256_filename, 'r') as file:
-                        remote_sha256 = file.read().split(' ')[0]
+                        remote_sha256 = file.read().split()[0]
                     if local_sha256 == remote_sha256:
                         upload_needed = False
                 except Exception:
@@ -153,7 +153,7 @@ class Fridge (object):
         self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
         if not os.path.exists(self.env_file):
             with open(self.env_file, 'w') as f:
-                f.write(self.config.get_string_for_checksum())
+                f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
 
     def unfreeze_recipe(self, recipe, count, total):
         if not recipe.allow_package_creation:
