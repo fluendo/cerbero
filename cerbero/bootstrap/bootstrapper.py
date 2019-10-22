@@ -38,7 +38,6 @@ class Bootstrapper (object):
             system_only, use_binaries=False, upload_binaries=False,
             build_missing=False, missing_files=False):
         bs = []
-        bs.append(BuildTools(config, offline, use_binaries, upload_binaries, build_missing, missing_files))
 
         if not system_only:
             bs.append(BuildTools(config, offline, use_binaries, upload_binaries, build_missing, missing_files))
