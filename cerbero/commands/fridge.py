@@ -23,7 +23,7 @@ from cerbero.build.fridge import Fridge
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.utils import _, N_, ArgparseArgument
 from cerbero.utils import messages as m
-
+from cerbero.build.cookbook import CookBook
 
 class FridgeCommand(Command):
     doc = N_('Generate binaries from the recipes built')
@@ -42,17 +42,19 @@ class FridgeCommand(Command):
         Command.__init__(self, args)
 
     def run(self, config, args):
-        store = PackagesStore(config)
-        cookbook = store.cookbook
-        recipes = args.recipes
+        recipes_names = args.recipes
+        cookbook = CookBook(config)
+        recipes = []
+        for recipe in recipes_names:
+            recipes.append(cookbook.get_recipe(recipe))
+        store = PackagesStore(config, recipes=recipes)
         if not recipes:
-            recipes = [recipe.name for recipe in cookbook.get_recipes_list()]
+            recipes = cookbook.get_recipes_list()
         fridge = Fridge(store, args.force, args.dry_run)
 
         recipes_to_generate = []
-        for recipe_name in recipes:
-            bv = cookbook.recipe_built_version(recipe_name)
-            recipe = cookbook.get_recipe(recipe_name)
+        for recipe in recipes:
+            bv = cookbook.recipe_built_version(recipe.name)
             cv = recipe.built_version()
             if bv == cv:
                 recipes_to_generate.append(recipe)
