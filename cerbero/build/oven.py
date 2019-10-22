@@ -156,7 +156,7 @@ class Oven (object):
                 fridge.unfreeze_recipe(recipe, count, total)
                 return
             except:
-                self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
+                return self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
 
         if self.missing_files:
             # create a temp file that will be used to find newer files
