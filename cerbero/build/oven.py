@@ -149,6 +149,13 @@ class Oven (object):
         if not self.cookbook.recipe_needs_build(recipe.name) and \
                 not self.force:
             m.build_step(count, total, recipe.name, _("already built"))
+
+            if upload_binaries:
+                try:
+                    fridge.freeze_recipe(recipe, count, total)
+                except RecipeNotFreezableError:
+                    pass
+
             return
 
         if use_binaries:
