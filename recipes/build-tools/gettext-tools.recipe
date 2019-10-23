@@ -14,31 +14,34 @@ class Recipe(recipe.Recipe):
     tarball_dirname = 'gettext-%(version)s'
     tarball_checksum = '105556dbc5c3fbbc2aa0edb46d22d055748b6f5c7cd7a8d99f8e7eb84e938be4'
 
-    files_bin = [
+    files_bins = [
+        'msgattrib',
+        'msgcat',
+        'msgcmp',
+        'msgcomm',
+        'msgconv',
+        'msgen',
+        'msgexec',
+        'msgfilter',
+        'msgfmt',
+        'msggrep',
+        'msginit',
+        'msgmerge',
+        'msgunfmt',
+        'msguniq',
+        'recode-sr-latin',
+        'xgettext',
+    ]
+
+    # We need to these two separated from `files_bins` because they
+    # are scripts and hence, do not contain the .exe even on Windows,
+    # which is added automatically to everything in `files_bins`
+    files_scripts = [
         'bin/autopoint',
         'bin/gettextize',
-        'bin/msgattrib',
-        'bin/msgcat',
-        'bin/msgcmp',
-        'bin/msgcomm',
-        'bin/msgconv',
-        'bin/msgen',
-        'bin/msgexec',
-        'bin/msgfilter',
-        'bin/msgfmt',
-        'bin/msggrep',
-        'bin/msginit',
-        'bin/msgmerge',
-        'bin/msgunfmt',
-        'bin/msguniq',
-        'bin/recode-sr-latin',
-        'bin/xgettext',
-        'lib/gettext/cldr-plurals',
-        'lib/gettext/hostname',
-        'lib/gettext/project-id',
-        'lib/gettext/urlget',
-        'lib/gettext/user-email',
     ]
+
+    files_extra = ['lib/gettext']
 
     files_libs = [
         'libgettextlib',
