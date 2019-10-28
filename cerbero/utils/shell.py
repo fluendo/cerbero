@@ -289,7 +289,8 @@ def download_curl(url, destination=None, recursive=False, check_cert=True, user=
         try:
             call(cmd, path)
         except FatalError, e:
-            os.remove(destination)
+            if os.path.exists(destination):
+                os.remove(destination)
             if original_url is not None:
               try:
                 cmd = cmd.replace(cache_url, original_url)
