@@ -218,6 +218,7 @@ class Config (object):
             to_unixpath(perlversionpath)])
         gstpluginpath = os.path.join(libdir, 'gstreamer-0.10')
         gstpluginpath10 = os.path.join(libdir, 'gstreamer-1.0')
+        giomodules = os.path.join(libdir, 'gio/modules')
         gstregistry = os.path.join('~', '.gstreamer-0.10',
                                    'cerbero-registry-%s' % self.target_arch)
         gstregistry10 = os.path.join('~', '.cache', 'gstreamer-1.0',
@@ -282,6 +283,7 @@ class Config (object):
                'MONO_PATH': monopath,
                'MONO_GAC_PREFIX': prefix,
                'GSTREAMER_SDK_ROOT': prefix,
+               'GIO_MODULE_DIR': giomodules,
                CERBERO_VARIANTS: variants
                }
         return env
