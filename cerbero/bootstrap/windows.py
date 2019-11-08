@@ -131,6 +131,12 @@ class WindowsBootstrapper(BootstrapperBase):
             sysroot = os.path.join(self.prefix, 'x86_64-w64-mingw32/sysroot')
             shutil.rmtree(os.path.join(sysroot, 'mingw'))
             shell.call('ln -s usr/x86_64-w64-mingw32 mingw', sysroot)
+            # Create include folder
+            include_folder = os.path.join(self.prefix, 'x86_64-w64-mingw32/include')
+            try:
+                os.makedirs(include_folder)
+            except Exception:
+                pass
             # In cross-compilation gcc does not create a prefixed cpp
             cpp_exe = os.path.join(self.prefix, 'bin', 'cpp.exe')
             host_cpp_exe = os.path.join(self.prefix, 'bin', 'x86_64-w64-mingw32-cpp.exe')
