@@ -108,18 +108,10 @@ class DistTarball(PackagerBase):
 
         # Use _files_list() to just to check whether the package is an empty
         # package or not. In case of any error attempting to collect the files,
-        # we assume there are files needed for the package. Errors when the
-        # files do not exist may occur because both methods were created for
-        # generating a package, and hence, they error if they do not find the
-        # libraries generated.
+        # we assume there are no files needed for the package.
         try:
-            dist_files, devel_files = self._files_list(force=True, devel=True, split=True)
+            self._files_list(force=True, devel=True, split=True)
         except Exception:
-            dist_files = [True]
-            devel_files = [True]
-
-        if package_type == PackageType.RUNTIME and not dist_files or \
-           package_type == PackageType.DEVEL and not devel_files:
             return ""
 
         # Ensure there are no slashes in package version. e.g.
