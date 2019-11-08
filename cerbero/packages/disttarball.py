@@ -106,18 +106,16 @@ class DistTarball(PackagerBase):
         else:
             platform = 'mingw'
 
-        # Use files_list() and devel_files_list() just to check whether the package
-        # is an empty package or not. In case of any error attempting to collect the files,
-        # we assume there are files needed for the package. Errors when the files do not
-        # exist may occur because both methods were created for generating a package,
-        # and hence, they error if they do not find the libraries generated.
+        # Use _files_list() to just to check whether the package is an empty
+        # package or not. In case of any error attempting to collect the files,
+        # we assume there are files needed for the package. Errors when the
+        # files do not exist may occur because both methods were created for
+        # generating a package, and hence, they error if they do not find the
+        # libraries generated.
         try:
-            dist_files = self.package.files_list()
+            dist_files, devel_files = self._files_list(force=True, devel=True, split=True)
         except Exception:
             dist_files = [True]
-        try:
-            devel_files = self.package.devel_files_list()
-        except Exception:
             devel_files = [True]
 
         if package_type == PackageType.RUNTIME and not dist_files or \
