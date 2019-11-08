@@ -121,8 +121,13 @@ class DistTarball(PackagerBase):
         if package_type == PackageType.RUNTIME and not dist_files or \
            package_type == PackageType.DEVEL and not devel_files:
             return ""
+
+        # Ensure there are no slashes in package version. e.g.
+        # 19+git~origin/master-e65a012bc0001ab7a4e351dbed6af4cc to
+        # 19+git~origin@master-e65a012bc0001ab7a4e351dbed6af4cc
+        package_version = self.package.version.replace('/', '@')
         return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name, platform,
-                                       self.config.target_arch, self.package.version, package_type, ext)
+                                       self.config.target_arch, package_version, package_type, ext)
 
     def _create_tarball_stripped(self, output_dir, package_type, files, force,
                                  package_prefix, relocatable, lib64_link):
