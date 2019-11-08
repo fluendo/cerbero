@@ -21,6 +21,7 @@ import shutil
 import tarfile
 import urllib.request, urllib.parse, urllib.error
 from hashlib import sha256
+from functools import lru_cache
 
 from cerbero.config import Platform, DEFAULT_MIRRORS
 from cerbero.utils import git, svn, shell, _
@@ -332,7 +333,7 @@ class GitCache (Source):
             git.checkout(self.repo_dir, commit, logfile=get_logfile(self))
             git.submodules_update(self.repo_dir, cached_dir, fail=False, offline=self.offline, logfile=get_logfile(self))
 
-
+    @lru_cache(maxsize=None)
     def built_version(self):
         return '%s+git~%s' % (self.version, git.get_hash(self.repo_dir, self.commit, self.remotes['origin']))
 
