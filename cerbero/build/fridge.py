@@ -50,7 +50,7 @@ class FtpBinaryRemote (BinaryRemote):
         self.password = password
 
     def fetch_binary(self, package_names, local_dir, remote_dir):
-        for filename in package_names.values():
+        for filename in package_names:
             if filename:
                 local_filename = os.path.join(local_dir, filename)
                 download_needed = True
@@ -80,7 +80,7 @@ class FtpBinaryRemote (BinaryRemote):
         if not curl_file_exists(remote_env_file, user=self.username, password=self.password):
             m.message('Uploading environment file to %s' % remote_env_file)
             upload_curl(env_file, remote_env_file, user=self.username, password=self.password)
-        for filename in package_names.values():
+        for filename in package_names:
             if filename:
                 remote_filename = os.path.join(self.remote, remote_dir, filename)
                 local_filename = os.path.join(local_dir, filename)
@@ -168,7 +168,7 @@ class Fridge (object):
         self._apply_steps(recipe, steps, count, total)
 
     def fetch_binary(self, recipe):
-        self.binaries_remote.fetch_binary(self._get_package_names(recipe),
+        self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)
 
     def extract_binary(self, recipe):
@@ -199,8 +199,15 @@ class Fridge (object):
         p.post_package(paths, self.binaries_local)
 
     def upload_binary(self, recipe):
-        self.binaries_remote.upload_binary(self._get_package_names(recipe),
-                                           self.binaries_local, self.env_checksum, self.env_file)
+        packages = self._get_package_names(recipe)
+        fetch_packages = []
+        for p in packages.values():
+            if os.path.exists(os.path.join(self.binaries_local, p)):
+                fetch_packages.append(p)
+            else:
+                m.warning("No package was created for %s" % p)
+        self.binaries_remote.upload_binary(fetch_packages, self.binaries_local,
+                                           self.env_checksum, self.env_file)
 
     def _get_package_names(self, recipe):
         ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
