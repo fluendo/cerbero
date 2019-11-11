@@ -22,6 +22,7 @@ import shutil
 import traceback
 import asyncio
 from subprocess import CalledProcessError
+import os
 
 from cerbero.enums import Architecture, Platform, LibraryType
 from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
@@ -109,7 +110,7 @@ class Oven (object):
         length = len(ordered_recipes)
         fridge = None
         if use_binaries or upload_binaries:
-            fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes),
+            fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
                             force=self.force, dry_run=shell.DRY_RUN)
 
         i = 1
@@ -165,10 +166,8 @@ class Oven (object):
             except:
                 return self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
 
-        if self.missing_files:
-            # create a temp file that will be used to find newer files
-            tmp = tempfile.NamedTemporaryFile()
-
+        # create a temp file that will be used to find newer files
+        tmp = tempfile.NamedTemporaryFile()
         recipe.force = self.force
         for desc, step in recipe.steps:
             m.build_step(count, total, recipe.name, step)
@@ -194,6 +193,15 @@ class Oven (object):
                     stepfunc()
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
+
+                # In case the recipe has been fully installed now...
+                # WARNING: the method to automatically detect files will only work
+                # when installing recipes not concurrently
+                if step == BuildSteps.POST_INSTALL[1]:
+                    installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
+                                                                      tmp.name, True)))
+                    installed_files = [os.path.join(self.config.prefix, f) for f in installed_files]
+                    self.cookbook.update_installed_files(recipe.name, installed_files)
             except FatalError as e:
                 exc_traceback = sys.exc_info()[2]
                 trace = ''
@@ -215,8 +223,7 @@ class Oven (object):
             self._static_libraries_built.append(recipe.name)
 
         if self.missing_files:
-            self._print_missing_files(recipe, tmp)
-            tmp.close()
+            self._print_missing_files(recipe, tmp, installed_files)
 
         if upload_binaries:
             try:
@@ -232,10 +239,8 @@ class Oven (object):
             self.cookbook.reset_recipe_status(recipe.name)
         raise BuildStepError(recipe, step, trace=trace, arch=arch)
 
-    def _print_missing_files(self, recipe, tmp):
+    def _print_missing_files(self, recipe, tmp, installed_files):
         recipe_files = set(recipe.files_list())
-        installed_files = set(shell.find_newer_files(recipe.config.prefix,
-                                                     tmp.name))
         not_in_recipe = list(installed_files - recipe_files)
         not_installed = list(recipe_files - installed_files)
 

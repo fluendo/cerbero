@@ -95,6 +95,13 @@ class DistTarball(PackagerBase):
             filenames.append(devel)
         return filenames
 
+    # Method used by fridge to pack all files installed by a recipe
+    def pack_files(self, output_dir, package_type, files, strip_binaries=False):
+        create_tarball_func = self._create_tarball if not strip_binaries else self._create_tarball_stripped
+        tarball = create_tarball_func(output_dir, package_type, files, force=True, relocatable=True,
+                                      package_prefix='', lib64_link=False)
+        return tarball
+
     def get_name(self, package_type, ext=None):
         if ext is None:
             ext = 'tar.' + self.compress
@@ -105,23 +112,6 @@ class DistTarball(PackagerBase):
             platform = 'msvc'
         else:
             platform = 'mingw'
-
-        # Use [devel_]files_list() just to check whether the package is an empty
-        # package or not. In case of any error attempting to collect the files,
-        # we assume there are no files needed for the package. We use this approach
-        # instead of _files_list() because the latter checks for existing files
-        # and throws exceptions in case of empty package.
-        try:
-            files = []
-            if package_type == PackageType.DEVEL:
-                files = self.package.devel_files_list()
-            elif package_type == PackageType.RUNTIME:
-                files = self.package.files_list()
-
-            if len(files) == 0:
-                return ""
-        except Exception:
-            return ""
 
         # Ensure there are no slashes in package version. e.g.
         # 19+git~origin/master-e65a012bc0001ab7a4e351dbed6af4cc to

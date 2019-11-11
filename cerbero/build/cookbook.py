@@ -56,16 +56,20 @@ class RecipeStatus (object):
     @type built_version: str
     @ivar file_hash: hash of the file with the recipe description
     @type file_hash: int
+    @ivar installed_files: installed files
+    @rtpe installed_files: list
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version=None, file_hash=0):
+                 mtime=time.time(), built_version=None, file_hash=0,
+                 installed_files=None):
         self.steps = steps
         self.needs_build = needs_build
         self.mtime = mtime
         self.filepath = filepath
         self.built_version = built_version
         self.file_hash = file_hash
+        self.installed_files = installed_files
 
     def touch(self):
         ''' Touches the recipe updating its modification time '''
@@ -191,6 +195,22 @@ class CookBook (object):
         self.status[recipe_name] = status
         self.save()
 
+    def update_installed_files(self, recipe_name, files):
+        '''
+        Updates the installed files of the recipe
+
+
+        @param recipe_name: name of the recipe
+        @type recipe: str
+        @param files: installed files
+        @type files: list
+        '''
+        status = self._recipe_status(recipe_name)
+        status.installed_files = files
+        status.touch()
+        self.status[recipe_name] = status
+        self.save()
+
     def update_build_status(self, recipe_name, built_version):
         '''
         Updates the recipe's build status
@@ -251,6 +271,17 @@ class CookBook (object):
         @rtype: bool
         '''
         return self._recipe_status(recipe_name).needs_build
+
+    def recipe_installed_files(self, recipe_name):
+        '''
+        Return the list of installed files for a given recipe
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        @return: installed files
+        @rtype: list
+        '''
+        return self._recipe_status(recipe_name).installed_files
 
     def list_recipe_deps(self, recipe_name):
         '''

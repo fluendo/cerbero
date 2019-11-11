@@ -179,7 +179,7 @@ class Fridge (object):
         # libmonosgen-2.0.dylib -> libmonosgen-2.0.1.dylib and copying
         # libmonosgen-2.0.dylib to libmonosgen-2.0.1.dylib
         # As a workaround we extract first the devel package and finally the runtime
-        for filename in [package_names[PackageType.DEVEL], package_names[PackageType.RUNTIME]]:
+        for filename in package_names.values():
             if filename:
                 if self.config.target_platform == Platform.DARWIN:
                     tarclass = RelocatableTarOSX
@@ -194,8 +194,20 @@ class Fridge (object):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
-        paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
-                         relocatable=True)
+        files = self.cookbook.recipe_installed_files(recipe.name)
+        if not files:
+            m.warning('The recipe %s has no installed files. Try to run all steps for the recipe from scratch' % recipe.name)
+            raise EmptyPackageError(p.name)
+
+        existing_files = list(filter(lambda x: os.path.exists(x), files))
+        removed_files = list(set(files) - set(existing_files))
+        if removed_files:
+            m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
+                      'Removing them from recipe\'s cache' % (recipe, removed_files))
+            self.cookbook.update_installed_files(recipe.name, existing_files)
+        paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, existing_files)
+        #paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
+        #                 relocatable=True)
         p.post_package(paths, self.binaries_local)
 
     def upload_binary(self, recipe):
@@ -210,11 +222,16 @@ class Fridge (object):
                                            self.env_checksum, self.env_file)
 
     def _get_package_names(self, recipe):
-        ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
+        ret = dict()
+        # TODO: separate runtime and devel packages after setting
+        # all files needed by each recipe properly
+        #ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         # use the package (not the packager) to avoid the warnings
-        ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
+        # TODO: separate runtime and devel packages after setting
+        # all files needed by each recipe properly
+        #ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
         ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
         return ret
 
