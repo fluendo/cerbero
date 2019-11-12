@@ -159,15 +159,16 @@ class Oven (object):
 
             return
 
+        # create a temp file that will be used to find newer files
+        tmp = tempfile.NamedTemporaryFile()
         if use_binaries:
             try:
                 fridge.unfreeze_recipe(recipe, count, total)
+                self._update_installed_files(recipe, tmp)
                 return
             except:
                 return self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
 
-        # create a temp file that will be used to find newer files
-        tmp = tempfile.NamedTemporaryFile()
         recipe.force = self.force
         for desc, step in recipe.steps:
             m.build_step(count, total, recipe.name, step)
@@ -198,10 +199,7 @@ class Oven (object):
                 # WARNING: the method to automatically detect files will only work
                 # when installing recipes not concurrently
                 if step == BuildSteps.POST_INSTALL[1]:
-                    installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
-                                                                      tmp.name, True)))
-                    installed_files = [os.path.join(self.config.prefix, f) for f in installed_files]
-                    self.cookbook.update_installed_files(recipe.name, installed_files)
+                    self._update_installed_files(recipe, tmp)
             except FatalError as e:
                 exc_traceback = sys.exc_info()[2]
                 trace = ''
@@ -230,6 +228,12 @@ class Oven (object):
                 fridge.freeze_recipe(recipe, count, total)
             except RecipeNotFreezableError:
                 pass
+
+    def _update_installed_files(self, recipe, tmp):
+        installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
+                                                          tmp.name, True)))
+        installed_files = [os.path.join(self.config.prefix, f) for f in installed_files]
+        self.cookbook.update_installed_files(recipe.name, installed_files)
 
     def _handle_build_step_error(self, recipe, step, trace, arch):
         if step in [BuildSteps.FETCH, BuildSteps.EXTRACT]:
