@@ -219,7 +219,8 @@ class DistTarball(PackagerBase):
         try:
             with tarfile.open(filename, 'w:' + self.compress) as tar:
                 for f in files:
-                    base_filepath = f.replace(self.prefix, '')
+                    if base_filepath.startswith(self.prefix):
+                        base_filepath = base_filepath.replace(self.prefix, '', 1)
                     base_filepath = base_filepath.lstrip('/').rstrip('\\')
                     tar.add(f, os.path.join(package_prefix, base_filepath))
         except OSError:
@@ -230,9 +231,9 @@ class DistTarball(PackagerBase):
         tar_cmd = ['tar', '-C', self.prefix, '-cf', filename]
         # convert absolute paths to relative paths to the prefix
         for i, file in enumerate(files):
-            if self.prefix in file:
-                files[i] = file.replace(self.prefix, '')
-                files[i] = files[i].lstrip('/').rstrip('\\')
+            if file.startswith(self.prefix):
+                file = file.replace(self.prefix, '', 1)
+                files[i] = file.lstrip('/').rstrip('\\')
         if package_prefix:
             # Only transform the files (and not symbolic/hard links)
             tar_cmd += ['--transform', 'flags=r;s|^|{}/|'.format(package_prefix)]
