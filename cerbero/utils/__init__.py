@@ -39,7 +39,7 @@ from cerbero.utils import messages as m
 
 _ = gettext.gettext
 N_ = lambda x: x
-
+TEXTCHARS = bytearray(set([7,8,9,10,12,13,27]) | set(range(0x20, 0x100)) - set([0x7f]))
 
 class ArgparseArgument(object):
 
@@ -546,12 +546,34 @@ def replace_prefix(prefix, string, replacement='{PREFIX}'):
         string = string.replace(p, replacement)
     return string
 
+def replace_prefix_in_bytes(prefix, byte_str, replacement='{PREFIX}'):
+    '''
+    Replace all possible ways of writing the prefix.
+    This function replaces in a string.
+
+    @return: replaced string
+    @rtype: bytes
+
+    @cvar prefix: prefix to be replaced
+    @rtype: str
+    @cvar byte_str: the original byte string
+    @rtype: bytes
+    @cvar replacement: the placeholder to put instead of the prefix
+    @rtype: str
+    '''
+    for p in [prefix, to_unixpath(prefix), to_winpath(prefix),
+              to_winepath(prefix), to_odd_cased_unixpath(prefix),
+              os.path.normpath(prefix)]:
+        byte_str = byte_str.replace(p.encode('utf-8'), replacement.encode('utf-8'))
+    return byte_str
+
 def is_text_file(filename):
     '''
     Check if a file is text or binary.
     This uses the same logic as file(1).
     Adapted from https://stackoverflow.com/a/7392391/1324984.
+    Assume that > 99% is text
     '''
-    textchars = bytearray(set([7,8,9,10,12,13,27]) | set(range(0x20, 0x100)) - set([0x7f]))
+    global TEXTCHARS
     with open(filename, 'rb') as f:
-        return f.read(1024).translate(None, textchars) == ''
+        return len(f.read(1024).translate(None, TEXTCHARS)) <= 10

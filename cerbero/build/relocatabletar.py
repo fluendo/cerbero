@@ -20,20 +20,21 @@ class RelocatableTar(TarFile):
             if self._is_relocatable(full_member_path):
                 self._relocate(full_member_path, extract_to_path)
 
-    def _is_script(self, file):
-        return ('bin' in os.path.splitext(file)[0] and is_text_file(file))
-
-    def _has_relocatable_extension(self, file):
-        return os.path.splitext(file)[1] in ['.la', '.pc']
-
     def _is_relocatable(self, file):
         if not os.path.islink(file) and not os.path.isdir(file):
-            return self._has_relocatable_extension(file) or self._is_script(file)
+            return is_text_file(file)
         else:
             return False
 
     def _relocate(self, file, subst_path):
-        shell.replace(file, {"CERBERO_PREFIX": subst_path})
+        with open(file, 'rb+') as fo:
+            content = fo.read()
+            content = content.replace('CERBERO_PREFIX'.encode('utf-8'), subst_path.encode('utf-8'))
+            fo.seek(0)
+            fo.write(content)
+            fo.truncate()
+            fo.flush()
+
 
 class RelocatableTarOSX(RelocatableTar):
 #------------------------------------------------------------------------------

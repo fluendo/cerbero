@@ -22,7 +22,7 @@ import tarfile
 import tempfile
 
 import cerbero.utils.messages as m
-from cerbero.utils import shell, _, replace_prefix, is_text_file
+from cerbero.utils import shell, _, replace_prefix_in_bytes, is_text_file
 from cerbero.enums import Platform
 from cerbero.errors import FatalError, UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
@@ -159,15 +159,20 @@ class DistTarball(PackagerBase):
 
         tar_files = []
         restore_files = []
+        inodes_copied = []
+
         for f in files:
             filepath = os.path.join(self.prefix, f)
+            stat = os.stat(filepath)
             if relocatable and not os.path.islink(filepath):
-                if os.path.splitext(f)[1] in ['.la', '.pc'] or ('bin' in os.path.splitext(f)[0] and is_text_file(filepath)):
+                if is_text_file(filepath) and stat.st_ino not in inodes_copied:
+                    if stat.st_nlink > 1:
+                        inodes_copied.append(stat.st_ino)
                     shutil.copy(filepath, filepath + RESTORE_SUFFIX)
                     restore_files.append(filepath)
-                    with open(filepath, 'r+') as fo:
+                    with open(filepath, 'rb+') as fo:
                         content = fo.read()
-                        content = replace_prefix(self.config.prefix, content, 'CERBERO_PREFIX')
+                        content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
                         fo.seek(0)
                         fo.write(content)
                         fo.truncate()
