@@ -76,7 +76,8 @@ class RecipeStatus (object):
         self.mtime = time.time()
 
     def __repr__(self):
-        return "Steps: %r Needs Build: %r" % (self.steps, self.needs_build)
+        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r" % \
+            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash.hex())
 
 
 class CookBook (object):
@@ -138,6 +139,9 @@ class CookBook (object):
         @rtype: dict
         '''
         self.status = status
+
+    def get_status(self):
+        return self.status
 
     def update(self):
         '''
