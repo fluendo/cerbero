@@ -61,8 +61,8 @@ class RecipeStatus (object):
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version=None, file_hash=None,
-                 installed_files=None):
+                 mtime=time.time(), built_version='', file_hash='',
+                 installed_files=[]):
         self.steps = steps
         self.needs_build = needs_build
         self.mtime = mtime

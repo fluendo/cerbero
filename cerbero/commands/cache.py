@@ -19,84 +19,99 @@
 
 
 from cerbero.commands import Command, register_command
-from cerbero.build.cookbook import CookBook
+from cerbero.build.cookbook import CookBook, RecipeStatus
 from cerbero.utils import _, N_, ArgparseArgument
 from cerbero.utils import messages as m
 
 
 class Cache(Command):
+    # The cache command takes the `RecipeStatus` class and analyzes its
+    # attributes using introspection to expose its members and allow modifying
+    # them trough the command line. The type of the arguments is the same as the
+    # ones in `RecipeStatus` except for the boolean values, that are passed
+    # using a string containing either "True" or "False". This is done for
+    # consistency and to avoid having two different arguments such as --feature
+    # and --no-feature
     doc = N_('Inspect and modify the local cache')
     name = 'cache'
 
     def __init__(self):
-        Command.__init__(self,
-                         [
-                             ArgparseArgument('recipe', nargs='*',
-                                              help=_('Recipe to work with')),
-                             ArgparseArgument('--bootstrap', action='store_true', default=False,
-                                              help=_('Use bootstrap\'s cache file')),
-                             ArgparseArgument('--steps', nargs='*',
-                                              help=_('Modify steps')),
-                             ArgparseArgument('--needs_build',
-                                              help=_('Modify needs_build')),
-                             ArgparseArgument('--mtime',
-                                              help=_('Modify mtime')),
-                             ArgparseArgument('--file_path',
-                                              help=_('Modify file_path')),
-                             ArgparseArgument('--built_version',
-                                              help=_('Modify built_version')),
-                             ArgparseArgument('--file_hash',
-                                              help=_('Modify file_hash')),
-                             ArgparseArgument('--touch', action='store_true', default=False,
-                                              help=_('Touch recipe modifying its mtime')),
-                             ArgparseArgument('--installed_files', nargs='*',
-                                              help=_('Modify file_hash')),
-                         ])
+        self.recipe_status = RecipeStatus('filepath')
+        self.recipe_attributes = list(set(dir(self.recipe_status)) - set(dir(RecipeStatus)))
+        arguments = [
+            ArgparseArgument('recipe', nargs='*',
+                             help=_('Recipe to work with')),
+            ArgparseArgument('--bootstrap', action='store_true', default=False,
+                             help=_('Use bootstrap\'s cache file')),
+            ArgparseArgument('--touch', action='store_true', default=False,
+                             help=_('Touch recipe modifying its mtime')),
+            ArgparseArgument('--reset', action='store_true', default=False,
+                             help=_('Clean entirely the cache for the recipe'))
+        ]
+
+        for attr in self.recipe_attributes:
+            attr_nargs = '*' if isinstance(getattr(self.recipe_status, attr), list) else None
+            attr_type = type(getattr(self.recipe_status, attr))
+            arguments.append(
+                ArgparseArgument('--' + attr, nargs=attr_nargs, type=str if attr_type == bool else attr_type,
+                                 help=_('Modify ' + attr))
+            )
+        Command.__init__(self, arguments)
 
     def run(self, config, args):
         if args.bootstrap:
             config.cache_file = config.build_tools_cache
         cookbook = CookBook(config)
-        is_modifying = args.steps or args.needs_build or args.mtime or args.file_path \
-            or args.built_version or args.file_hash or args.touch or args.installed_files
 
-        global_status = cookbook.get_status()
+        is_modifying = False or args.touch or args.reset
+        if not is_modifying:
+            for attr in self.recipe_attributes:
+                if getattr(args, attr):
+                    is_modifying = True
+                    break
+
+        global_status = cookbook.status
         recipes = args.recipe or global_status.keys()
         if is_modifying and len(recipes) > 1:
             m.error('Only one recipe can be modified at a time')
             return
 
-        m.message('%s cache values for recipes: %s' %
-                  ('Showing' if not is_modifying else 'Modifying', ', '.join(recipes)))
+        m.message('{} cache values for recipes: {}'.format(
+            'Showing' if not is_modifying else 'Modifying', ', '.join(recipes)))
 
         for recipe in recipes:
             if recipe not in global_status.keys():
-                m.error('Recipe %s not in cookbook' % recipe)
+                m.error('Recipe {} not in cookbook'.format(recipe))
                 continue
             status = global_status[recipe]
-            print('[%s]' % recipe)
+            print('[{}]'.format(recipe))
+            text = ''
             if is_modifying:
-                print('Before')
-            print('%s\n' % status)
+                text = 'Before\n'
+            print('{}{}\n'.format(text, status))
             if is_modifying:
-                if args.steps:
-                    status.steps = args.steps
-                if args.needs_build:
-                    status.needs_build = True if args.needs_build.lower() == 'true' else False
-                if args.file_path:
-                    status.file_path = args.file_path
-                if args.built_version:
-                    status.built_version = args.built_version
-                if args.file_hash:
-                    status.file_hash = args.file_hash
-                if args.touch:
-                    status.touch()
-                if args.installed_files:
-                    status.installed_files = args.installed_files
-                if args.mtime:
-                    status.mtime = float(args.mtime)
-                cookbook.save()
-                print('After\n%s\n' % status)
+                if args.reset:
+                    cookbook.reset_recipe_status(recipe)
+                    m.message('Recipe {} reset'.format(recipe))
+                else:
+                    if args.touch:
+                        status.touch()
+
+                    for attr in self.recipe_attributes:
+                        var = getattr(args, attr)
+                        if var:
+                            if isinstance(getattr(self.recipe_status, attr), bool):
+                                if var.lower() == 'true':
+                                    var = True
+                                elif var.lower() == 'false':
+                                    var = False
+                                else:
+                                    m.error('Error: Attribute "{}" needs to be either "True" or "False"'.format(attr))
+                                    return
+                            setattr(status, attr, var)
+
+                    cookbook.save()
+                    print('After\n{}\n'.format(status))
 
 
 register_command(Cache)
