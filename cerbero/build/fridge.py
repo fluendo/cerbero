@@ -243,6 +243,14 @@ class Fridge (object):
                 m.action(_("Step done"))
                 continue
 
+            # check if the recipe was installed from a frozen one,
+            # in which case, we won't generate it again unless force is used
+            if step in [self.GEN_BINARY[1], self.UPLOAD_BINARY[1]]:
+                if self.cookbook.step_done(recipe.name, self.EXTRACT_BINARY[1]) and not self.force:
+                    m.action(_('No need since a package exists in remote for this recipe'))
+                    self.cookbook.update_step_status(recipe.name, step)
+                    continue
+
             # call step function
             stepfunc = getattr(self, step)
             if not stepfunc:
