@@ -12,7 +12,6 @@ class Recipe(recipe.Recipe):
     tarball_checksum = '37f0a533b0978a454efb5dc3bd3598becf9660aaf4287e55bf68ca6b527d051d'
     btype = BuildType.CUSTOM
     winetricks_url = 'https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks'
-    allow_package_creation = False
 
     def extract(self):
         if os.path.exists(self.build_dir):
