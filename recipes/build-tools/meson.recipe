@@ -5,30 +5,14 @@ from pathlib import PurePath, Path
 
 class Recipe(recipe.Recipe):
     name = 'meson'
-    version = '0.49.2'
+    version = '0.52.0'
     licenses = [License.Apachev2]
     btype = BuildType.CUSTOM
     stype = SourceType.TARBALL
     url = 'https://github.com/mesonbuild/meson/releases/download/%(version)s/meson-%(version)s.tar.gz'
-    tarball_checksum = 'ef9f14326ec1e30d3ba1a26df0f92826ede5a79255ad723af78a2691c37109fd'
-    patches = [
-        # https://github.com/mesonbuild/meson/pull/3939
-        'meson/0002-Fix-linking-of-shared-static-libs-with-static-libs.patch',
-        # https://github.com/mesonbuild/meson/pull/4846, in 0.50
-        'meson/0001-find_library-Check-arch-of-libraries-on-Darwin.patch',
-        # https://github.com/mesonbuild/meson/pull/4864, in 0.50
-        'meson/0001-macos-lipo-outputs-aarch64-as-arm64-fix-it.patch',
-        # https://github.com/mesonbuild/meson/pull/4959, in 0.51
-        'meson/0001-Fix-msys-1.0-gcc-python-linking.patch',
-        # https://github.com/mesonbuild/meson/pull/5274, fixed in 0.50.1
-        # Not actually in 0.50.1, but it's just not needed in 0.50.*
-        'meson/0001-meson-Add-a-quick-hack-to-support-VS2019.patch',
-        # https://github.com/mesonbuild/meson/pull/5517, in 0.51.1
-        'meson/0001-compilers-Fix-bitcode-and-other-options-for-objc-cod.patch',
-        # Not needed with 0.50, code changed
-        'meson/0001-ninja-backend-Quote-args-to-compiler-rules.patch'
-    ]
+    tarball_checksum = 'd60f75f0dedcc4fd249dbc7519d6f3ce6df490033d276ef1cf27453ef4938d32'
     deps = ['ninja']
+    allow_package_creation = False
 
     files_bin = ['bin/meson']
     files_python = []
