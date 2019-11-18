@@ -19,13 +19,14 @@
 import os
 import traceback
 import tempfile
+from ftplib import FTP
+import urllib.parse
 
 from cerbero.build.relocatabletar import *
 from cerbero.config import Platform
-from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError, EmptyPackageError
+from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError, EmptyPackageError, PackageNotFoundError
 from cerbero.utils import N_, _, shell
 from cerbero.utils import messages as m
-from cerbero.utils.shell import upload_curl, download, curl_file_exists
 from cerbero.packages.disttarball import DistTarball
 from cerbero.enums import ArchiveType
 from cerbero.packages import PackageType
@@ -50,36 +51,44 @@ class FtpBinaryRemote (BinaryRemote):
         self.password = password
 
     def fetch_binary(self, package_names, local_dir, remote_dir):
+        ftp = None
         for filename in package_names:
+            if not ftp:
+                ftp, _ = shell.ftp_init(self.remote, ftp_connection=None,
+                                        user=self.username, password=self.password)
             if filename:
                 local_filename = os.path.join(local_dir, filename)
                 download_needed = True
                 if os.path.isfile(local_filename):
                     local_sha256 = shell.file_sha256(local_filename).hex()
                     remote_sha256_filename = os.path.join(self.remote, remote_dir, filename) + '.sha256'
-                    download(remote_sha256_filename,
-                             local_filename + '.sha256',
-                             overwrite=True,
-                             user=self.username,
-                             password=self.password)
-                    # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
-                    with open(local_filename + '.sha256', 'r') as file:
-                        remote_sha256 = file.read().split(' ')[0]
-                    if local_sha256 == remote_sha256:
-                        download_needed = False
+                    try:
+                        shell.ftp_download(remote_sha256_filename, local_filename + '.sha256', ftp_connection=ftp)
+                        # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
+                        with open(local_filename + '.sha256', 'r') as file:
+                            remote_sha256 = file.read().split(' ')[0]
+                        if local_sha256 == remote_sha256:
+                            download_needed = False
+                    except Exception:
+                        pass
 
                 if download_needed:
-                    download(os.path.join(self.remote, remote_dir, filename),
-                             local_filename,
-                             overwrite=True,
-                             user=self.username,
-                             password=self.password)
+                    try:
+                        shell.ftp_download(os.path.join(self.remote, remote_dir, filename),
+                                        local_filename,
+                                        ftp_connection=ftp)
+                    except Exception:
+                       raise PackageNotFoundError(filename)
+        if ftp:
+            ftp.quit()
 
     def upload_binary(self, package_names, local_dir, remote_dir, env_file):
+        ftp, _ = shell.ftp_init(self.remote, ftp_connection=None,
+                                user=self.username, password=self.password)
         remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
-        if not curl_file_exists(remote_env_file, user=self.username, password=self.password):
+        if not shell.ftp_file_exists(remote_env_file, ftp_connection=ftp):
             m.message('Uploading environment file to %s' % remote_env_file)
-            upload_curl(env_file, remote_env_file, user=self.username, password=self.password)
+            shell.ftp_upload(env_file, remote_env_file, ftp_connection=ftp)
         for filename in package_names:
             if filename:
                 remote_filename = os.path.join(self.remote, remote_dir, filename)
@@ -96,11 +105,9 @@ class FtpBinaryRemote (BinaryRemote):
                 try:
                     tmp_sha256 = tempfile.NamedTemporaryFile(delete=False)
                     tmp_sha256_filename = tmp_sha256.name
-                    download(remote_filename + '.sha256',
-                             tmp_sha256_filename,
-                             overwrite=True,
-                             user=self.username,
-                             password=self.password)
+                    shell.ftp_download(remote_filename + '.sha256',
+                                       tmp_sha256_filename,
+                                       ftp_connection=ftp)
                     with open(local_sha256_filename, 'r') as file:
                         local_sha256 = file.read().split()[0]
                     with open(tmp_sha256_filename, 'r') as file:
@@ -114,14 +121,10 @@ class FtpBinaryRemote (BinaryRemote):
                     os.remove(tmp_sha256.name)
 
                 if upload_needed:
-                    upload_curl(local_filename,
-                                remote_filename,
-                                user=self.username,
-                                password=self.password)
-                    upload_curl(local_sha256_filename,
-                                remote_filename + '.sha256',
-                                user=self.username,
-                                password=self.password)
+                    shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
+                    shell.ftp_upload(local_sha256_filename, remote_filename + '.sha256', ftp_connection=ftp)
+        if ftp:
+            ftp.quit()
 
 
 class Fridge (object):
@@ -206,7 +209,7 @@ class Fridge (object):
                       'Removing them from recipe\'s cache' % (recipe, removed_files))
             self.cookbook.update_installed_files(recipe.name, existing_files)
         paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, existing_files)
-        #paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
+        # paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
         #                 relocatable=True)
         p.post_package(paths, self.binaries_local)
 

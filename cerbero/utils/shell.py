@@ -31,6 +31,7 @@ import glob
 import shutil
 import hashlib
 import urllib.request, urllib.error, urllib.parse
+from ftplib import FTP
 from pathlib import Path, PurePath
 from distutils.version import StrictVersion
 
@@ -466,37 +467,45 @@ def download(url, destination=None, check_cert=True, overwrite=False, logfile=No
             errors.append(ex)
     raise Exception (errors)
 
-def upload_curl(source, url, user=None, password=None):
-    if not os.path.exists(source):
-        raise FatalError(_("File %s does not exist.") % source)
+def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
+    remote = urllib.parse.urlparse(remote_url)
+    if ftp_connection:
+        ftp = ftp_connection
+    else:
+        ftp = FTP()
+        ftp.connect(remote.hostname, remote.port)
+        ftp.login(user, password)
+    return ftp, remote
 
-    path = None
-    cmd = "curl -T "
-    cmd += "%s %s" % (source, url)
-    if user:
-        cmd += " --user %s" % user
-        if password:
-            cmd += ":\"%s\" " % password
-        else:
-            cmd += " "
+def ftp_end(ftp, ftp_connection=None):
+    if not ftp_connection:
+        ftp.quit()
 
-    cmd += " --ftp-create-dirs "
-    logging.info("Uploading %s to %s", source, url)
-    call(cmd, path)
+def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
+    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+    ftp.cwd(os.path.dirname(remote.path))
+    files = ftp.nlst()
+    exists = os.path.basename(remote.path) in files
+    ftp_end(ftp, ftp_connection)
+    return exists
 
-def curl_file_exists(url, user=None, password=None):
-    cmd = 'curl ' + url
-    if user:
-        cmd += " --user %s" % user
-        if password:
-            cmd += ":\"%s\" " % password
-        else:
-            cmd += " "
-    cmd += ' --head'
+def ftp_download(remote_url, local_filename, ftp_connection=None, user=None, password=None):
+    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+    ftp.cwd(os.path.dirname(remote.path))
+    with open(local_filename, 'wb') as f:
+        ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
+    ftp_end(ftp, ftp_connection)
+
+def ftp_upload(local_filename, remote_url, ftp_connection=None, user=None, password=None):
+    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
     try:
-        return call(cmd, None) == 0
-    except:
-        return False
+        ftp.mkd(os.path.dirname(remote.path))
+    except Exception:
+        pass
+    ftp.cwd(os.path.dirname(remote.path))
+    with open(local_filename, 'rb') as f:
+        ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
+    ftp_end(ftp, ftp_connection)
 
 def _splitter(string, base_url):
     lines = string.split('\n')
