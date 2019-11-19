@@ -214,10 +214,10 @@ class DistTarball(PackagerBase):
         try:
             with tarfile.open(filename, 'w:' + self.compress) as tar:
                 for f in files:
-                    if base_filepath.startswith(self.prefix):
-                        base_filepath = base_filepath.replace(self.prefix, '', 1)
-                    base_filepath = base_filepath.lstrip('/').rstrip('\\')
-                    tar.add(f, os.path.join(package_prefix, base_filepath))
+                    if f.startswith(self.prefix):
+                        f = f.replace(self.prefix, '', 1)
+                    f = f.lstrip('/').rstrip('\\')
+                    tar.add(os.path.join(self.config.prefix, f), os.path.join(package_prefix, f))
         except OSError:
             os.replace(filename, filename + '.partial')
             raise
@@ -228,7 +228,7 @@ class DistTarball(PackagerBase):
         for i, file in enumerate(files):
             if file.startswith(self.prefix):
                 file = file.replace(self.prefix, '', 1)
-                files[i] = file.lstrip('/').rstrip('\\')
+            files[i] = file.lstrip('/').rstrip('\\')
         if package_prefix:
             # Only transform the files (and not symbolic/hard links)
             tar_cmd += ['--transform', 'flags=r;s|^|{}/|'.format(package_prefix)]

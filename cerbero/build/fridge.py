@@ -103,7 +103,7 @@ class FtpBinaryRemote (BinaryRemote):
                         f.write('%s %s' % (sha256.hex(), filename))
 
                 try:
-                    tmp_sha256 = tempfile.NamedTemporaryFile(delete=False)
+                    tmp_sha256 = tempfile.NamedTemporaryFile()
                     tmp_sha256_filename = tmp_sha256.name
                     shell.ftp_download(remote_filename + '.sha256',
                                        tmp_sha256_filename,
@@ -116,9 +116,6 @@ class FtpBinaryRemote (BinaryRemote):
                         upload_needed = False
                 except Exception:
                     pass
-
-                if tmp_sha256 and os.path.exists(tmp_sha256.name):
-                    os.remove(tmp_sha256.name)
 
                 if upload_needed:
                     shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
@@ -202,7 +199,7 @@ class Fridge (object):
             m.warning('The recipe %s has no installed files. Try to run all steps for the recipe from scratch' % recipe.name)
             raise EmptyPackageError(p.name)
 
-        existing_files = list(filter(lambda x: os.path.exists(x), files))
+        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self.config.prefix, x)), files))
         removed_files = list(set(files) - set(existing_files))
         if removed_files:
             m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'

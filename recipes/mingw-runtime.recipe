@@ -10,7 +10,6 @@ class Recipe(recipe.Recipe):
     btype = BuildType.CUSTOM
     stype = SourceType.CUSTOM
     runtime_dep = True
-    allow_package_creation = False
 
     files_libs = ['libwinpthread-1']
     files_devel = ['lib/libstdc++.a', 'lib/libstdc++.la']

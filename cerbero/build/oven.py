@@ -236,7 +236,6 @@ class Oven (object):
     def _update_installed_files(self, recipe, tmp):
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
                                                           tmp.name, include_link=False)))
-        installed_files = [os.path.join(self.config.prefix, f) for f in installed_files]
         if not installed_files:
             m.warning('No installed files found for recipe %s' % recipe.name)
         self.cookbook.update_installed_files(recipe.name, installed_files)

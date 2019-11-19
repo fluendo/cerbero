@@ -482,12 +482,15 @@ def ftp_end(ftp, ftp_connection=None):
         ftp.quit()
 
 def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
-    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
-    ftp.cwd(os.path.dirname(remote.path))
-    files = ftp.nlst()
-    exists = os.path.basename(remote.path) in files
-    ftp_end(ftp, ftp_connection)
-    return exists
+    try:
+        ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+        ftp.cwd(os.path.dirname(remote.path))
+        files = ftp.nlst()
+        exists = os.path.basename(remote.path) in files
+        ftp_end(ftp, ftp_connection)
+        return exists
+    except Exception:
+        return False
 
 def ftp_download(remote_url, local_filename, ftp_connection=None, user=None, password=None):
     ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
@@ -537,7 +540,7 @@ def ls_dir(dirpath, prefix):
 def find_newer_files(prefix, compfile, include_link=False):
     include_links = include_link and '-L' or ''
     cmd = 'find %s * \( -type f -o -type l \) -cnewer %s' % (include_links, compfile)
-    sfiles = check_call(cmd, prefix, True, False, False).split('\n')
+    sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
     return sfiles
 
