@@ -49,6 +49,8 @@ class Cache(Command):
                                               help=_('Modify file_hash')),
                              ArgparseArgument('--touch', action='store_true', default=False,
                                               help=_('Touch recipe modifying its mtime')),
+                             ArgparseArgument('--installed_files', nargs='*',
+                                              help=_('Modify file_hash')),
                          ])
 
     def run(self, config, args):
@@ -56,7 +58,7 @@ class Cache(Command):
             config.cache_file = config.build_tools_cache
         cookbook = CookBook(config)
         is_modifying = args.steps or args.needs_build or args.mtime or args.file_path \
-            or args.built_version or args.file_hash or args.touch
+            or args.built_version or args.file_hash or args.touch or args.installed_files
 
         global_status = cookbook.get_status()
         recipes = args.recipe or global_status.keys()
@@ -86,9 +88,11 @@ class Cache(Command):
                 if args.built_version:
                     status.built_version = args.built_version
                 if args.file_hash:
-                    status.file_hash = bytes.fromhex(args.file_hash)
+                    status.file_hash = args.file_hash
                 if args.touch:
                     status.touch()
+                if args.installed_files:
+                    status.installed_files = args.installed_files
                 if args.mtime:
                     status.mtime = float(args.mtime)
                 cookbook.save()

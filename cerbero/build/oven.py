@@ -217,9 +217,7 @@ class Oven (object):
         # WARNING: the method to automatically detect files will only work
         # when installing recipes not concurrently
         if BuildSteps.INSTALL in recipe.steps or BuildSteps.POST_INSTALL in recipe.steps:
-            m.message('Collecting list of installed files for recipe %s' % recipe.name)
             self._update_installed_files(recipe, tmp)
-            m.message('Installed files collected for recipe %s' % recipe.name)
 
         if recipe.library_type == LibraryType.STATIC:
             self._static_libraries_built.append(recipe.name)
@@ -234,11 +232,13 @@ class Oven (object):
                 pass
 
     def _update_installed_files(self, recipe, tmp):
+        m.message('Collecting list of installed files for recipe %s' % recipe.name)
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
                                                           tmp.name, include_link=False)))
         if not installed_files:
             m.warning('No installed files found for recipe %s' % recipe.name)
         self.cookbook.update_installed_files(recipe.name, installed_files)
+        m.message('Installed files collected for recipe %s' % recipe.name)
 
     def _handle_build_step_error(self, recipe, step, trace, arch):
         if step in [BuildSteps.FETCH, BuildSteps.EXTRACT]:

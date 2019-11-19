@@ -55,13 +55,13 @@ class RecipeStatus (object):
     @ivar built_version: string with the last version built
     @type built_version: str
     @ivar file_hash: hash of the file with the recipe description
-    @type file_hash: int
+    @type file_hash: str
     @ivar installed_files: installed files
     @rtpe installed_files: list
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version=None, file_hash=0,
+                 mtime=time.time(), built_version=None, file_hash=None,
                  installed_files=None):
         self.steps = steps
         self.needs_build = needs_build
@@ -76,8 +76,9 @@ class RecipeStatus (object):
         self.mtime = time.time()
 
     def __repr__(self):
-        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r" % \
-            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash.hex())
+        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r\ninstalled_files: %r" % \
+            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash,
+            self.installed_files)
 
 
 class CookBook (object):
