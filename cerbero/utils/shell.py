@@ -473,7 +473,7 @@ def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
         ftp = ftp_connection
     else:
         ftp = FTP()
-        ftp.connect(remote.hostname, remote.port)
+        ftp.connect(remote.hostname, remote.port or 0)
         ftp.login(user, password)
     return ftp, remote
 
