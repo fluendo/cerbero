@@ -581,7 +581,7 @@ if [ -e ~/.bashrc ]; then
 source ~/.bashrc
 fi
 %s
-PS1='\[\033[01;32m\][cerbero-%s-%s]\[\033[00m\]%s'
+PS1='\[\033[01;32m\][cerbero-%s-%s]\[\033[00m\]%s '
 '''
     MSYSBAT =  '''
 start bash.exe --rcfile %s
