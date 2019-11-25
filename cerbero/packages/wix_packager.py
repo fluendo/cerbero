@@ -26,7 +26,7 @@ from cerbero.packages import PackagerBase, PackageType
 from cerbero.packages.package import Package, App
 from cerbero.utils import messages as m
 from cerbero.utils import shell, to_winepath, get_wix_prefix
-from cerbero.tools import strip
+from cerbero.tools import strip, sign
 from cerbero.packages.wix import MergeModule, VSMergeModule, MSI, WixConfig, Fragment
 from cerbero.packages.wix import VSTemplatePackage
 from cerbero.config import Platform
@@ -67,7 +67,7 @@ class MergeModulePackager(PackagerBase):
         tmpdir = None
         # For packages that requires stripping object files, we need
         # to copy all the files to a new tree and strip them there:
-        if self.package.strip:
+        if self.package.strip or self.package.wix_sign_dll:
             tmpdir = tempfile.mkdtemp()
             for f in files_list:
                 src = os.path.join(self.config.prefix, f)
@@ -75,9 +75,16 @@ class MergeModulePackager(PackagerBase):
                 if not os.path.exists(os.path.dirname(dst)):
                     os.makedirs(os.path.dirname(dst))
                 shutil.copy(src, dst)
-            s = strip.Strip(self.config, self.package.strip_excludes)
-            for p in self.package.strip_dirs:
-                s.strip_dir(os.path.join(tmpdir, p))
+
+            if self.package.strip:
+                s = strip.Strip(self.config, self.package.strip_excludes)
+                for p in self.package.strip_dirs:
+                    s.strip_dir(os.path.join(tmpdir, p))
+
+            if self.package.wix_sign_dll:
+                s = sign.Sign(self.config, self.package)
+                for p in self.package.strip_dirs:
+                    s.sign_dir(os.path.join(tmpdir, p))
 
         package_name = self._package_name(version)
         if self.package.wix_use_fragment:
