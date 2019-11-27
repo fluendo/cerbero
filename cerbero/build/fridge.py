@@ -167,6 +167,9 @@ class Fridge (object):
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
+    def fetch_recipe(self, recipe, count, total):
+        self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
+
     def fetch_binary(self, recipe):
         self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)

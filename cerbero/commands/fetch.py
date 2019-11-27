@@ -30,6 +30,7 @@ from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, 
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
+from cerbero.build.fridge import Fridge
 
 
 class Fetch(Command):
@@ -42,10 +43,12 @@ class Fetch(Command):
                     default=False, help=_('print all source URLs to stdout')))
         args.append(ArgparseArgument('--full-reset', action='store_true',
                     default=False, help=_('reset to extract step if rebuild is needed')))
+        args.append(ArgparseArgument('--fridge', action='store_true',
+                    default=False, help=_('use fridge to download binary packages')))
         Command.__init__(self, args)
 
     @staticmethod
-    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only):
+    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, fridge):
         fetch_recipes = []
         if not recipes:
             fetch_recipes = cookbook.get_recipes_list()
@@ -58,6 +61,8 @@ class Fetch(Command):
         m.message(_("Fetching the following recipes: %s") %
                   ' '.join([x.name for x in fetch_recipes]))
         to_rebuild = []
+        if fridge:
+            fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
             if print_only:
@@ -65,7 +70,13 @@ class Fetch(Command):
                 if isinstance(recipe, Tarball):
                     m.message("TARBALL: {} {}".format(recipe.url, recipe.tarball_name))
                 continue
-            m.build_step(i + 1, len(fetch_recipes), recipe, 'Fetch')
+            if fridge:
+                try:
+                    fridge.fetch_recipe(recipe, i + 1, len(fetch_recipes))
+                    continue
+                except Exception:
+                    pass
+            m.build_step(i + 1, len(fetch_recipes), recipe, 'fetch')
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
                 loop = asyncio.get_event_loop()
@@ -110,7 +121,7 @@ class FetchRecipes(Fetch):
     def run(self, config, args):
         cookbook = CookBook(config)
         return self.fetch(cookbook, args.recipes, args.no_deps,
-                          args.reset_rdeps, args.full_reset, args.print_only)
+                          args.reset_rdeps, args.full_reset, args.print_only, args.fridge)
 
 
 class FetchPackage(Fetch):
@@ -131,7 +142,7 @@ class FetchPackage(Fetch):
         package = store.get_package(args.package[0])
         return self.fetch(store.cookbook, package.recipes_dependencies(),
                           args.deps, args.reset_rdeps, args.full_reset,
-                          args.print_only)
+                          args.print_only, args.fridge)
 
 class FetchCache(Command):
     doc = N_('Fetch a cached build from GitLab CI based on cerbero git '
