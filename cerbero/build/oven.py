@@ -23,6 +23,7 @@ import traceback
 import asyncio
 from subprocess import CalledProcessError
 import os
+import time
 
 from cerbero.enums import Architecture, Platform, LibraryType
 from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
@@ -159,8 +160,10 @@ class Oven (object):
 
             return
 
-        # create a temp file that will be used to find newer files
+        # Create a temp file that will be used to find newer files
         tmp = tempfile.NamedTemporaryFile()
+        # Add 1 second delay to ensure installed files are collected properly
+        time.sleep(1)
         if use_binaries:
             try:
                 fridge.unfreeze_recipe(recipe, count, total)
@@ -232,13 +235,13 @@ class Oven (object):
                 pass
 
     def _update_installed_files(self, recipe, tmp):
-        m.message('Collecting list of installed files for recipe %s' % recipe.name)
+        m.message('Collecting list of installed files for %s' % recipe.name)
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
                                                           tmp.name, include_link=False)))
         if not installed_files:
             m.warning('No installed files found for recipe %s' % recipe.name)
         self.cookbook.update_installed_files(recipe.name, installed_files)
-        m.message('Installed files collected for recipe %s' % recipe.name)
+        m.message('Installed files collected for %s' % recipe.name)
 
     def _handle_build_step_error(self, recipe, step, trace, arch):
         if step in [BuildSteps.FETCH, BuildSteps.EXTRACT]:
