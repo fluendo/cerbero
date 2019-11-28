@@ -118,5 +118,5 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def fetch_recipes(self):
         self._setup_env()
-        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False)
+        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, use_binaries=self.use_binaries)
         self.config.do_setup_env()

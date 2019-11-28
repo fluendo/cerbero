@@ -44,11 +44,11 @@ class Fetch(Command):
         args.append(ArgparseArgument('--full-reset', action='store_true',
                     default=False, help=_('reset to extract step if rebuild is needed')))
         args.append(ArgparseArgument('--fridge', action='store_true',
-                    default=False, help=_('use fridge to download binary packages')))
+                    default=False, help=_('use fridge to download binary packages if available')))
         Command.__init__(self, args)
 
     @staticmethod
-    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, fridge):
+    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, use_binaries=False):
         fetch_recipes = []
         if not recipes:
             fetch_recipes = cookbook.get_recipes_list()
@@ -61,7 +61,7 @@ class Fetch(Command):
         m.message(_("Fetching the following recipes: %s") %
                   ' '.join([x.name for x in fetch_recipes]))
         to_rebuild = []
-        if fridge:
+        if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]

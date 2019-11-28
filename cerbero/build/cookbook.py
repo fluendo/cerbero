@@ -185,6 +185,11 @@ class CookBook (object):
             raise RecipeNotFoundError(name)
         return self.recipes[name]
 
+    def update_status(self, recipe_name, status):
+        status.touch()
+        self.status[recipe_name] = status
+        self.save()
+
     def update_step_status(self, recipe_name, step):
         '''
         Updates the status of a recipe's step
@@ -196,9 +201,7 @@ class CookBook (object):
         '''
         status = self._recipe_status(recipe_name)
         status.steps.append(step)
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
+        self.update_status(recipe_name, status)
 
     def update_installed_files(self, recipe_name, files):
         '''
@@ -212,9 +215,7 @@ class CookBook (object):
         '''
         status = self._recipe_status(recipe_name)
         status.installed_files = files
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
+        self.update_status(recipe_name, status)
 
     def update_build_status(self, recipe_name, built_version):
         '''
@@ -228,9 +229,12 @@ class CookBook (object):
         status = self._recipe_status(recipe_name)
         status.needs_build = built_version == None
         status.built_version = built_version
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
+        self.update_status(recipe_name, status)
+
+    def update_needs_build(self, recipe_name, needs_build):
+        status = self._recipe_status(recipe_name)
+        status.needs_build = needs_build
+        self.update_status(recipe_name, status)
 
     def recipe_built_version (self, recipe_name):
         '''

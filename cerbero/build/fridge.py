@@ -169,6 +169,7 @@ class Fridge (object):
 
     def fetch_recipe(self, recipe, count, total):
         self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
+        self.cookbook.update_needs_build(recipe.name, True)
 
     def fetch_binary(self, recipe):
         self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),

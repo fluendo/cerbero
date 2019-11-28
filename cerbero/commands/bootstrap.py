@@ -77,12 +77,14 @@ class FetchBootstrap(Command):
     def __init__(self):
         args = [
             ArgparseArgument('--build-tools-only', action='store_true',
-                default=False, help=_('only fetch the build tools'))]
+                default=False, help=_('only fetch the build tools')),
+            ArgparseArgument('--fridge', action='store_true',
+                default=False, help=_('use fridge to download binary packages if available'))]
         Command.__init__(self, args)
 
     def run(self, config, args):
         bootstrappers = Bootstrapper(config, args.build_tools_only,
-                offline=False, assume_yes=False, system_only=False)
+                offline=False, assume_yes=False, system_only=False, use_binaries=args.fridge)
         for bootstrapper in bootstrappers:
             bootstrapper.fetch_recipes()
             bootstrapper.fetch()
