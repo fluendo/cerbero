@@ -72,9 +72,6 @@ class Cache(Command):
 
         global_status = cookbook.status
         recipes = args.recipe or global_status.keys()
-        if is_modifying and len(recipes) > 1:
-            m.error('Only one recipe can be modified at a time')
-            return
 
         m.message('{} cache values for recipes: {}'.format(
             'Showing' if not is_modifying else 'Modifying', ', '.join(recipes)))
