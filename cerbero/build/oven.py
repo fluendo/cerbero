@@ -163,7 +163,7 @@ class Oven (object):
         # Create a temp file that will be used to find newer files
         tmp = tempfile.NamedTemporaryFile()
         # Add 1 second delay to ensure installed files are collected properly because
-        # Windows an macOS have 1 second resolution for creation timestamps
+        # Windows and macOS have 1 second resolution for creation timestamps
         if self.config.platform == Platform.WINDOWS or self.config.platform == Platform.DARWIN:
             time.sleep(1)
 
