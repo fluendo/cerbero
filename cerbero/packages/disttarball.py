@@ -202,8 +202,7 @@ class DistTarball(PackagerBase):
         # Restore original files
         for f in restore_files:
             if os.path.isfile(f) and os.path.isfile(f + RESTORE_SUFFIX):
-                shutil.copy(f + RESTORE_SUFFIX, f)
-                os.remove(f + RESTORE_SUFFIX)
+                os.replace(f + RESTORE_SUFFIX, f)
 
         if lib64_link:
             os.unlink(filepath)
