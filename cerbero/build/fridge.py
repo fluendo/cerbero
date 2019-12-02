@@ -78,7 +78,7 @@ class FtpBinaryRemote (BinaryRemote):
                                         local_filename,
                                         ftp_connection=ftp)
                     except Exception:
-                       raise PackageNotFoundError(filename)
+                       raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
         if ftp:
             ftp.quit()
 
