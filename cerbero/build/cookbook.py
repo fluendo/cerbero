@@ -207,15 +207,21 @@ class CookBook (object):
         '''
         Updates the installed files of the recipe
 
-
         @param recipe_name: name of the recipe
         @type recipe: str
         @param files: installed files
         @type files: list
         '''
         status = self._recipe_status(recipe_name)
-        status.installed_files = files
+        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), files))
+        removed_files = list(set(files) - set(existing_files))
+        if removed_files:
+            m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
+                      'Removing them from recipe\'s cache' % (recipe_name, removed_files))
+        status.installed_files += existing_files
+        status.installed_files = list(set(status.installed_files))
         self.update_status(recipe_name, status)
+        return status.installed_files
 
     def update_build_status(self, recipe_name, built_version):
         '''

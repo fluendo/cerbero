@@ -203,13 +203,9 @@ class Fridge (object):
             m.warning('The recipe %s has no installed files. Try to run all steps for the recipe from scratch' % recipe.name)
             raise EmptyPackageError(p.name)
 
-        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self.config.prefix, x)), files))
-        removed_files = list(set(files) - set(existing_files))
-        if removed_files:
-            m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
-                      'Removing them from recipe\'s cache' % (recipe, removed_files))
-            self.cookbook.update_installed_files(recipe.name, existing_files)
-        paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, existing_files)
+        # Update list of installed files to make sure all of the files actually exist
+        installed_files = self.cookbook.update_installed_files(recipe.name, files)
+        paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, installed_files)
         # paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
         #                 relocatable=True)
         p.post_package(paths, self.binaries_local)
