@@ -71,7 +71,7 @@ class Cache(Command):
                     break
 
         global_status = cookbook.status
-        recipes = args.recipe or global_status.keys()
+        recipes = args.recipe or list(global_status.keys())
 
         m.message('{} cache values for recipes: {}'.format(
             'Showing' if not is_modifying else 'Modifying', ', '.join(recipes)))
