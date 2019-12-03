@@ -202,7 +202,15 @@ class DistTarball(PackagerBase):
         # Restore original files
         for f in restore_files:
             if os.path.isfile(f) and os.path.isfile(f + RESTORE_SUFFIX):
-                os.replace(f + RESTORE_SUFFIX, f)
+                stat = os.stat(f)
+                # We can only replace in case this is ont a hard link, because
+                # otherwise the other link won't recover the original content
+                # since a new inode will be created
+                if stat.st_nlink > 1 and stat.st_ino in inodes_copied:
+                     shutil.copy(f + RESTORE_SUFFIX, f)
+                     os.remove(f + RESTORE_SUFFIX)
+                else:
+                    os.replace(f + RESTORE_SUFFIX, f)
 
         if lib64_link:
             os.unlink(filepath)
