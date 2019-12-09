@@ -588,8 +588,12 @@ class Config (object):
         target_platform = self.target_platform
         if target_platform == Platform.WINDOWS and 'visualstudio' in self.variants:
             target_platform = 'msvc'
-        self.set_property('prefix', os.path.join(self.home_dir, "dist",
-            "%s_%s" % (target_platform, self.target_arch)))
+        if distro != Distro.DEBIAN and target_platform == Platform.LINUX:
+            self.set_property('prefix', os.path.join(self.home_dir, "dist",
+                "%s_%s_%s" % (target_platform, self.target_arch, distro_version)))
+        else:
+            self.set_property('prefix', os.path.join(self.home_dir, "dist",
+                "%s_%s" % (target_platform, self.target_arch)))
         self.set_property('sources', os.path.join(self.home_dir, "sources",
             "%s_%s" % (target_platform, self.target_arch)))
         self.set_property('logs', os.path.join(self.home_dir, "logs",
