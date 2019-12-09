@@ -61,6 +61,7 @@ class Fetch(Command):
         m.message(_("Fetching the following recipes: %s") %
                   ' '.join([x.name for x in fetch_recipes]))
         to_rebuild = []
+        fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
         for i in range(len(fetch_recipes)):
