@@ -207,8 +207,8 @@ class DistTarball(PackagerBase):
                 # otherwise the other link won't recover the original content
                 # since a new inode will be created
                 if stat.st_nlink > 1 and stat.st_ino in inodes_copied:
-                     shutil.copy(f + RESTORE_SUFFIX, f)
-                     os.remove(f + RESTORE_SUFFIX)
+                    shutil.copy(f + RESTORE_SUFFIX, f)
+                    os.remove(f + RESTORE_SUFFIX)
                 else:
                     os.replace(f + RESTORE_SUFFIX, f)
 
