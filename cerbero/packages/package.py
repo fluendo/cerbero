@@ -73,6 +73,8 @@ class PackageBase(object):
     @type resources_postremove = str
     @cvar wix_use_fragment = uses fragments instead of merge modules
     @type wix_use_fragment = bool
+    @cvar wix_sign_dll = sign the files of package
+    @type wix_sign_dll = bool
     @cvar strip: strip binaries for this package
     @type strip: bool
     @cvar strip_dirs: directories to strip
@@ -102,6 +104,7 @@ class PackageBase(object):
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
     wix_use_fragment = False
+    wix_sign_dll = False
     strip = False
     strip_dirs = ['bin']
     strip_excludes = []
@@ -150,6 +153,12 @@ class PackageBase(object):
     def all_files_list(self):
         raise NotImplemented("'all_files_list' must be implemented by "
                              "subclasses")
+
+    def sign_dll(self, dll_name):
+        '''
+        Subclasses can override to sign dll
+        '''
+        pass
 
     def pre_package(self):
         '''
