@@ -24,16 +24,16 @@ from cerbero.utils import _, N_, ArgparseArgument
 from cerbero.utils import messages as m
 
 
-class Cache(Command):
-    # The cache command takes the `RecipeStatus` class and analyzes its
+class EditCache(Command):
+    # The edit-cache command takes the `RecipeStatus` class and analyzes its
     # attributes using introspection to expose its members and allow modifying
     # them trough the command line. The type of the arguments is the same as the
     # ones in `RecipeStatus` except for the boolean values, that are passed
     # using a string containing either "True" or "False". This is done for
     # consistency and to avoid having two different arguments such as --feature
     # and --no-feature
-    doc = N_('Inspect and modify the local cache')
-    name = 'cache'
+    doc = N_('View and edit the local cache')
+    name = 'edit-cache'
 
     def __init__(self):
         self.recipe_status = RecipeStatus('filepath')
@@ -111,4 +111,4 @@ class Cache(Command):
                     print('After\n{}\n'.format(status))
 
 
-register_command(Cache)
+register_command(EditCache)
