@@ -113,6 +113,7 @@ class Oven (object):
         if use_binaries or upload_binaries:
             fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
                             force=self.force, dry_run=shell.DRY_RUN)
+            m.message('Using fridge functionality with environment hash {}'.format(self.config.get_checksum()))
 
         i = 1
         self._static_libraries_built = []

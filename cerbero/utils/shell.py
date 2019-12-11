@@ -703,7 +703,7 @@ def check_perl_version(needed, env):
     return perl, found, newer
 
 def check_compiler_version(config, cc):
-    if not config.msvc_version:
+    if 'gcc' in cc or 'clang' in cc or not config.msvc_version:
         result = re.search(r'\s(\d+\.\d+\.\d+(\.\d+)?)\s', check_output(cc + ' --version'))
         if result.groups():
             return result.groups()[0]
