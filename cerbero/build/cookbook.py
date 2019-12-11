@@ -381,7 +381,7 @@ class CookBook (object):
             if hasattr(recipe, '__file__'):
                 filepath = recipe.__file__
             self.status[recipe_name] = RecipeStatus(filepath, steps=[],
-                    file_hash=recipe.get_checksum())
+                    file_hash=recipe.get_checksum(), installed_files=[])
         return self.status[recipe_name]
 
     def _load_recipes(self):
