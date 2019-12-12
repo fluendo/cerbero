@@ -141,41 +141,49 @@ class Fridge (object):
         self.config = self.cookbook.get_config()
         self.force = force
         self.binaries_remote = self.config.binaries_remote
+        self.env_checksum = None
         shell.DRY_RUN = dry_run
         if not self.config.binaries_local:
             raise FatalError(_('Configuration without binaries local dir'))
-        self.env_checksum = self.config.get_checksum()
-        self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
-        if not self.binaries_remote:
-            raise FatalError(_('Configuration without binaries remote'))
-        if not os.path.exists(self.binaries_local):
-            os.makedirs(self.binaries_local)
-        self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
-        if not os.path.exists(self.env_file):
-            with open(self.env_file, 'w') as f:
-                f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
 
-    def unfreeze_recipe(self, recipe, count, total):
+    def _ensure_ready(self, recipe):
         if not recipe.allow_package_creation:
             raise RecipeNotFreezableError(recipe.name)
+        if not self.env_checksum:
+            self.env_checksum = self.config.get_checksum()
+            self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
+            if not self.binaries_remote:
+                raise FatalError(_('Configuration without binaries remote'))
+            if not os.path.exists(self.binaries_local):
+                os.makedirs(self.binaries_local)
+            self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
+            if not os.path.exists(self.env_file):
+                with open(self.env_file, 'w') as f:
+                    f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
+            m.message('Fridge initialized with environment hash {}'.format(self.env_checksum))
+
+    def unfreeze_recipe(self, recipe, count, total):
+        self._ensure_ready(recipe)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe, count, total):
-        if not recipe.allow_package_creation:
-            raise RecipeNotFreezableError(recipe.name)
+        self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def fetch_recipe(self, recipe, count, total):
+        self._ensure_ready(recipe)
         self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
         self.cookbook.update_needs_build(recipe.name, True)
 
     def fetch_binary(self, recipe):
+        self._ensure_ready(recipe)
         self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)
 
     def extract_binary(self, recipe):
+        self._ensure_ready(recipe)
         package_names = self._get_package_names(recipe)
         # There is a weird bug where the links in the devel package are overwriting the
         # file it's linking instead of just creating the link.
@@ -195,6 +203,7 @@ class Fridge (object):
                 tar.close()
 
     def generate_binary(self, recipe):
+        self._ensure_ready(recipe)
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         p.pre_package()
@@ -211,6 +220,7 @@ class Fridge (object):
         p.post_package(paths, self.binaries_local)
 
     def upload_binary(self, recipe):
+        self._ensure_ready(recipe)
         packages = self._get_package_names(recipe)
         fetch_packages = []
         for p in packages.values():
@@ -236,6 +246,7 @@ class Fridge (object):
         return ret
 
     def _apply_steps(self, recipe, steps, count, total):
+        self._ensure_ready(recipe)
         for desc, step in steps:
             m.build_step(count, total, recipe.name, step)
             # check if the current step needs to be done
