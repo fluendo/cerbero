@@ -209,7 +209,7 @@ class Fridge (object):
         p.pre_package()
         files = self.cookbook.recipe_installed_files(recipe.name)
         if not files:
-            m.warning('The recipe %s has no installed files. Try to run all steps for the recipe from scratch' % recipe.name)
+            m.warning('The recipe %s has no installed files. Try running all steps for the recipe from scratch' % recipe.name)
             raise EmptyPackageError(p.name)
 
         # Update list of installed files to make sure all of the files actually exist

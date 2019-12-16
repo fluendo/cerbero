@@ -536,10 +536,13 @@ def ls_dir(dirpath, prefix):
         files.extend([os.path.join(_root, x) for x in filenames])
     return files
 
-
+'''
+Returns all files that have a modification time which is newer than the one from
+compfile
+'''
 def find_newer_files(prefix, compfile, include_link=False):
     include_links = include_link and '-L' or ''
-    cmd = 'find %s * \( -type f -o -type l \) -cnewer %s' % (include_links, compfile)
+    cmd = 'find %s * \( -type f -o -type l \) -newer %s' % (include_links, compfile)
     sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
     return sfiles

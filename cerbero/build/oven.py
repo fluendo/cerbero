@@ -162,10 +162,10 @@ class Oven (object):
 
         # Create a temp file that will be used to find newer files
         tmp = tempfile.NamedTemporaryFile()
-        # Add 1 second delay to ensure installed files are collected properly because
-        # Windows and macOS have 1 second resolution for creation timestamps
-        if self.config.platform == Platform.WINDOWS or self.config.platform == Platform.DARWIN:
-            time.sleep(1)
+        # the modification time resolution depends on the filesystem,
+        # where FAT32 has a resolution of 2 seconds and ext4 1 second
+        t = time.time() - 2
+        os.utime(tmp.name, (t, t))
 
         if use_binaries:
             try:
