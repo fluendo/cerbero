@@ -67,7 +67,7 @@ class MergeModulePackager(PackagerBase):
         tmpdir = None
         # For packages that requires stripping object files, we need
         # to copy all the files to a new tree and strip them there:
-        if self.package.strip or self.package.wix_sign_dll:
+        if self.package.strip or self.package.wix_sign_binaries:
             tmpdir = tempfile.mkdtemp()
             for f in files_list:
                 src = os.path.join(self.config.prefix, f)
