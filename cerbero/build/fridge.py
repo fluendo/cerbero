@@ -166,37 +166,46 @@ class Fridge (object):
             raise FatalError(_('Configuration without binaries local dir'))
 
     def unfreeze_recipe(self, recipe, count, total):
-        """Unfreeze the recipe, downloading the package and installing it
+        '''
+        Unfreeze the recipe, downloading the package and installing it
 
-        Arguments:
-            recipe {Recipe} -- The recipe to unfreeze
-            count {int} -- Current number of step
-            total {int} -- Total number of steps
-        """
+        @param recipe: The recipe to unfreeze
+        @type recipe: L{cerbero.build.cookbook.Recipe}
+        @param count: Current number of step
+        @type count: int
+        @param total: Total number of step
+        @type total: int
+        '''
         self._ensure_ready(recipe)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe, count, total):
-        """Freeze the recipe, creating a package and uploading it
+        '''
+        Freeze the recipe, creating a package and uploading it
 
-        Arguments:
-            recipe {Recipe} -- The recipe to freeze
-            count {int} -- Current number of step
-            total {int} -- Total number of steps
-        """
+        @param recipe: The recipe to freeze
+        @type recipe: L{cerbero.build.cookbook.Recipe}
+        @param count: Current number of step
+        @type count: int
+        @param total: Total number of step
+        @type total: int
+        '''
         self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def fetch_recipe(self, recipe, count, total):
-        """Fetch the recipe
+        '''
+        Fetch the recipe
 
-        Arguments:
-            recipe {Recipe} -- The recipe to fetch
-            count {int} -- Current number of step
-            total {int} -- Total number of steps
-        """
+        @param recipe: The recipe to fetch
+        @type recipe: L{cerbero.build.cookbook.Recipe}
+        @param count: Current number of step
+        @type count: int
+        @param total: Total number of step
+        @type total: int
+        '''
         self._ensure_ready(recipe)
         self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
         self.cookbook.update_needs_build(recipe.name, True)

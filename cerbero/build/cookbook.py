@@ -185,11 +185,6 @@ class CookBook (object):
             raise RecipeNotFoundError(name)
         return self.recipes[name]
 
-    def update_status(self, recipe_name, status):
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
-
     def update_step_status(self, recipe_name, step):
         '''
         Updates the status of a recipe's step
@@ -201,7 +196,7 @@ class CookBook (object):
         '''
         status = self._recipe_status(recipe_name)
         status.steps.append(step)
-        self.update_status(recipe_name, status)
+        self._update_status(recipe_name, status)
 
     def update_installed_files(self, recipe_name, files):
         '''
@@ -220,7 +215,7 @@ class CookBook (object):
                       'Removing them from recipe\'s cache' % (recipe_name, removed_files))
         status.installed_files += existing_files
         status.installed_files = list(set(status.installed_files))
-        self.update_status(recipe_name, status)
+        self._update_status(recipe_name, status)
         return status.installed_files
 
     def update_build_status(self, recipe_name, built_version):
@@ -235,12 +230,20 @@ class CookBook (object):
         status = self._recipe_status(recipe_name)
         status.needs_build = built_version == None
         status.built_version = built_version
-        self.update_status(recipe_name, status)
+        self._update_status(recipe_name, status)
 
     def update_needs_build(self, recipe_name, needs_build):
+        '''
+        Updates the recipe's needs_build field
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        @param needs_build: whether the recipe needs to be built
+        @type needs_build: bool
+        '''
         status = self._recipe_status(recipe_name)
         status.needs_build = needs_build
-        self.update_status(recipe_name, status)
+        self._update_status(recipe_name, status)
 
     def recipe_built_version (self, recipe_name):
         '''
@@ -323,6 +326,21 @@ class CookBook (object):
         recipe = self.get_recipe(recipe_name)
         return [r for r in list(self.recipes.values()) if recipe.name in r.deps]
 
+    def save(self):
+        try:
+            cache_file = self._cache_file(self.get_config())
+            if not os.path.exists(os.path.dirname(cache_file)):
+                os.makedirs(os.path.dirname(cache_file))
+            with open(cache_file, 'wb') as f:
+                pickle.dump(self.status, f)
+        except IOError as ex:
+            m.warning(_("Could not cache the CookBook: %s") % ex)
+
+    def _update_status(self, recipe_name, status):
+        status.touch()
+        self.status[recipe_name] = status
+        self.save()
+
     def _runtime_deps (self):
         return [x.name for x in list(self.recipes.values()) if x.runtime_dep]
 
@@ -339,16 +357,6 @@ class CookBook (object):
         except Exception:
             self.status = {}
             m.warning(_("Could not recover status"))
-
-    def save(self):
-        try:
-            cache_file = self._cache_file(self.get_config())
-            if not os.path.exists(os.path.dirname(cache_file)):
-                os.makedirs(os.path.dirname(cache_file))
-            with open(cache_file, 'wb') as f:
-                pickle.dump(self.status, f)
-        except IOError as ex:
-            m.warning(_("Could not cache the CookBook: %s") % ex)
 
     def _find_deps(self, recipe, state={}, ordered=[]):
         if state.get(recipe, 'clean') == 'processed':
