@@ -289,7 +289,7 @@ class Fridge (object):
     def _apply_steps(self, recipe, steps, count, total):
         self._ensure_ready(recipe)
         for desc, step in steps:
-            m.build_step(count, total, recipe.name, step)
+            m.build_step(count, total, recipe.name, step.lstrip('_'))
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action(_("Step done"))
