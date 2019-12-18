@@ -37,30 +37,29 @@ class BinaryRemote (object):
     """Interface for binary remotes"""
 
     def fetch_binary(self, package_names, local_dir, remote_dir):
-        """Method to be overriden that fetches a binary
+        '''
+        Method to be overriden that fetches a binary
 
-        Arguments:
-            package_names {list} -- List of packages to fetch
-            local_dir {str} -- Local directory to fetch to
-            remote_dir {str} -- Remote directory to fetch from where packages exist
-
-        Raises:
-            NotImplementedError
-        """
+        @param package_names: List of packages to fetch
+        @type package_names: list
+        @param local_dir: Local directory to fetch to
+        @type local_dir: str
+        @param remote_dir: Remote directory to fetch from where packages exist
+        @type remote_dir: str
+        '''
         raise NotImplementedError
 
     def upload_binary(self, package_names, local_dir, remote_dir, env_file):
-        """Method to be overriden that uploads a binary
+        '''
+        Method to be overriden that uploads a binary
 
-        Arguments:
-            package_names {list} -- List of packages to upload
-            local_dir {str} -- Local directory to uploadr from where the packages exist
-            remote_dir {str} -- Remote directory where packages will upload to
-            env_file {str} -- Local environment file to be uploaded if needed to remote_dir
-
-        Raises:
-            NotImplementedError:
-        """
+        @param package_names: List of packages to fetch
+        @type package_names: list
+        @param local_dir: Local directory to fetch to
+        @type local_dir: str
+        @param remote_dir: Remote directory to fetch from where packages exist
+        @type remote_dir: str
+        '''
         raise NotImplementedError
 
 
