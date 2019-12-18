@@ -141,9 +141,6 @@ class CookBook (object):
         '''
         self.status = status
 
-    def get_status(self):
-        return self.status
-
     def update(self):
         '''
         Reloads the recipes list and updates the cookbook
@@ -413,7 +410,7 @@ class CookBook (object):
             # filepath attribute was added afterwards
             if not hasattr(st, 'filepath') or not getattr(st, 'filepath'):
                 st.filepath = recipe.__file__
-            # if filepath has changed, force using file_md5(), this will
+            # if filepath has changed, force using get_checksum(), this will
             # allow safe relocation of the recipes.
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__

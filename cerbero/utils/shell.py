@@ -536,11 +536,12 @@ def ls_dir(dirpath, prefix):
         files.extend([os.path.join(_root, x) for x in filenames])
     return files
 
-'''
-Returns all files that have a modification time which is newer than the one from
-compfile
-'''
+
 def find_newer_files(prefix, compfile, include_link=False):
+    '''
+    Returns all files that have a modification time which is newer than the one
+    from compfile
+    '''
     include_links = include_link and '-L' or ''
     cmd = 'find %s * \( -type f -o -type l \) -newer %s' % (include_links, compfile)
     sfiles = check_output(cmd, prefix).split('\n')
@@ -706,6 +707,13 @@ def check_perl_version(needed, env):
     return perl, found, newer
 
 def check_compiler_version(config, cc):
+    '''
+    Returns the compiler version
+    @param config: Configuration
+    @type config: L{cerbero.config.Config}
+    @param cc: Compiler
+    @type cc: str
+    '''
     if 'gcc' in cc or 'clang' in cc or not config.msvc_version:
         result = re.search(r'\s(\d+\.\d+\.\d+(\.\d+)?)\s', check_output(cc + ' --version'))
         if result.groups():

@@ -1,5 +1,6 @@
 # cerbero - a multi-platform build system for Open Source software
-# Copyright (C) 2016 Fluendo S.A. <support@fluendo.com>
+# Copyright (C) 2019, Fluendo, S.A.
+#  Author: Pablo Marcos Oltra <pmarcos@fluendo.com>, Fluendo, S.A.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
