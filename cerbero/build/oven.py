@@ -156,7 +156,7 @@ class Oven (object):
                 try:
                     fridge.freeze_recipe(recipe, count, total)
                 except RecipeNotFreezableError:
-                    m.log('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
+                    m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                     pass
 
             return
@@ -236,7 +236,7 @@ class Oven (object):
             try:
                 fridge.freeze_recipe(recipe, count, total)
             except RecipeNotFreezableError:
-                m.log('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
+                m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                 pass
 
     def _update_installed_files(self, recipe, tmp):
