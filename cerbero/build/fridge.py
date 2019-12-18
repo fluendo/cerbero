@@ -33,17 +33,38 @@ from cerbero.packages import PackageType
 
 
 class BinaryRemote (object):
+    """Interface for binary remotes"""
+
     def fetch_binary(self, package_names, local_dir, remote_dir):
+        """Method to be overriden that fetches a binary
+
+        Arguments:
+            package_names {list} -- List of packages to fetch
+            local_dir {str} -- Local directory to fetch to
+            remote_dir {str} -- Remote directory to fetch from where packages exist
+
+        Raises:
+            NotImplementedError
+        """
         raise NotImplementedError
 
     def upload_binary(self, package_names, local_dir, remote_dir, env_file):
+        """Method to be overriden that uploads a binary
+
+        Arguments:
+            package_names {list} -- List of packages to upload
+            local_dir {str} -- Local directory to uploadr from where the packages exist
+            remote_dir {str} -- Remote directory where packages will upload to
+            env_file {str} -- Local environment file to be uploaded if needed to remote_dir
+
+        Raises:
+            NotImplementedError:
+        """
         raise NotImplementedError
 
 
 class FtpBinaryRemote (BinaryRemote):
-    '''
-    FtpBinaryRemote is a simple and unsecure implementation
-    '''
+    """FtpBinaryRemote is a simple and unsecure implementation"""
 
     def __init__(self, remote, username='', password=''):
         self.remote = 'ftp://' + remote
@@ -75,10 +96,10 @@ class FtpBinaryRemote (BinaryRemote):
                 if download_needed:
                     try:
                         shell.ftp_download(os.path.join(self.remote, remote_dir, filename),
-                                        local_filename,
-                                        ftp_connection=ftp)
+                                           local_filename,
+                                           ftp_connection=ftp)
                     except Exception:
-                       raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
+                        raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
         if ftp:
             ftp.quit()
 
@@ -125,15 +146,13 @@ class FtpBinaryRemote (BinaryRemote):
 
 
 class Fridge (object):
-    '''
-    This fridge unfreezes or freezes a cook from a recipe
-    '''
+    """This fridge packages recipes thar are already built"""
 
     # Freeze/Unfreeze steps
-    FETCH_BINARY = (N_('Fetch Binary'), 'fetch_binary')
-    EXTRACT_BINARY = (N_('Extract Binary'), 'extract_binary')
-    GEN_BINARY = (N_('Generate Binary'), 'generate_binary')
-    UPLOAD_BINARY = (N_('Upload Binary'), 'upload_binary')
+    FETCH_BINARY = (N_('Fetch Binary'), '_fetch_binary')
+    EXTRACT_BINARY = (N_('Extract Binary'), '_extract_binary')
+    GEN_BINARY = (N_('Generate Binary'), '_generate_binary')
+    UPLOAD_BINARY = (N_('Upload Binary'), '_upload_binary')
 
     def __init__(self, store, force=False, dry_run=False):
         self.store = store
@@ -146,43 +165,48 @@ class Fridge (object):
         if not self.config.binaries_local:
             raise FatalError(_('Configuration without binaries local dir'))
 
-    def _ensure_ready(self, recipe):
-        if not recipe.allow_package_creation:
-            raise RecipeNotFreezableError(recipe.name)
-        if not self.env_checksum:
-            self.env_checksum = self.config.get_checksum()
-            self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
-            if not self.binaries_remote:
-                raise FatalError(_('Configuration without binaries remote'))
-            if not os.path.exists(self.binaries_local):
-                os.makedirs(self.binaries_local)
-            self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
-            if not os.path.exists(self.env_file):
-                with open(self.env_file, 'w') as f:
-                    f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
-            m.message('Fridge initialized with environment hash {}'.format(self.env_checksum))
-
     def unfreeze_recipe(self, recipe, count, total):
+        """Unfreeze the recipe, downloading the package and installing it
+
+        Arguments:
+            recipe {Recipe} -- The recipe to unfreeze
+            count {int} -- Current number of step
+            total {int} -- Total number of steps
+        """
         self._ensure_ready(recipe)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def freeze_recipe(self, recipe, count, total):
+        """Freeze the recipe, creating a package and uploading it
+
+        Arguments:
+            recipe {Recipe} -- The recipe to freeze
+            count {int} -- Current number of step
+            total {int} -- Total number of steps
+        """
         self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         self._apply_steps(recipe, steps, count, total)
 
     def fetch_recipe(self, recipe, count, total):
+        """Fetch the recipe
+
+        Arguments:
+            recipe {Recipe} -- The recipe to fetch
+            count {int} -- Current number of step
+            total {int} -- Total number of steps
+        """
         self._ensure_ready(recipe)
         self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
         self.cookbook.update_needs_build(recipe.name, True)
 
-    def fetch_binary(self, recipe):
+    def _fetch_binary(self, recipe):
         self._ensure_ready(recipe)
         self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)
 
-    def extract_binary(self, recipe):
+    def _extract_binary(self, recipe):
         self._ensure_ready(recipe)
         package_names = self._get_package_names(recipe)
         # There is a weird bug where the links in the devel package are overwriting the
@@ -202,7 +226,7 @@ class Fridge (object):
                 tar.extract_and_relocate(self.config.prefix)
                 tar.close()
 
-    def generate_binary(self, recipe):
+    def _generate_binary(self, recipe):
         self._ensure_ready(recipe)
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
@@ -215,11 +239,9 @@ class Fridge (object):
         # Update list of installed files to make sure all of the files actually exist
         installed_files = self.cookbook.update_installed_files(recipe.name, files)
         paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, installed_files)
-        # paths = tar.pack(self.binaries_local, devel=True, force=True, force_empty=False,
-        #                 relocatable=True)
         p.post_package(paths, self.binaries_local)
 
-    def upload_binary(self, recipe):
+    def _upload_binary(self, recipe):
         self._ensure_ready(recipe)
         packages = self._get_package_names(recipe)
         fetch_packages = []
@@ -231,17 +253,26 @@ class Fridge (object):
         self.binaries_remote.upload_binary(fetch_packages, self.binaries_local,
                                            self.env_checksum, self.env_file)
 
+    def _ensure_ready(self, recipe):
+        if not recipe.allow_package_creation:
+            raise RecipeNotFreezableError(recipe.name)
+        if not self.env_checksum:
+            self.env_checksum = self.config.get_checksum()
+            self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
+            if not self.binaries_remote:
+                raise FatalError(_('Configuration without binaries remote'))
+            if not os.path.exists(self.binaries_local):
+                os.makedirs(self.binaries_local)
+            self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
+            if not os.path.exists(self.env_file):
+                with open(self.env_file, 'w') as f:
+                    f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
+            m.message('Fridge initialized with environment hash {}'.format(self.env_checksum))
+
     def _get_package_names(self, recipe):
         ret = dict()
-        # TODO: separate runtime and devel packages after setting
-        # all files needed by each recipe properly
-        #ret = {PackageType.RUNTIME: None, PackageType.DEVEL: None}
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
-        # use the package (not the packager) to avoid the warnings
-        # TODO: separate runtime and devel packages after setting
-        # all files needed by each recipe properly
-        #ret[PackageType.RUNTIME] = tar.get_name(PackageType.RUNTIME)
         ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
         return ret
 
@@ -263,9 +294,11 @@ class Fridge (object):
                     continue
 
             # call step function
+            if not hasattr(self, step):
+                raise FatalError(_('Step %s not found for recipe %s') % (step, recipe.name))
             stepfunc = getattr(self, step)
             if not stepfunc:
-                raise FatalError(_('Step %s not found') % step)
+                raise FatalError(_('Step %s not found for recipe %s') % (step, recipe.name))
             try:
                 stepfunc(recipe)
                 # update status successfully
@@ -273,6 +306,7 @@ class Fridge (object):
             except Exception as e:
                 m.warning(str(e))
                 raise BuildStepError(recipe, step, traceback.format_exc())
+
         # Update the recipe status
         p = self.store.get_package('%s-pkg' % recipe.name)
         v = p.version.rsplit('-')[0]

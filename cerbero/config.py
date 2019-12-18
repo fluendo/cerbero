@@ -520,6 +520,20 @@ class Config (object):
         return self.target_distro_version >= distro_version
 
     @lru_cache(maxsize=None)
+    def get_string_for_checksum(self):
+        env = self._get_sanitized_env()
+        string = ''
+        for e in sorted(env.keys()):
+            string += '{}={}\n'.format(e, env[e])
+        return string
+
+    @lru_cache(maxsize=None)
+    def get_checksum(self):
+        md5 = hashlib.md5()
+        md5.update(self.get_string_for_checksum().encode('utf-8'))
+        return md5.hexdigest()
+
+    @lru_cache(maxsize=None)
     def _get_sanitized_env(self):
         ret_env = {}
         unixpath = to_unixpath(self.libdir)
@@ -542,20 +556,6 @@ class Config (object):
         # bootstrap phase there is no compiler installed yet and get_env is cached
         ret_env['CC_VERSION'] = shell.check_compiler_version(self, ret_env['CC'])
         return ret_env
-
-    @lru_cache(maxsize=None)
-    def get_string_for_checksum(self):
-        env = self._get_sanitized_env()
-        string = ''
-        for e in sorted(env.keys()):
-            string += '{}={}\n'.format(e, env[e])
-        return string
-
-    @lru_cache(maxsize=None)
-    def get_checksum(self):
-        md5 = hashlib.md5()
-        md5.update(self.get_string_for_checksum().encode('utf-8'))
-        return md5.hexdigest()
 
     def _parse(self, filename, reset=True):
         config = {'os': os, '__file__': filename}

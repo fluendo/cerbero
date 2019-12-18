@@ -1,18 +1,16 @@
-#------------------------------------------------------------------------------
-# RelocatableTar* are classes that represent a .tar file
-# with relocation abilities
-#------------------------------------------------------------------------------
+"""
+RelocatableTar* are classes that represent a .tar file with relocation abilities
+"""
 
 import os
 from tarfile import TarFile
 from cerbero.utils import shell, is_text_file
 from cerbero.tools.osxrelocator import OSXRelocator
 
+
 class RelocatableTar(TarFile):
-#------------------------------------------------------------------------------
-# Generic RelocatableTar relocates CERBERO_PREFIX
-# for common files
-#------------------------------------------------------------------------------
+    """Generic RelocatableTar relocates CERBERO_PREFIX  for common files"""
+
     def extract_and_relocate(self, extract_to_path):
         self.extractall(extract_to_path)
         for member in self.getmembers():
@@ -37,10 +35,8 @@ class RelocatableTar(TarFile):
 
 
 class RelocatableTarOSX(RelocatableTar):
-#------------------------------------------------------------------------------
-# OSX Specialization, also checks specific OSX files
-# and uses OSXRelocator
-#------------------------------------------------------------------------------
+    """OSX Specialization, also checks specific OSX files and uses OSXRelocator"""
+
     def extract_and_relocate(self, extract_to_path):
         self.relocator = OSXRelocator(extract_to_path, extract_to_path, True)
         RelocatableTar.extract_and_relocate(self, extract_to_path)

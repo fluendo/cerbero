@@ -156,6 +156,7 @@ class Oven (object):
                 try:
                     fridge.freeze_recipe(recipe, count, total)
                 except RecipeNotFreezableError:
+                    m.log('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                     pass
 
             return
@@ -172,7 +173,7 @@ class Oven (object):
                 fridge.unfreeze_recipe(recipe, count, total)
                 self._update_installed_files(recipe, tmp)
                 return
-            except:
+            except Exception:
                 return self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
 
         recipe.force = self.force
@@ -235,6 +236,7 @@ class Oven (object):
             try:
                 fridge.freeze_recipe(recipe, count, total)
             except RecipeNotFreezableError:
+                m.log('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                 pass
 
     def _update_installed_files(self, recipe, tmp):
