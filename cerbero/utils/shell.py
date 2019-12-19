@@ -539,11 +539,13 @@ def ls_dir(dirpath, prefix):
 
 def find_newer_files(prefix, compfile, include_link=False):
     '''
-    Returns all files that have a modification time which is newer than the one
-    from compfile
+    Returns all files that have a change (metadata of file, e.g. permissions)
+    or modification time (file content modified) which is newer than the one
+    from compfile.
     '''
     include_links = include_link and '-L' or ''
-    cmd = 'find %s * \( -type f -o -type l \) -newer %s' % (include_links, compfile)
+    cmd = 'find %s * \( -type f -o -type l \) \( -cnewer %s -o -newer %s \)' % \
+           (include_links, compfile, compfile)
     sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
     return sfiles
