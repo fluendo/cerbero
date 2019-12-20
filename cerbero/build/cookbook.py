@@ -22,6 +22,7 @@ import pickle
 import time
 import imp
 import traceback
+import asyncio
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License, LibraryType
@@ -389,6 +390,29 @@ class CookBook (object):
                     file_hash=recipe.get_checksum(), installed_files=[])
         return self.status[recipe_name]
 
+    def _reset_recipe_if_needed(self, recipe, st):
+        # Need to check the version too, because the version can be
+        # inherited from a different file, f.ex. recipes/custom.py
+        if recipe.built_version() != st.built_version:
+            self.reset_recipe_status(recipe.name)
+        else:
+            rmtime = recipe.get_mtime()
+            if rmtime > st.mtime:
+                # The mtime is different, check the file hash now
+                # Use getattr as file_hash we added later
+                saved_hash = getattr(st, 'file_hash', 0)
+                current_hash = recipe.get_checksum()
+                if saved_hash == current_hash:
+                    # Update the status with the mtime
+                    st.touch()
+                else:
+                    self.reset_recipe_status(recipe.name)
+
+    async def _async_reset_recipe_if_needed(self, recipe, st):
+        await recipe.async_built_version()
+        print('Recipe {} -> {}'.format(recipe.name, recipe.built_version()))
+        self._reset_recipe_if_needed(recipe, st)
+
     def _load_recipes(self):
         self.recipes = {}
         recipes = defaultdict(dict)
@@ -399,6 +423,7 @@ class CookBook (object):
         for key in sorted(recipes.keys()):
             self.recipes.update(recipes[key])
 
+        async_tasks = []
         # Check for updates in the recipe file to reset the status
         for recipe in list(self.recipes.values()):
             # Set the offline property, used by the recipe while performing the
@@ -415,22 +440,9 @@ class CookBook (object):
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__
                 st.mtime = 0;
-            # Need to check the version too, because the version can be
-            # inherited from a different file, f.ex. recipes/custom.py
-            if recipe.built_version() != st.built_version:
-                self.reset_recipe_status(recipe.name)
-            else:
-                rmtime = recipe.get_mtime()
-                if rmtime > st.mtime:
-                    # The mtime is different, check the file hash now
-                    # Use getattr as file_hash we added later
-                    saved_hash = getattr(st, 'file_hash', 0)
-                    current_hash = recipe.get_checksum()
-                    if saved_hash == current_hash:
-                        # Update the status with the mtime
-                        st.touch()
-                    else:
-                        self.reset_recipe_status(recipe.name)
+            recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe, st)
+
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}

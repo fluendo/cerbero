@@ -19,6 +19,7 @@
 import os
 import imp
 import traceback
+import asyncio
 from collections import defaultdict
 
 from cerbero.build.cookbook import CookBook
@@ -146,6 +147,13 @@ class PackagesStore (object):
         # remove duplicates and sort
         return sorted(list(set(l)))
 
+    def _load_package_from_recipe(self, recipe):
+        p = self._package_from_recipe(recipe)
+        if p.name in self._packages.keys():
+            m.warning("Package with name '%s' already exists, not including it", p.name)
+        else:
+            self._packages[p.name] = p
+
     def _load_packages(self, recipes=None):
         self._packages = {}
         packages = defaultdict(dict)
@@ -158,14 +166,13 @@ class PackagesStore (object):
             self._packages.update(packages[key])
         # Add a package for every recipe
         recipes = self.cookbook.get_recipes_list() if recipes is None else recipes
+        async_tasks = []
         for recipe in recipes:
             if not recipe.allow_package_creation:
                 continue
-            p = self._package_from_recipe(recipe)
-            if p.name in self._packages.keys():
-                m.warning("Package with name '%s' already exists, not including it", p.name)
-            else:
-                self._packages[p.name] = p
+            recipe.run_func_depending_on_built_version(async_tasks, self._load_package_from_recipe, recipe)
+
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
 
     def _package_from_recipe(self, recipe):
         p = package.Package(self._config, self, self.cookbook)

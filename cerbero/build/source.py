@@ -22,6 +22,7 @@ import tarfile
 import urllib.request, urllib.parse, urllib.error
 from hashlib import sha256
 from functools import lru_cache
+import asyncio
 
 from cerbero.config import Platform, DEFAULT_MIRRORS
 from cerbero.utils import git, svn, shell, _
@@ -284,6 +285,7 @@ class GitCache (Source):
 
     remotes = None
     commit = None
+    cached_built_version = None
 
     def __init__(self):
         Source.__init__(self)
@@ -333,9 +335,16 @@ class GitCache (Source):
             git.checkout(self.repo_dir, commit, logfile=get_logfile(self))
             git.submodules_update(self.repo_dir, cached_dir, fail=False, offline=self.offline, logfile=get_logfile(self))
 
-    @lru_cache(maxsize=None)
+    async def async_built_version(self):
+        if not self.cached_built_version:
+            git_hash = await git.async_get_hash(self.repo_dir, self.commit, self.remotes)
+            self.cached_built_version = '%s+git~%s' % (self.version, git_hash)
+        return self.cached_built_version
+
     def built_version(self):
-        return '%s+git~%s' % (self.version, git.get_hash(self.repo_dir, self.commit, self.remotes['origin']))
+        if not self.cached_built_version:
+            asyncio.get_event_loop().run_until_complete(self.async_built_version())
+        return self.cached_built_version
 
 
 class LocalTarball (GitCache):
