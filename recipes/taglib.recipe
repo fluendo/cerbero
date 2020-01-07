@@ -34,9 +34,14 @@ class Recipe(recipe.Recipe):
 
     def install(self):
         super(recipe.Recipe, self).install()
+        libtag = os.path.join(self.config.prefix, 'lib', 'libtag.a')
         shutil.move(
                 os.path.join(self.config.prefix, 'lib', 'libtag_static.a'),
-                os.path.join(self.config.prefix, 'lib', 'libtag.a'))
+                libtag)
+        # Linking to the static library fails because it has no index
+        # We need to call ranlib manually
+        if self.config.target_platform == Platform.ANDROID:
+            shell.new_call([os.environ.get("RANLIB", "ranlib"), libtag])
 
     def post_install(self):
         deps = ['z']

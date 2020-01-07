@@ -45,7 +45,7 @@ class DistTarball(PackagerBase):
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False):
         return self.pack_full(output_dir, devel=devel, force=force, keep_temp=keep_temp,
-                              slipt=True, strip_binaries=self.package.strip)
+                              split=True, strip_binaries=self.package.strip)
 
     def pack_full(self, output_dir, devel=True, force=False, keep_temp=False,
                   split=True, package_prefix='', strip_binaries=False):
