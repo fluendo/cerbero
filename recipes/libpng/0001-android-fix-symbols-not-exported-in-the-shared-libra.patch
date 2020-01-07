@@ -1,0 +1,25 @@
+From 19c43c8649f9115d0bfa3f6e9f6b0f92e37e815f Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Mon, 6 Jan 2020 17:43:19 -0800
+Subject: [PATCH] android: fix symbols not exported in the shared library
+
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index d1787c5..35d93aa 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -182,7 +182,7 @@ AC_MSG_CHECKING([if libraries can be versioned])
+ # support for version-script, but doesn't actually
+ # DO anything with it.
+ case $host in
+-*cygwin* | *mingw32* | *interix* )
++*cygwin* | *mingw32* | *interix* | *android* )
+     have_ld_version_script=no
+     AC_MSG_RESULT(no)
+ ;;
+-- 
+2.23.0
+
