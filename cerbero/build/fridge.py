@@ -149,10 +149,10 @@ class Fridge (object):
     """This fridge packages recipes thar are already built"""
 
     # Freeze/Unfreeze steps
-    FETCH_BINARY = (N_('Fetch Binary'), '_fetch_binary')
-    EXTRACT_BINARY = (N_('Extract Binary'), '_extract_binary')
-    GEN_BINARY = (N_('Generate Binary'), '_generate_binary')
-    UPLOAD_BINARY = (N_('Upload Binary'), '_upload_binary')
+    FETCH_BINARY = (N_('Fetch Binary'), 'fetch_binary')
+    EXTRACT_BINARY = (N_('Extract Binary'), 'extract_binary')
+    GEN_BINARY = (N_('Generate Binary'), 'generate_binary')
+    UPLOAD_BINARY = (N_('Upload Binary'), 'upload_binary')
 
     def __init__(self, store, force=False, dry_run=False):
         self.store = store
@@ -210,12 +210,12 @@ class Fridge (object):
         self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
         self.cookbook.update_needs_build(recipe.name, True)
 
-    def _fetch_binary(self, recipe):
+    def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
         self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)
 
-    def _extract_binary(self, recipe):
+    def extract_binary(self, recipe):
         self._ensure_ready(recipe)
         package_names = self._get_package_names(recipe)
         # There is a weird bug where the links in the devel package are overwriting the
@@ -235,7 +235,7 @@ class Fridge (object):
                 tar.extract_and_relocate(self.config.prefix)
                 tar.close()
 
-    def _generate_binary(self, recipe):
+    def generate_binary(self, recipe):
         self._ensure_ready(recipe)
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
@@ -250,7 +250,7 @@ class Fridge (object):
         paths = tar.pack_files(self.binaries_local, PackageType.DEVEL, installed_files)
         p.post_package(paths, self.binaries_local)
 
-    def _upload_binary(self, recipe):
+    def upload_binary(self, recipe):
         self._ensure_ready(recipe)
         packages = self._get_package_names(recipe)
         fetch_packages = []
@@ -288,7 +288,7 @@ class Fridge (object):
     def _apply_steps(self, recipe, steps, count, total):
         self._ensure_ready(recipe)
         for desc, step in steps:
-            m.build_step(count, total, recipe.name, step.lstrip('_'))
+            m.build_step(count, total, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action(_("Step done"))
