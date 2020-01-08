@@ -194,6 +194,7 @@ class CookBook (object):
         '''
         status = self._recipe_status(recipe_name)
         status.steps.append(step)
+        status.steps = list(set(status.steps))
         self._update_status(recipe_name, status)
 
     def update_installed_files(self, recipe_name, files):
