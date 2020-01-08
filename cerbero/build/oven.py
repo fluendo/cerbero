@@ -163,10 +163,13 @@ class Oven (object):
 
         # Create a temp file that will be used to find newer files
         tmp = tempfile.NamedTemporaryFile()
-        # the modification time resolution depends on the filesystem,
-        # where FAT32 has a resolution of 2 seconds and ext4 1 second
-        t = time.time() - 2
-        os.utime(tmp.name, (t, t))
+
+        # the modification time resolution depends on the filesystem, where
+        # Windows and macOS have a 1 sec while Linux has millisecond. Hence, we
+        # sleep enough to make sure the files from previous recipes are not
+        # taken
+        if count != 1 and self.config.platform != Platform.LINUX:
+            time.sleep(1.5)
 
         if use_binaries:
             try:
