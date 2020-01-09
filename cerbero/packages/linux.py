@@ -60,7 +60,7 @@ class LinuxPackager(PackagerBase):
             # create a tarball with all the package's files
             tarball_packager = DistTarball(self.config, self.package,
                     self.store)
-            tarball = tarball_packager.pack_full(tmpdir, devel, True,
+            tarball = tarball_packager.pack(tmpdir, devel, True,
                     split=False, package_prefix=self.full_package_name)[0]
             tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
         else:

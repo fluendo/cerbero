@@ -99,7 +99,7 @@ class Package(Command):
         m.action(_("Creating package for %s") % p.name)
         output_dir = os.path.abspath(args.output_dir)
         if args.tarball:
-            paths = pkg.pack_full(output_dir, args.no_devel,
+            paths = pkg.pack(output_dir, args.no_devel,
                                   args.force, args.keep_temp, split=not args.no_split,
                                   strip_binaries=p.strip)
         else:
