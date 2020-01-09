@@ -238,3 +238,8 @@ class LibraryType:
     STATIC = 'static'
     SHARED = 'shared'
     BOTH = 'both'
+
+class ArchiveType:
+    ''' Enumeration of supported archives '''
+    TARBALL = 'tarball'
+    ZIP = 'zip'

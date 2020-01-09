@@ -19,11 +19,11 @@
 import os
 import time
 import shutil
+import asyncio
 
 from cerbero.config import Platform
 from cerbero.utils import shell
 from cerbero.errors import FatalError
-
 
 GIT = 'git'
 
@@ -178,8 +178,7 @@ def checkout(git_dir, commit, logfile=None):
     '''
     return shell.call('%s reset --hard %s' % (GIT, commit), git_dir, logfile=logfile)
 
-
-def get_hash(git_dir, commit):
+async def async_get_hash(git_dir, commit, remotes=None):
     '''
     Get a commit hash from a valid commit.
     Can be used to check if a commit exists
@@ -188,15 +187,37 @@ def get_hash(git_dir, commit):
     @type git_dir: str
     @param commit: the commit to log
     @type commit: str
+    @param remote: the repo's remote
+    @type remote: str
     '''
+    # In case this hash is taken when the repo has not been cloned yet
+    # (e.g. changing stype from tarball to git, during fridge), we need
+    # to collect the actual commit we would checkout. Otherwise, fridge
+    # wouldn't be able to reuse the same package.
     if not os.path.isdir(os.path.join(git_dir, '.git')):
-        # If a recipe's source type is switched from tarball to git, then we
-        # can get called from built_version() when the directory isn't git.
-        # Return a fixed string + unix time to trigger a full fetch.
-        return 'not-git-' + str(time.time())
-    return shell.check_call('%s rev-parse %s' %
-                            (GIT, commit), git_dir).rstrip()
+        if remotes:
+            remote = remotes['origin']
+            commit_split = commit.split('/')
+            if len(commit_split) > 1:
+                remote = remotes[commit_split[0]]
+                commit = commit_split[1]
 
+            remote_commit = await shell.async_call_output('%s ls-remote %s %s' % (GIT, remote, commit))
+            # If the commit/tag/branch given doesn't show up using ls-remote, it means
+            # it is not the HEAD of any refs. Hence, it must be a previous commit
+            # that we can use directly
+            if remote_commit:
+                return remote_commit.split()[0]
+            else:
+                return commit
+        else:
+            raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
+    output = await shell.async_call_output('%s rev-parse %s' %
+                            (GIT, commit), git_dir)
+    return output.rstrip()
+
+def get_hash(git_dir, commit, remotes=None):
+    return asyncio.get_event_loop().run_until_complete(async_get_hash(git_dir, commit, remote))
 
 def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''

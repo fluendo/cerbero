@@ -193,6 +193,7 @@ class Recipe(FilesProvider, metaclass=MetaRecipe):
     deps = None
     platform_deps = None
     runtime_dep = False
+    allow_package_creation = True
 
     # Internal properties
     force = False
@@ -539,6 +540,22 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             return self.stype.built_version(self)
         return self.version
 
+    def run_func_depending_on_built_version(self, async_tasks, func, *args):
+        '''
+        This method checks whether there is an async_built_version for this recipe.
+        If possitive, it will fill async_tasks with the Futures to be run by an
+        event loop. This Future will call func after getting the built_version.
+        If no async_built_version is found, it will directly call func.
+        '''
+        if not hasattr(self, 'async_built_version') or not getattr(self, 'async_built_version'):
+            func(*args)
+        else:
+            async_built_version = getattr(self, 'async_built_version')
+            if asyncio.iscoroutinefunction(async_built_version):
+                async_tasks.append(self._run_func_after_built_version(func, *args))
+            else:
+                func(*args)
+
     def list_deps(self):
         '''
         List all dependencies including conditional dependencies
@@ -672,6 +689,10 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
 
     def get_for_arch (self, arch, name):
         return getattr (self, name)
+
+    async def _run_func_after_built_version(self, func, *args):
+        await self.async_built_version()
+        func(*args)
 
 
 class MetaUniversalRecipe(type):

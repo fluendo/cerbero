@@ -65,7 +65,7 @@ def get_implib_dllname(config, path):
 
 def find_dll_implib(config, libname, prefix, libdir, ext, regex):
     implibdir = 'lib'
-    implibs = ['lib{}.dll.a'.format(libname), libname + '.lib', 'lib{}.lib'.format(libname)]
+    implibs = ['{}.dll.a'.format(libname), libname + '.lib', '{}.lib'.format(libname)]
     implib_notfound = []
     for implib in implibs:
         path = os.path.join(prefix, implibdir, implib)
@@ -82,7 +82,7 @@ def find_dll_implib(config, libname, prefix, libdir, ext, regex):
     # If import libraries aren't found, look for a DLL by exactly the specified
     # name. This is to cover cases like libgcc_s_sjlj-1.dll which don't have an
     # import library since they're only used at runtime.
-    dllname = 'lib{}.dll'.format(libname)
+    dllname = '{}.dll'.format(libname)
     path = os.path.join(prefix, libdir, dllname)
     if os.path.exists(path):
         return [os.path.join(libdir, dllname)]
@@ -123,8 +123,8 @@ class FilesProvider(object):
     # UNIX shared libraries can have between 0 and 3 version components:
     # major, minor, micro. We don't use {m,n} here because we want to capture
     # all the matches.
-    _SO_REGEX = r'^lib{}\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$'
-    _DYLIB_REGEX = r'^lib{}(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?\.dylib$'
+    _SO_REGEX = r'^{}\.so((\.[0-9]+)+)?$'
+    _DYLIB_REGEX = r'^{}(-|\.)(([0-9]+\.)+)?dylib$'
 
     # Extension Glob Legend:
     # bext = binary extension
@@ -300,7 +300,7 @@ class FilesProvider(object):
 
     def _find_plugin_dll_files(self, f):
         # Plugin template is always libfoo%(mext)s
-        if not f.startswith('lib'):
+        if not os.path.basename(f).startswith('lib'):
             raise AssertionError('Plugin files must start with "lib": {!r}'.format(f))
         # Plugin DLLs are required to be libfoo.dll (mingw) or foo.dll (msvc)
         if (Path(self.config.prefix) / f).is_file():
@@ -382,7 +382,7 @@ class FilesProvider(object):
         libsmatch = {}
         notfound = []
         for f in files:
-            libsmatch[f] = find_func(self.config, f[3:], self.config.prefix,
+            libsmatch[f] = find_func(self.config, f, self.config.prefix,
                                      libdir, libext, libregex)
             if not libsmatch[f]:
                 notfound.append(f)

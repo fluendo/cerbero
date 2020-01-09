@@ -40,11 +40,18 @@ class BuildTools (BootstrapperBase, Fetch):
         Platform.LINUX: ['intltool-m4'],
     }
 
-    def __init__(self, config, offline):
+    def __init__(self, config, offline, use_binaries=False, upload_binaries=False,
+                 build_missing=False, missing_files=False):
         BootstrapperBase.__init__(self, config, offline)
 
+        self.use_binaries = use_binaries
+        self.upload_binaries = upload_binaries
+        self.build_missing = build_missing
+        self.missing_files = missing_files
+
         if self.config.platform == Platform.WINDOWS:
-            self.BUILD_TOOLS.remove('m4')
+            if 'm4' in self.BUILD_TOOLS:
+                self.BUILD_TOOLS.remove('m4')
             self.BUILD_TOOLS.append('gperf')
         if self.config.platform == Platform.DARWIN:
             self.BUILD_TOOLS.append('gperf')
@@ -89,6 +96,7 @@ class BuildTools (BootstrapperBase, Fetch):
         config.build_tools_cache = self.config.build_tools_cache
         config.external_recipes = self.config.external_recipes
         config.toolchain_prefix = self.config.toolchain_prefix
+        config.binaries_remote = self.config.binaries_remote
 
         if config.toolchain_prefix and not os.path.exists(config.toolchain_prefix):
             os.makedirs(config.toolchain_prefix)
@@ -104,11 +112,11 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def start(self):
         self._setup_env()
-        oven = Oven(self.recipes, self.cookbook)
-        oven.start_cooking()
+        oven = Oven(self.recipes, self.cookbook, missing_files=self.missing_files)
+        oven.start_cooking(self.use_binaries, self.upload_binaries, self.build_missing)
         self.config.do_setup_env()
 
     def fetch_recipes(self):
         self._setup_env()
-        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False)
+        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, use_binaries=self.use_binaries)
         self.config.do_setup_env()

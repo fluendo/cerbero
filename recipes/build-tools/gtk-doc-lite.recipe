@@ -12,8 +12,7 @@ class Recipe(recipe.Recipe):
     btype = BuildType.CUSTOM
 
     files_devel = ['bin/gtkdocize', 'share/aclocal/gtk-doc.m4',
-                   'share/gtk-doc/data/gtk-doc.make',
-                   'share/gtk-doc/data/gtk-doc.notmpl.make']
+                   'share/gtk-doc/data/gtk-doc.make']
 
     def install(self):
         from cerbero.utils import shell

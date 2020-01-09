@@ -22,6 +22,7 @@ import pickle
 import time
 import imp
 import traceback
+import asyncio
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License, LibraryType
@@ -55,25 +56,30 @@ class RecipeStatus (object):
     @ivar built_version: string with the last version built
     @type built_version: str
     @ivar file_hash: hash of the file with the recipe description
-    @type file_hash: int
+    @type file_hash: str
+    @ivar installed_files: installed files
+    @rtpe installed_files: list
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version='', file_hash=0):
+                 mtime=time.time(), built_version='', file_hash='',
+                 installed_files=[]):
         self.steps = steps
         self.needs_build = needs_build
         self.mtime = mtime
         self.filepath = filepath
         self.built_version = built_version
         self.file_hash = file_hash
+        self.installed_files = installed_files
 
     def touch(self):
         ''' Touches the recipe updating its modification time '''
         self.mtime = time.time()
 
     def __repr__(self):
-        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r" % \
-            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash.hex())
+        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r\ninstalled_files: %r" % \
+            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash,
+            self.installed_files)
 
 
 class CookBook (object):
@@ -188,9 +194,28 @@ class CookBook (object):
         '''
         status = self._recipe_status(recipe_name)
         status.steps.append(step)
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
+        status.steps = list(set(status.steps))
+        self._update_status(recipe_name, status)
+
+    def update_installed_files(self, recipe_name, files):
+        '''
+        Updates the installed files of the recipe
+
+        @param recipe_name: name of the recipe
+        @type recipe: str
+        @param files: installed files
+        @type files: list
+        '''
+        status = self._recipe_status(recipe_name)
+        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), files))
+        removed_files = list(set(files) - set(existing_files))
+        if removed_files:
+            m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
+                      'Removing them from recipe\'s cache' % (recipe_name, removed_files))
+        status.installed_files += existing_files
+        status.installed_files = list(set(status.installed_files))
+        self._update_status(recipe_name, status)
+        return status.installed_files
 
     def update_build_status(self, recipe_name, built_version):
         '''
@@ -204,9 +229,20 @@ class CookBook (object):
         status = self._recipe_status(recipe_name)
         status.needs_build = built_version == None
         status.built_version = built_version
-        status.touch()
-        self.status[recipe_name] = status
-        self.save()
+        self._update_status(recipe_name, status)
+
+    def update_needs_build(self, recipe_name, needs_build):
+        '''
+        Updates the recipe's needs_build field
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        @param needs_build: whether the recipe needs to be built
+        @type needs_build: bool
+        '''
+        status = self._recipe_status(recipe_name)
+        status.needs_build = needs_build
+        self._update_status(recipe_name, status)
 
     def recipe_built_version (self, recipe_name):
         '''
@@ -253,6 +289,17 @@ class CookBook (object):
         '''
         return self._recipe_status(recipe_name).needs_build
 
+    def recipe_installed_files(self, recipe_name):
+        '''
+        Return the list of installed files for a given recipe
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        @return: installed files
+        @rtype: list
+        '''
+        return self._recipe_status(recipe_name).installed_files
+
     def list_recipe_deps(self, recipe_name):
         '''
         List the dependencies that needs to be built in the correct build
@@ -278,6 +325,21 @@ class CookBook (object):
         recipe = self.get_recipe(recipe_name)
         return [r for r in list(self.recipes.values()) if recipe.name in r.deps]
 
+    def save(self):
+        try:
+            cache_file = self._cache_file(self.get_config())
+            if not os.path.exists(os.path.dirname(cache_file)):
+                os.makedirs(os.path.dirname(cache_file))
+            with open(cache_file, 'wb') as f:
+                pickle.dump(self.status, f)
+        except IOError as ex:
+            m.warning(_("Could not cache the CookBook: %s") % ex)
+
+    def _update_status(self, recipe_name, status):
+        status.touch()
+        self.status[recipe_name] = status
+        self.save()
+
     def _runtime_deps (self):
         return [x.name for x in list(self.recipes.values()) if x.runtime_dep]
 
@@ -294,16 +356,6 @@ class CookBook (object):
         except Exception:
             self.status = {}
             m.warning(_("Could not recover status"))
-
-    def save(self):
-        try:
-            cache_file = self._cache_file(self.get_config())
-            if not os.path.exists(os.path.dirname(cache_file)):
-                os.makedirs(os.path.dirname(cache_file))
-            with open(cache_file, 'wb') as f:
-                pickle.dump(self.status, f)
-        except IOError as ex:
-            m.warning(_("Could not cache the CookBook: %s") % ex)
 
     def _find_deps(self, recipe, state={}, ordered=[]):
         if state.get(recipe, 'clean') == 'processed':
@@ -336,8 +388,31 @@ class CookBook (object):
             if hasattr(recipe, '__file__'):
                 filepath = recipe.__file__
             self.status[recipe_name] = RecipeStatus(filepath, steps=[],
-                    file_hash=recipe.get_checksum())
+                    file_hash=recipe.get_checksum(), installed_files=[])
         return self.status[recipe_name]
+
+    def _reset_recipe_if_needed(self, recipe, st):
+        # Need to check the version too, because the version can be
+        # inherited from a different file, f.ex. recipes/custom.py
+        if recipe.built_version() != st.built_version:
+            self.reset_recipe_status(recipe.name)
+        else:
+            rmtime = recipe.get_mtime()
+            if rmtime > st.mtime:
+                # The mtime is different, check the file hash now
+                # Use getattr as file_hash we added later
+                saved_hash = getattr(st, 'file_hash', 0)
+                current_hash = recipe.get_checksum()
+                if saved_hash == current_hash:
+                    # Update the status with the mtime
+                    st.touch()
+                else:
+                    self.reset_recipe_status(recipe.name)
+
+    async def _async_reset_recipe_if_needed(self, recipe, st):
+        await recipe.async_built_version()
+        print('Recipe {} -> {}'.format(recipe.name, recipe.built_version()))
+        self._reset_recipe_if_needed(recipe, st)
 
     def _load_recipes(self):
         self.recipes = {}
@@ -349,6 +424,7 @@ class CookBook (object):
         for key in sorted(recipes.keys()):
             self.recipes.update(recipes[key])
 
+        async_tasks = []
         # Check for updates in the recipe file to reset the status
         for recipe in list(self.recipes.values()):
             # Set the offline property, used by the recipe while performing the
@@ -360,27 +436,14 @@ class CookBook (object):
             # filepath attribute was added afterwards
             if not hasattr(st, 'filepath') or not getattr(st, 'filepath'):
                 st.filepath = recipe.__file__
-            # if filepath has changed, force using file_hash(), this will
+            # if filepath has changed, force using get_checksum(), this will
             # allow safe relocation of the recipes.
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__
                 st.mtime = 0;
-            # Need to check the version too, because the version can be
-            # inherited from a different file, f.ex. recipes/custom.py
-            if recipe.built_version() != st.built_version:
-                self.reset_recipe_status(recipe.name)
-            else:
-                rmtime = recipe.get_mtime()
-                if rmtime > st.mtime:
-                    # The mtime is different, check the file hash now
-                    # Use getattr as file_hash we added later
-                    saved_hash = getattr(st, 'file_hash', 0)
-                    current_hash = recipe.get_checksum()
-                    if saved_hash == current_hash:
-                        # Update the status with the mtime
-                        st.touch()
-                    else:
-                        self.reset_recipe_status(recipe.name)
+            recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe, st)
+
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}

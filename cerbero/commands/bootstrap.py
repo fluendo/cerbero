@@ -35,12 +35,35 @@ class Bootstrap(Command):
             ArgparseArgument('--offline', action='store_true',
                 default=False, help=_('Use only the source cache, no network')),
             ArgparseArgument('-y', '--assume-yes', action='store_true',
-                default=False, help=('Automatically say yes to prompts and run non-interactively'))]
+                default=False, help=('Automatically say yes to prompts and run non-interactively')),
+            ArgparseArgument('--use-binaries', action='store_true',
+                             default=False,
+                             help=_('use binaries from the repo before building')),
+            ArgparseArgument('--upload-binaries', action='store_true',
+                             default=False,
+                             help=_('after a recipe is built upload the corresponding binary package')),
+            ArgparseArgument('--build-missing', action='store_true',
+                             default=False,
+                             help=_('in case a binary package is missing try to build it')),
+            ArgparseArgument('--fridge', action='store_true',
+                             default=False,
+                             help=_('equivalent to \'--build-missing --use-binaries --upload-binaries\'')),
+            ArgparseArgument('--missing-files', action='store_true',
+                            default=False,
+                            help=_('prints a list of files installed that are '
+                                    'listed in the recipe')),
+            ]
         Command.__init__(self, args)
 
     def run(self, config, args):
+        if args.fridge:
+            args.use_binaries = True
+            args.upload_binaries = True
+            args.build_missing = True
         bootstrappers = Bootstrapper(config, args.build_tools_only,
-                args.offline, args.assume_yes, args.system_only)
+                args.offline, args.assume_yes, args.system_only,
+                args.use_binaries, args.upload_binaries, args.build_missing,
+                args.missing_files)
         for bootstrapper in bootstrappers:
             bootstrapper.fetch()
             bootstrapper.extract()
@@ -54,12 +77,14 @@ class FetchBootstrap(Command):
     def __init__(self):
         args = [
             ArgparseArgument('--build-tools-only', action='store_true',
-                default=False, help=_('only fetch the build tools'))]
+                default=False, help=_('only fetch the build tools')),
+            ArgparseArgument('--fridge', action='store_true',
+                default=False, help=_('use fridge to download binary packages if available'))]
         Command.__init__(self, args)
 
     def run(self, config, args):
         bootstrappers = Bootstrapper(config, args.build_tools_only,
-                offline=False, assume_yes=False, system_only=False)
+                offline=False, assume_yes=False, system_only=False, use_binaries=args.fridge)
         for bootstrapper in bootstrappers:
             bootstrapper.fetch_recipes()
             bootstrapper.fetch()

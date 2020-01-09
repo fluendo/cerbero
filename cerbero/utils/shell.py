@@ -31,6 +31,7 @@ import glob
 import shutil
 import hashlib
 import urllib.request, urllib.error, urllib.parse
+from ftplib import FTP
 from pathlib import Path, PurePath
 from distutils.version import StrictVersion
 
@@ -319,7 +320,7 @@ def unpack(filepath, output_dir, logfile=None):
     else:
         raise FatalError("Unknown tarball format %s" % filepath)
 
-def download_wget(url, destination=None, check_cert=True, overwrite=False):
+def download_wget(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Downloads a file with wget
 
@@ -336,6 +337,11 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False):
     if not check_cert:
         cmd += " --no-check-certificate"
 
+    if user:
+        cmd += " --user %s" % user
+        if password:
+            cmd += " --password \"%s\"" % password
+
     cmd += " --tries=2"
     cmd += " --timeout=10.0"
     cmd += " --progress=dot:giga"
@@ -347,7 +353,7 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download_urllib2(url, destination=None, check_cert=True, overwrite=False):
+def download_urllib2(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Download a file with urllib2, which does not rely on external programs
 
@@ -376,7 +382,7 @@ def download_urllib2(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download_curl(url, destination=None, check_cert=True, overwrite=False):
+def download_curl(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Downloads a file with cURL
 
@@ -387,6 +393,12 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False):
     '''
     path = None
     cmd = "curl -L --fail "
+    if user:
+        cmd += "--user %s" % user
+        if password:
+            cmd += ":\"%s\" " % password
+        else:
+            cmd += " "
     if not check_cert:
         cmd += " -k "
     if destination is not None:
@@ -400,7 +412,7 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False):
             os.remove(destination)
         raise e
 
-def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None):
+def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None, user=None, password=None):
     '''
     Downloads a file
 
@@ -450,11 +462,53 @@ def download(url, destination=None, check_cert=True, overwrite=False, logfile=No
     errors = []
     for murl in urls:
         try:
-            return download_func(murl, destination, check_cert, overwrite)
+            return download_func(murl, destination, check_cert, overwrite, user, password)
         except Exception as ex:
             errors.append(ex)
     raise Exception (errors)
 
+def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
+    remote = urllib.parse.urlparse(remote_url)
+    if ftp_connection:
+        ftp = ftp_connection
+    else:
+        ftp = FTP()
+        ftp.connect(remote.hostname, remote.port or 0)
+        ftp.login(user, password)
+    return ftp, remote
+
+def ftp_end(ftp, ftp_connection=None):
+    if not ftp_connection:
+        ftp.quit()
+
+def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
+    try:
+        ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+        ftp.cwd(os.path.dirname(remote.path))
+        files = ftp.nlst()
+        exists = os.path.basename(remote.path) in files
+        ftp_end(ftp, ftp_connection)
+        return exists
+    except Exception:
+        return False
+
+def ftp_download(remote_url, local_filename, ftp_connection=None, user=None, password=None):
+    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+    ftp.cwd(os.path.dirname(remote.path))
+    with open(local_filename, 'wb') as f:
+        ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
+    ftp_end(ftp, ftp_connection)
+
+def ftp_upload(local_filename, remote_url, ftp_connection=None, user=None, password=None):
+    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
+    try:
+        ftp.mkd(os.path.dirname(remote.path))
+    except Exception:
+        pass
+    ftp.cwd(os.path.dirname(remote.path))
+    with open(local_filename, 'rb') as f:
+        ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
+    ftp_end(ftp, ftp_connection)
 
 def _splitter(string, base_url):
     lines = string.split('\n')
@@ -484,9 +538,15 @@ def ls_dir(dirpath, prefix):
 
 
 def find_newer_files(prefix, compfile, include_link=False):
+    '''
+    Returns all files that have a change (metadata of file, e.g. permissions)
+    or modification time (file content modified) which is newer than the one
+    from compfile.
+    '''
     include_links = include_link and '-L' or ''
-    cmd = 'find %s * -type f -cnewer %s' % (include_links, compfile)
-    sfiles = check_call(cmd, prefix, True, False, False).split('\n')
+    cmd = 'find %s * \( -type f -o -type l \) \( -cnewer %s -o -newer %s \)' % \
+           (include_links, compfile, compfile)
+    sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
     return sfiles
 
@@ -550,12 +610,17 @@ def touch(path, create_if_not_exists=False, offset=0):
     os.utime(path, (t, t))
 
 
-def file_hash(path):
+def file_md5(path):
     '''
     Get the file md5 hash
     '''
     return hashlib.md5(open(path, 'rb').read()).digest()
 
+def file_sha256(path):
+    '''
+    Get the file SHA256 hash
+    '''
+    return hashlib.sha256(open(path, 'rb').read()).digest()
 
 def files_checksum(paths):
     '''
@@ -569,7 +634,7 @@ def files_checksum(paths):
     m = hashlib.md5()
     for f in paths:
         m.update(open(f, 'rb').read())
-    return m.digest()
+    return m.hexdigest()
 
 
 def enter_build_environment(platform, arch, sourcedir=None):
@@ -642,6 +707,23 @@ def check_perl_version(needed, env):
     found = m.group()[1:]
     newer = StrictVersion(found) >= StrictVersion(needed)
     return perl, found, newer
+
+def check_compiler_version(config, cc):
+    '''
+    Returns the compiler version
+    @param config: Configuration
+    @type config: L{cerbero.config.Config}
+    @param cc: Compiler
+    @type cc: str
+    '''
+    if 'gcc' in cc or 'clang' in cc or not config.msvc_version:
+        result = re.search(r'\s(\d+\.\d+\.\d+(\.\d+)?)\s', check_output(cc + ' --version'))
+        if result.groups():
+            return result.groups()[0]
+        else:
+            raise FatalError(_('Cannot retrieve version of the compiler'))
+    else:
+        return config.msvc_version
 
 def windows_proof_rename(from_name, to_name):
     '''

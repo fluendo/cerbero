@@ -11,8 +11,33 @@ class Recipe(recipe.Recipe):
 
     patches = ['bison/0001-Fix-build-invalid-instruction-on-macOS-10.3.patch']
 
-    files_bins = ['bison']
-
+    files_bins = ['bison', 'yacc']
+    files_share = [
+        'share/aclocal/bison-i18n.m4',
+        'share/bison/README',
+        'share/bison/bison.m4',
+        'share/bison/c++-skel.m4',
+        'share/bison/c++.m4',
+        'share/bison/c-like.m4',
+        'share/bison/c-skel.m4',
+        'share/bison/c.m4',
+        'share/bison/glr.c',
+        'share/bison/glr.cc',
+        'share/bison/java-skel.m4',
+        'share/bison/java.m4',
+        'share/bison/lalr1.cc',
+        'share/bison/lalr1.java',
+        'share/bison/location.cc',
+        'share/bison/m4sugar/foreach.m4',
+        'share/bison/m4sugar/m4sugar.m4',
+        'share/bison/stack.hh',
+        'share/bison/variant.hh',
+        'share/bison/xslt/bison.xsl',
+        'share/bison/xslt/xml2dot.xsl',
+        'share/bison/xslt/xml2text.xsl',
+        'share/bison/xslt/xml2xhtml.xsl',
+        'share/bison/yacc.c',
+    ]
     def extract(self):
         if os.path.exists(self.build_dir):
             shutil.rmtree(self.build_dir)

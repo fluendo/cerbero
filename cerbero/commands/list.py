@@ -38,7 +38,7 @@ class List(Command):
             m.message(_("No recipes found"))
         for recipe in recipes:
             try:
-                current = recipe.built_version().split("\n")[0]
+                current = cookbook.recipe_built_version(recipe.name).split("\n")[0]
             except:
                 current = "Not checked out"
 

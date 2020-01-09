@@ -19,6 +19,7 @@
 import os
 import imp
 import traceback
+import asyncio
 from collections import defaultdict
 
 from cerbero.build.cookbook import CookBook
@@ -37,12 +38,12 @@ class PackagesStore (object):
 
     PKG_EXT = '.package'
 
-    def __init__(self, config, load=True, offline=False):
+    def __init__(self, config, load=True, offline=False, recipes=None, cookbook=None):
         self._config = config
 
         self._packages = {}  # package_name -> package
 
-        self.cookbook = CookBook(config, load=load, offline=offline)
+        self.cookbook = cookbook or CookBook(config, load=load, offline=offline)
         # used in tests to skip loading a dir with packages definitions
         if not load:
             return
@@ -50,7 +51,7 @@ class PackagesStore (object):
         if not os.path.exists(config.packages_dir):
             raise FatalError(_("Packages dir %s not found") %
                              config.packages_dir)
-        self._load_packages()
+        self._load_packages(recipes)
 
     def get_packages_list(self):
         '''
@@ -146,7 +147,14 @@ class PackagesStore (object):
         # remove duplicates and sort
         return sorted(list(set(l)))
 
-    def _load_packages(self):
+    def _load_package_from_recipe(self, recipe):
+        p = self._package_from_recipe(recipe)
+        if p.name in self._packages.keys():
+            m.warning("Package with name '%s' already exists, not including it", p.name)
+        else:
+            self._packages[p.name] = p
+
+    def _load_packages(self, recipes=None):
         self._packages = {}
         packages = defaultdict(dict)
         repos = self._config.get_packages_repos()
@@ -156,6 +164,28 @@ class PackagesStore (object):
         # Add recipes by asceding pripority
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
+        # Add a package for every recipe
+        recipes = self.cookbook.get_recipes_list() if recipes is None else recipes
+        async_tasks = []
+        for recipe in recipes:
+            if not recipe.allow_package_creation:
+                continue
+            recipe.run_func_depending_on_built_version(async_tasks, self._load_package_from_recipe, recipe)
+
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
+
+    def _package_from_recipe(self, recipe):
+        p = package.Package(self._config, self, self.cookbook)
+        p.name = '%s-pkg' % recipe.name
+        p.license = recipe.licenses
+        if recipe.built_version():
+            version = recipe.built_version()
+        else:
+            version = recipe.version
+        p.version = '%s-%s' % (version, recipe.get_checksum())
+        p.files = ['%s' % recipe.name]
+        p.load_files()
+        return p
 
     def _load_packages_from_dir(self, repo):
         packages_dict = {}

@@ -31,6 +31,7 @@ import logging
 import traceback
 import os
 import time
+import asyncio
 
 from cerbero import config, commands
 from cerbero.errors import UsageError, FatalError, BuildStepError, \
@@ -47,6 +48,12 @@ class Main(object):
     def __init__(self, args):
         if user_is_root():
             m.warning(_("Running as root"))
+
+        # Ensure at the very beginning that on Windows we set the proper
+        # event loop so that we can use the asyncio calls
+        if sys.platform == 'win32':
+            loop = asyncio.ProactorEventLoop()
+            asyncio.set_event_loop(loop)
 
         self.check_in_cerbero_shell()
         self.create_parser()

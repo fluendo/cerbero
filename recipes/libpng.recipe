@@ -11,15 +11,16 @@ class Recipe(recipe.Recipe):
     deps = ['zlib']
     patches = [name + '/0001-neon-fix-function-export-names-for-iOS-armv7.patch',
                name + '/0002-Fix-build-in-native-Windows-do-to-incorrect-r-insert.patch',
-               name + '/0001-android-fix-symbols-not-exported-in-the-shared-libra.patch'
               ]
-    autoreconf = True
 
     files_libs = ['libpng16']
     files_devel = ['include/libpng16', 'bin/libpng16-config',
                    'lib/pkgconfig/libpng16.pc', 'lib/pkgconfig/libpng.pc']
 
     def prepare(self):
+        if self.config.target_platform == Platform.ANDROID:
+            self.patches.append(self.name + '/0001-android-fix-symbols-not-exported-in-the-shared-libra.patch')
+            self.autoreconf = True
         if self.config.target_platform == Platform.IOS:
             gas = self.get_env('GAS')
             if gas:
