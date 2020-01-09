@@ -409,11 +409,6 @@ class CookBook (object):
                 else:
                     self.reset_recipe_status(recipe.name)
 
-    async def _async_reset_recipe_if_needed(self, recipe, st):
-        await recipe.async_built_version()
-        print('Recipe {} -> {}'.format(recipe.name, recipe.built_version()))
-        self._reset_recipe_if_needed(recipe, st)
-
     def _load_recipes(self):
         self.recipes = {}
         recipes = defaultdict(dict)
@@ -443,7 +438,7 @@ class CookBook (object):
                 st.mtime = 0;
             recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe, st)
 
-        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
+        shell.run_until_complete(async_tasks)
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}
