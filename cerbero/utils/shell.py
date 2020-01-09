@@ -31,6 +31,7 @@ import glob
 import shutil
 import hashlib
 import urllib.request, urllib.error, urllib.parse
+import math
 from ftplib import FTP
 from pathlib import Path, PurePath
 from distutils.version import StrictVersion
@@ -743,3 +744,8 @@ def windows_proof_rename(from_name, to_name):
                 continue
     # Try one last time and throw an error if it fails again
     os.rename(from_name, to_name)
+
+def run_until_complete(tasks, max_concurrent=64):
+    slices = [tasks[i*max_concurrent:i*max_concurrent+max_concurrent] for i in range(math.ceil(len(tasks) / max_concurrent))]
+    for s in slices:
+        asyncio.get_event_loop().run_until_complete(asyncio.gather(*s))

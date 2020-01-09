@@ -172,7 +172,7 @@ class PackagesStore (object):
                 continue
             recipe.run_func_depending_on_built_version(async_tasks, self._load_package_from_recipe, recipe)
 
-        asyncio.get_event_loop().run_until_complete(asyncio.gather(*async_tasks))
+        shell.run_until_complete(async_tasks)
 
     def _package_from_recipe(self, recipe):
         p = package.Package(self._config, self, self.cookbook)
