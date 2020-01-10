@@ -63,7 +63,7 @@ class Fetch(Command):
         to_rebuild = []
         fridge = None
         if use_binaries:
-            fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=[x.name for x in fetch_recipes], cookbook=cookbook))
+            fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
             if print_only:

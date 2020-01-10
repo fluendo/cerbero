@@ -165,7 +165,7 @@ class PackagesStore (object):
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
         # Add a package for every recipe
-        recipes = self.cookbook.get_recipes_list() if recipes is None else [self.cookbook.get_recipe(x) for x in recipes]
+        recipes = self.cookbook.get_recipes_list() if recipes is None else recipes
         async_tasks = []
         for recipe in recipes:
             if not recipe.allow_package_creation:

@@ -111,7 +111,7 @@ class Oven (object):
         length = len(ordered_recipes)
         fridge = None
         if use_binaries or upload_binaries:
-            fridge = Fridge(PackagesStore(self.config, recipes=[x.name for x in ordered_recipes], cookbook=self.cookbook),
+            fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
                             force=self.force, dry_run=shell.DRY_RUN)
 
         i = 1

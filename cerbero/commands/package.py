@@ -69,7 +69,7 @@ class Package(Command):
             ])
 
     def run(self, config, args):
-        self.store = PackagesStore(config, offline=args.offline, recipes=[args.package[0]])
+        self.store = PackagesStore(config, offline=args.offline)
         p = self.store.get_package(args.package[0])
 
         if args.skip_deps_build and args.only_build_deps:
