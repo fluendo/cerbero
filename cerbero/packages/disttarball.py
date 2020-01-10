@@ -65,6 +65,7 @@ class DistTarball(PackagerBase):
 
         if not split:
             dist_files += devel_files
+            dist_files = list(set(dist_files))
 
         if not dist_files and not devel_files:
             raise EmptyPackageError(self.package.name)
@@ -156,6 +157,9 @@ class DistTarball(PackagerBase):
                 os.remove(filename)
             else:
                 raise UsageError("File %s already exists" % filename)
+
+        # Ensure files are not repeated
+        files = list(set(files))
 
         tar_files = []
         restore_files = []
