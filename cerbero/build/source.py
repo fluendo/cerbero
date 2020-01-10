@@ -337,8 +337,11 @@ class GitCache (Source):
 
     async def async_built_version(self):
         if not self.cached_built_version:
-            git_hash = await git.async_get_hash(self.repo_dir, self.commit, self.remotes)
-            self.cached_built_version = '%s+git~%s' % (self.version, git_hash)
+            git_hash = 'error_getting_hash'
+            try:
+                git_hash = await git.async_get_hash(self.repo_dir, self.commit, self.remotes)
+            finally:
+                self.cached_built_version = '%s+git~%s' % (self.version, git_hash)
         return self.cached_built_version
 
     def built_version(self):
