@@ -66,9 +66,26 @@ class Package(Command):
             ArgparseArgument('--xz', action='store_true',
                 default=False, help=_('Use xz instead of bzip2 for compression if '
                     'creating a tarball')),
+            ArgparseArgument('--use-binaries', action='store_true',
+                default=False,
+                help=_('use binaries from the repo before building')),
+            ArgparseArgument('--upload-binaries', action='store_true',
+                default=False,
+                help=_('after a recipe is built upload the corresponding binary package')),
+            ArgparseArgument('--build-missing', action='store_true',
+                default=False,
+                help=_('in case a binary package is missing try to build it')),
+            ArgparseArgument('--fridge', action='store_true',
+                default=False,
+                help=_('equivalent to \'--build-missing --use-binaries --upload-binaries\''))
             ])
 
     def run(self, config, args):
+        if args.fridge:
+            args.use_binaries = True
+            args.upload_binaries = True
+            args.build_missing = True
+
         self.store = PackagesStore(config, offline=args.offline)
         p = self.store.get_package(args.package[0])
 
@@ -77,7 +94,8 @@ class Package(Command):
                     "--only-build-deps"))
 
         if not args.skip_deps_build:
-            self._build_deps(config, p, args.no_devel, args.offline, args.dry_run)
+            self._build_deps(config, p, args.no_devel, args.offline, args.dry_run,
+                             args.use_binaries, args.upload_binaries, args.build_missing)
 
         if args.only_build_deps or args.dry_run:
             return
@@ -111,10 +129,12 @@ class Package(Command):
         m.action(_("Package successfully created in %s") %
                  ' '.join([os.path.abspath(x) for x in paths]))
 
-    def _build_deps(self, config, package, has_devel, offline, dry_run):
+    def _build_deps(self, config, package, has_devel, offline, dry_run, use_binaries=False,
+                    upload_binaries=False, build_missing=False):
         build_command = build.Build()
         build_command.runargs(config, package.recipes_dependencies(has_devel),
-            cookbook=self.store.cookbook, dry_run=dry_run, offline=offline)
+            cookbook=self.store.cookbook, dry_run=dry_run, offline=offline,
+            use_binaries=use_binaries, upload_binaries=upload_binaries, build_missing=build_missing)
 
 
 register_command(Package)
