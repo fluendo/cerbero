@@ -207,13 +207,13 @@ class CookBook (object):
         @type files: list
         '''
         status = self._recipe_status(recipe_name)
-        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), files))
-        removed_files = list(set(files) - set(existing_files))
+        installed_files = list(set(files + status.installed_files))
+        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), installed_files))
+        removed_files = list(set(installed_files) - set(existing_files))
         if removed_files:
             m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
                       'Removing them from recipe\'s cache' % (recipe_name, removed_files))
-        status.installed_files += existing_files
-        status.installed_files = list(set(status.installed_files))
+        status.installed_files = existing_files
         self._update_status(recipe_name, status)
         return status.installed_files
 
