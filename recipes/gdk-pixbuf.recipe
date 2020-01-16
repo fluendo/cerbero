@@ -45,6 +45,6 @@ class Recipe(recipe.Recipe):
             shell.replace(cache, {self.config.prefix: '../'})
 
         lib = LibtoolLibrary('gdk_pixbuf-2.0', None, None, None, self.config.libdir,
-                self.config.target_platform, deps=['gobject-2.0', 'gio-2.0', 'tiff', 'jpeg', 'png16'])
+                self.config.target_platform, deps=['gobject-2.0', 'gio-2.0', 'tiff', 'libjpeg-turbo', 'png16'])
         lib.save()
         super().post_install()
