@@ -61,11 +61,15 @@ class PackagerBase(object):
         self.force = force
         self.keep_temp = keep_temp
 
-    def files_list(self, package_type, force):
-        if package_type == PackageType.DEVEL:
-            files = self.package.devel_files_list()
+    def files_list(self, package_type, force, split):
+        if split:
+            if package_type == PackageType.DEVEL:
+                files = self.package.devel_files_list()
+            else:
+                files = self.package.files_list()
         else:
-            files = self.package.files_list()
+            files = self.package.devel_files_list()
+            files += self.package.files_list()
         real_files = []
         for f in files:
             if os.path.exists(os.path.join(self.config.prefix, f)):

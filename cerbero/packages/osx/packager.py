@@ -120,7 +120,7 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
              version=None, install_dir=None, include_dirs=None,
-             sdk_version=None):
+             sdk_version=None, split=True):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp)
 
         self.install_dir = install_dir or self.package.get_install_dir()

@@ -41,7 +41,7 @@ class LinuxPackager(PackagerBase):
         self._check_packager()
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             pack_deps=True, tmpdir=None):
+             pack_deps=True, tmpdir=None, split=True):
         self.install_dir = self.package.get_install_dir()
         self.devel = devel
         self.force = force
@@ -72,7 +72,7 @@ class LinuxPackager(PackagerBase):
 
         try:
             # do the preparations, fill spec file, write debian files, etc
-            self.prepare(tarname, tmpdir, packagedir, srcdir)
+            self.prepare(tarname, tmpdir, packagedir, srcdir, split)
 
             # and build the package
             paths = self.build(output_dir, tarname, tmpdir, packagedir, srcdir)
@@ -95,7 +95,7 @@ class LinuxPackager(PackagerBase):
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):
         pass
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
         pass
 
     def build(self, output_dir, tarname, tmpdir, packagedir, srcdir):
@@ -174,10 +174,10 @@ class LinuxPackager(PackagerBase):
                 licenses.extend(category_licenses)
         return sorted(list(set(licenses)))
 
-    def files_list(self, package_type):
+    def files_list(self, package_type, split):
         if isinstance(self.package, MetaPackage):
             return ''
-        return PackagerBase.files_list(self, package_type, self.force)
+        return PackagerBase.files_list(self, package_type, self.force, split)
 
     def _package_prefix(self, package):
         if self.config.packages_prefix not in [None, '']:

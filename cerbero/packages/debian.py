@@ -211,11 +211,11 @@ class DebianPackager(LinuxPackager):
         tarname = os.path.join(tmpdir, os.path.split(tarball)[1])
         return tarname
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
         changelog = self._deb_changelog()
         compat = COMPAT_TPL
 
-        control, runtime_files = self._deb_control_runtime_and_files()
+        control, runtime_files = self._deb_control_runtime_and_files(split)
 
         if len(runtime_files) != 0 or isinstance(self.package, MetaPackage):
             self.package.has_runtime_package = True
@@ -315,11 +315,11 @@ class DebianPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return ', '.join(deps)
 
-    def _files_list(self, package_type):
+    def _files_list(self, package_type, split):
         # metapackages only have dependencies in other packages
         if isinstance(self.package, MetaPackage):
             return ''
-        files = self.files_list(package_type)
+        files = self.files_list(package_type, split)
         return '\n'.join([f + ' ' + os.path.join(self.install_dir.lstrip('/'),
                     os.path.dirname(f)) for f in files])
 
@@ -340,7 +340,7 @@ class DebianPackager(LinuxPackager):
                 if self.package.url != 'default' else ''
         return CHANGELOG_TPL % args
 
-    def _deb_control_runtime_and_files(self):
+    def _deb_control_runtime_and_files(self, split):
         args = {}
         args['name'] = self.package.name
         args['p_prefix'] = self.package_prefix
@@ -352,7 +352,7 @@ class DebianPackager(LinuxPackager):
                 if self.package.longdesc != 'default' else args['shortdesc']
 
         try:
-            runtime_files = self._files_list(PackageType.RUNTIME)
+            runtime_files = self._files_list(PackageType.RUNTIME, split)
         except EmptyPackageError:
             runtime_files = ''
 

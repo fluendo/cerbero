@@ -49,14 +49,14 @@ class DistTarball(PackagerBase):
     @lru_cache(maxsize=None)
     def _files_list(self, devel=True, force=True, split=True):
         try:
-            dist_files = super().files_list(PackageType.RUNTIME, force)
+            dist_files = super().files_list(PackageType.RUNTIME, force, split)
         except EmptyPackageError:
             m.warning(_("The runtime package is empty"))
             dist_files = []
 
         if devel:
             try:
-                devel_files = super().files_list(PackageType.DEVEL, force)
+                devel_files = super().files_list(PackageType.DEVEL, force, split)
             except EmptyPackageError:
                 m.warning(_("The development package is empty"))
                 devel_files = []
