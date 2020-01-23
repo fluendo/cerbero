@@ -170,6 +170,9 @@ class RPMPackager(LinuxPackager):
         except EmptyPackageError:
             runtime_files = ''
 
+        if self.install_dir not in ['/usr', '/usr/local']:
+            runtime_files = runtime_files + '\n'+os.path.join(self.install_dir, '')
+
         if runtime_files or isinstance(self.package, MetaPackage):
             self.package.has_runtime_package = True
         else:
@@ -302,7 +305,7 @@ class RPMPackager(LinuxPackager):
             if f + 'o' not in files:
                 files.append(f + 'o')
         return '\n'.join([os.path.join('%{prefix}',  x) for x in files])
-
+        
     def _devel_package_and_files(self, split):
         args = {}
         args['summary'] = 'Development files for %s' % self.package.name
