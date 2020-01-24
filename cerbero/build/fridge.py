@@ -71,6 +71,9 @@ class FtpBinaryRemote (BinaryRemote):
         self.username = username
         self.password = password
 
+    def __str__(self):
+        return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
+
     def fetch_binary(self, package_names, local_dir, remote_dir):
         ftp = None
         for filename in package_names:
