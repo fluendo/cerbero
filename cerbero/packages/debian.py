@@ -217,7 +217,7 @@ class DebianPackager(LinuxPackager):
 
         control, runtime_files = self._deb_control_runtime_and_files(split)
 
-        if len(runtime_files) != 0 or isinstance(self.package, MetaPackage):
+        if len(runtime_files) != 0 or self.package.build_meta_package:
             self.package.has_runtime_package = True
         else:
             self.package.has_runtime_package = False
@@ -227,7 +227,7 @@ class DebianPackager(LinuxPackager):
         else:
             control_devel, devel_files = '', ''
 
-        if len(devel_files) != 0 or isinstance(self.package, MetaPackage):
+        if len(devel_files) != 0 or self.package.build_meta_package:
             self.package.has_devel_package = True
         else:
             self.package.has_devel_package = False
@@ -260,7 +260,7 @@ class DebianPackager(LinuxPackager):
             tar.extractall(tmpdir)
             tar.close()
 
-        if not isinstance(self.package, MetaPackage):
+        if not self.package.build_meta_package:
             # for each dependency, copy the generated shlibs to this
             # package debian/shlibs.local, so that dpkg-shlibdeps knows where
             # our dependencies are without using Build-Depends:
@@ -317,7 +317,7 @@ class DebianPackager(LinuxPackager):
 
     def _files_list(self, package_type, split):
         # metapackages only have dependencies in other packages
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return ''
         files = self.files_list(package_type, split)
         return '\n'.join([f + ' ' + os.path.join(self.install_dir.lstrip('/'),
@@ -356,7 +356,7 @@ class DebianPackager(LinuxPackager):
         except EmptyPackageError:
             runtime_files = ''
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             requires, recommends, suggests = \
                     self.get_meta_requires(PackageType.RUNTIME, '')
             requires = ', '.join(requires)
@@ -389,7 +389,7 @@ class DebianPackager(LinuxPackager):
         except EmptyPackageError:
             devel_files = ''
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             requires, recommends, suggests = \
                 self.get_meta_requires(PackageType.DEVEL, '-dev')
             requires = ', '.join(requires)
@@ -419,7 +419,7 @@ class DebianPackager(LinuxPackager):
         args['license_notes'] = self.license
         args['license'] = self.package.license.pretty_name
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return COPYRIGHT_TPL_META % args
 
         args['recipes_licenses'] = ',\n    '.join(
@@ -434,7 +434,7 @@ class DebianPackager(LinuxPackager):
         if isinstance(self.package, App):
             args['excl'] =  ' '.join(['-X%s' % x for x in
                 self.package.strip_excludes])
-        if not isinstance(self.package, MetaPackage) and \
+        if not self.package.build_meta_package and \
            self.package.has_runtime_package:
             args['dh_strip'] = DH_STRIP_TPL % args
         else:

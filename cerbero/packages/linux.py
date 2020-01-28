@@ -54,9 +54,12 @@ class LinuxPackager(PackagerBase):
         if isinstance(self.package, App) and self.package.embed_deps:
             pass
         elif pack_deps:
-            self.pack_deps(output_dir, tmpdir, force)
+            self.pack_deps(output_dir, tmpdir, force, split)
 
-        if not isinstance(self.package, MetaPackage):
+        if isinstance(self.package, MetaPackage) and not self.package.build_meta_package:
+            return []
+
+        if not self.package.build_meta_package:
             # create a tarball with all the package's files
             tarball_packager = DistTarball(self.config, self.package,
                     self.store)
@@ -101,18 +104,19 @@ class LinuxPackager(PackagerBase):
     def build(self, output_dir, tarname, tmpdir, packagedir, srcdir):
         pass
 
-    def pack_deps(self, output_dir, tmpdir, force):
+    def pack_deps(self, output_dir, tmpdir, force, split):
         for p in self.store.get_package_deps(self.package.name):
             stamp_path = os.path.join(tmpdir, p.name + '-stamp')
             if os.path.exists(stamp_path):
                 # already built, skipping
                 continue
-
+            p.pre_package()
             m.action(_('Packing dependency %s for package %s') %
                      (p.name, self.package.name))
             packager = self.__class__(self.config, p, self.store)
             try:
-                packager.pack(output_dir, self.devel, force, True, True, tmpdir)
+                paths = packager.pack(output_dir, self.devel, force, True, True, tmpdir, split=split)
+                p.post_package(paths, output_dir)
             except EmptyPackageError:
                 self._empty_packages.append(p)
 
@@ -175,7 +179,7 @@ class LinuxPackager(PackagerBase):
         return sorted(list(set(licenses)))
 
     def files_list(self, package_type, split):
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return ''
         return PackagerBase.files_list(self, package_type, self.force, split)
 

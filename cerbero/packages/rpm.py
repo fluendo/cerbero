@@ -173,7 +173,7 @@ class RPMPackager(LinuxPackager):
         if self.install_dir not in ['/usr', '/usr/local']:
             runtime_files = runtime_files + '\n'+os.path.join(self.install_dir, '')
 
-        if runtime_files or isinstance(self.package, MetaPackage):
+        if runtime_files or self.package.build_meta_package:
             self.package.has_runtime_package = True
         else:
             self.package.has_runtime_package = False
@@ -183,7 +183,7 @@ class RPMPackager(LinuxPackager):
         else:
             devel_package, devel_files = ('', '')
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             template = META_SPEC_TPL
             requires = \
                 self._get_meta_requires(PackageType.RUNTIME)
@@ -194,7 +194,7 @@ class RPMPackager(LinuxPackager):
             requires = self._get_requires(PackageType.RUNTIME)
 
         licenses = [self.package.license]
-        if not isinstance(self.package, MetaPackage):
+        if not self.package.build_meta_package:
             licenses.extend(self.recipes_licenses())
             licenses = sorted(list(set(licenses)))
 
@@ -296,7 +296,7 @@ class RPMPackager(LinuxPackager):
         return reduce(lambda x, y: x + REQUIRE_TPL % y, deps, '')
 
     def _files_list(self, package_type, split):
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return ''
         files = self.files_list(package_type, split)
         for f in [x for x in files if x.endswith('.py')]:
@@ -310,7 +310,7 @@ class RPMPackager(LinuxPackager):
         args = {}
         args['summary'] = 'Development files for %s' % self.package.name
         args['description'] = args['summary']
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             args['requires'] = self._get_meta_requires(PackageType.DEVEL)
         else:
             args['requires'] = self._get_requires(PackageType.DEVEL)
