@@ -77,7 +77,7 @@ class PackagesStore (object):
             # lazy load it
             package_not_found = True
             if name.endswith('-pkg'):
-                recipe = self.cookbook.get_recipe(name[:-len('-pkg'))
+                recipe = self.cookbook.get_recipe(name[:-len('-pkg')])
                 if recipe:
                     p = self._package_from_recipe(recipe)
                     if p:
