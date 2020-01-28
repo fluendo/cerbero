@@ -746,6 +746,13 @@ def windows_proof_rename(from_name, to_name):
     os.rename(from_name, to_name)
 
 def run_until_complete(tasks, max_concurrent=16):
+    '''
+    Runs all tasks, blocking until all of them have finished.
+    @param tasks: A list of Futures to run
+    @type tasks: list
+    @param max_concurrent: Maximum number of concurrent tasks running
+    @type max_concurrent: int
+    '''
     slices = [tasks[i*max_concurrent:i*max_concurrent+max_concurrent] for i in range(math.ceil(len(tasks) / max_concurrent))]
     for s in slices:
         asyncio.get_event_loop().run_until_complete(asyncio.gather(*s))
