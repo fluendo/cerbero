@@ -524,11 +524,9 @@ class MSI(WixBase):
                           (self.DIALOG_BMP, 'DialogBmp'),
                           (self.LICENSE_RTF, 'LicenseRtf')]:
             path = self.package.relative_path(path)
-            if self._with_wine:
-                path = to_winepath(path)
             if os.path.exists(path):
                 etree.SubElement(self.product, 'WixVariable',
-                                 Id='WixUI%s' % var, Value=path)
+                                 Id='WixUI%s' % var, Value=to_winepath(path) if self._with_wine else path)
         # Icon
         path = self.package.relative_path(self.ICON)
         if self._with_wine:
