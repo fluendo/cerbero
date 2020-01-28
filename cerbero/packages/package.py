@@ -81,6 +81,18 @@ class PackageBase(object):
     @type strip: list
     @cvar strip_excludes: files that won't be stripped
     @type strip_excludes: list
+    @cvar debian_conflicts = list of debian conflicting packages
+    @type debian_conflicts = str
+    @cvar debian_replaces = list of debian replaced packages
+    @type debian_replaces = str
+    @cvar debian_provides = list of debian provided packages
+    @type debian_provides = str
+    @cvar rpm_conflicts = list of RPM conflicting packages
+    @type rpm_conflicts = str
+    @cvar rpm_obsoletes = list of RPM obsoleted packages
+    @type rpm_obsoletes = str
+    @cvar rpm_provides = list of RPM provided packages
+    @type rpm_provides = str
     '''
     name = 'default'
     shortdesc = 'default'
@@ -108,6 +120,12 @@ class PackageBase(object):
     strip = False
     strip_dirs = ['bin']
     strip_excludes = []
+    debian_conflicts = ''
+    debian_replaces = ''
+    debian_provides = ''
+    rpm_conflicts = ''
+    rpm_obsoletes = ''
+    rpm_provides = ''
 
     def __init__(self, config, store):
         self.config = config
