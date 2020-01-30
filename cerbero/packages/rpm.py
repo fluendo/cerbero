@@ -139,7 +139,7 @@ rm -rf $RPM_BUILD_ROOT
 REQUIRE_TPL = 'Requires: %s\n'
 DEVEL_TPL = '%%files devel \n%s'
 URL_TPL = 'URL: %s\n'
-PRE_TPL = '%%pre\n%s\n'
+PRE_TPL = '%%pre\n'
 POST_TPL = '%%post\n'
 POSTUN_TPL = '%%postun\n'
 
@@ -221,6 +221,11 @@ class RPMPackager(LinuxPackager):
                 'sources_dir': self.config.sources}
 
         scripts = ''
+
+        if os.path.exists(self.package.resources_preinstall):
+            scripts += "{}{}\n".format(
+                PRE_TPL,
+                open(self.package.resources_preinstall).read())
         if os.path.exists(self.package.resources_postinstall):
             scripts += "{}{}\n".format(
                 POST_TPL,
@@ -305,7 +310,7 @@ class RPMPackager(LinuxPackager):
             if f + 'o' not in files:
                 files.append(f + 'o')
         return '\n'.join([os.path.join('%{prefix}',  x) for x in files])
-        
+
     def _devel_package_and_files(self, split):
         args = {}
         args['summary'] = 'Development files for %s' % self.package.name

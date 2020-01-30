@@ -198,7 +198,10 @@ class DebianPackager(LinuxPackager):
         os.mkdir(packagedir)
         os.mkdir(os.path.join(packagedir, 'source'))
         m.action(_('Creating debian package structure at %s for package %s') %
-                (srcdir, self.package.name))
+                  (srcdir, self.package.name))
+        if os.path.exists(self.package.resources_preinstall):
+            shutil.copy(os.path.join(self.package.resources_preinstall),
+                        os.path.join(packagedir, 'preinst'))
         if os.path.exists(self.package.resources_postinstall):
             shutil.copy(os.path.join(self.package.resources_postinstall),
                         os.path.join(packagedir, 'postinst'))
