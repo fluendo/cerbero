@@ -331,9 +331,10 @@ class FilesProvider(object):
         dirs = [x for x in fs if
                 os.path.isdir(os.path.join(self.config.prefix, x))]
         for directory in dirs:
-            fs.remove(directory)
-            fs.extend(self._ls_dir(os.path.join(self.config.prefix,
-                                                directory)))
+            dir_path = os.path.join(self.config.prefix, directory)
+            if not os.path.islink(dir_path):
+                fs.remove(directory)
+                fs.extend(self._ls_dir(dir_path))
         # fill paths with pattern expansion *
         paths = [x for x in fs if '*' in x]
         if len(paths) != 0:
