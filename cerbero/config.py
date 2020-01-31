@@ -551,10 +551,9 @@ class Config (object):
             v = replace_prefix(os.path.expanduser('~'), v, '{USER}')
             ret_env[e] = re.sub(r'\s+', ' ', v.strip())
 
-        # We need to add the compiler version at the very end since it cannot be
-        # included in the environment from the very beginning because during the
-        # bootstrap phase there is no compiler installed yet and get_env is cached
-        ret_env['CC_VERSION'] = shell.check_compiler_version(self, ret_env['CC'])
+        # We need to add the compiler version after the bootstrap phase because
+        # there is no compiler installed yet and get_env is cached
+        ret_env['CC_VERSION'] = shell.check_compiler_version(self, self.env.get('CC'))
         return ret_env
 
     def _parse(self, filename, reset=True):
