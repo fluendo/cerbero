@@ -139,7 +139,7 @@ rm -rf $RPM_BUILD_ROOT
 REQUIRE_TPL = 'Requires: %s\n'
 DEVEL_TPL = '%%files devel \n%s'
 URL_TPL = 'URL: %s\n'
-PRE_TPL = '%%pre\n%s\n'
+PRE_TPL = '%%pre\n'
 POST_TPL = '%%post\n'
 POSTUN_TPL = '%%postun\n'
 
@@ -164,23 +164,26 @@ class RPMPackager(LinuxPackager):
         tarname = os.path.split(tarball)[1]
         return tarname
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
         try:
-            runtime_files = self._files_list(PackageType.RUNTIME)
+            runtime_files = self._files_list(PackageType.RUNTIME, split)
         except EmptyPackageError:
             runtime_files = ''
 
-        if runtime_files or isinstance(self.package, MetaPackage):
+        if self.install_dir not in ['/usr', '/usr/local']:
+            runtime_files = runtime_files + '\n'+os.path.join(self.install_dir, '')
+
+        if runtime_files or self.package.build_meta_package:
             self.package.has_runtime_package = True
         else:
             self.package.has_runtime_package = False
 
         if self.devel:
-            devel_package, devel_files = self._devel_package_and_files()
+            devel_package, devel_files = self._devel_package_and_files(split)
         else:
             devel_package, devel_files = ('', '')
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             template = META_SPEC_TPL
             requires = \
                 self._get_meta_requires(PackageType.RUNTIME)
@@ -191,7 +194,7 @@ class RPMPackager(LinuxPackager):
             requires = self._get_requires(PackageType.RUNTIME)
 
         licenses = [self.package.license]
-        if not isinstance(self.package, MetaPackage):
+        if not self.package.build_meta_package:
             licenses.extend(self.recipes_licenses())
             licenses = sorted(list(set(licenses)))
 
@@ -218,6 +221,11 @@ class RPMPackager(LinuxPackager):
                 'sources_dir': self.config.sources}
 
         scripts = ''
+
+        if os.path.exists(self.package.resources_preinstall):
+            scripts += "{}{}\n".format(
+                PRE_TPL,
+                open(self.package.resources_preinstall).read())
         if os.path.exists(self.package.resources_postinstall):
             scripts += "{}{}\n".format(
                 POST_TPL,
@@ -292,10 +300,10 @@ class RPMPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return reduce(lambda x, y: x + REQUIRE_TPL % y, deps, '')
 
-    def _files_list(self, package_type):
-        if isinstance(self.package, MetaPackage):
+    def _files_list(self, package_type, split):
+        if self.package.build_meta_package:
             return ''
-        files = self.files_list(package_type)
+        files = self.files_list(package_type, split)
         for f in [x for x in files if x.endswith('.py')]:
             if f + 'c' not in files:
                 files.append(f + 'c')
@@ -303,18 +311,18 @@ class RPMPackager(LinuxPackager):
                 files.append(f + 'o')
         return '\n'.join([os.path.join('%{prefix}',  x) for x in files])
 
-    def _devel_package_and_files(self):
+    def _devel_package_and_files(self, split):
         args = {}
         args['summary'] = 'Development files for %s' % self.package.name
         args['description'] = args['summary']
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             args['requires'] = self._get_meta_requires(PackageType.DEVEL)
         else:
             args['requires'] = self._get_requires(PackageType.DEVEL)
         args['name'] = self.package.name
         args['p_prefix'] = self.package_prefix
         try:
-            devel = DEVEL_TPL % self._files_list(PackageType.DEVEL)
+            devel = DEVEL_TPL % self._files_list(PackageType.DEVEL, split)
         except EmptyPackageError:
             devel = ''
         return DEVEL_PACKAGE_TPL % args, devel

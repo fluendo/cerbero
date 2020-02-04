@@ -198,7 +198,10 @@ class DebianPackager(LinuxPackager):
         os.mkdir(packagedir)
         os.mkdir(os.path.join(packagedir, 'source'))
         m.action(_('Creating debian package structure at %s for package %s') %
-                (srcdir, self.package.name))
+                  (srcdir, self.package.name))
+        if os.path.exists(self.package.resources_preinstall):
+            shutil.copy(os.path.join(self.package.resources_preinstall),
+                        os.path.join(packagedir, 'preinst'))
         if os.path.exists(self.package.resources_postinstall):
             shutil.copy(os.path.join(self.package.resources_postinstall),
                         os.path.join(packagedir, 'postinst'))
@@ -211,13 +214,13 @@ class DebianPackager(LinuxPackager):
         tarname = os.path.join(tmpdir, os.path.split(tarball)[1])
         return tarname
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
         changelog = self._deb_changelog()
         compat = COMPAT_TPL
 
-        control, runtime_files = self._deb_control_runtime_and_files()
+        control, runtime_files = self._deb_control_runtime_and_files(split)
 
-        if len(runtime_files) != 0 or isinstance(self.package, MetaPackage):
+        if len(runtime_files) != 0 or self.package.build_meta_package:
             self.package.has_runtime_package = True
         else:
             self.package.has_runtime_package = False
@@ -227,7 +230,7 @@ class DebianPackager(LinuxPackager):
         else:
             control_devel, devel_files = '', ''
 
-        if len(devel_files) != 0 or isinstance(self.package, MetaPackage):
+        if len(devel_files) != 0 or self.package.build_meta_package:
             self.package.has_devel_package = True
         else:
             self.package.has_devel_package = False
@@ -260,7 +263,7 @@ class DebianPackager(LinuxPackager):
             tar.extractall(tmpdir)
             tar.close()
 
-        if not isinstance(self.package, MetaPackage):
+        if not self.package.build_meta_package:
             # for each dependency, copy the generated shlibs to this
             # package debian/shlibs.local, so that dpkg-shlibdeps knows where
             # our dependencies are without using Build-Depends:
@@ -315,11 +318,11 @@ class DebianPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return ', '.join(deps)
 
-    def _files_list(self, package_type):
+    def _files_list(self, package_type, split):
         # metapackages only have dependencies in other packages
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return ''
-        files = self.files_list(package_type)
+        files = self.files_list(package_type, split)
         return '\n'.join([f + ' ' + os.path.join(self.install_dir.lstrip('/'),
                     os.path.dirname(f)) for f in files])
 
@@ -340,7 +343,7 @@ class DebianPackager(LinuxPackager):
                 if self.package.url != 'default' else ''
         return CHANGELOG_TPL % args
 
-    def _deb_control_runtime_and_files(self):
+    def _deb_control_runtime_and_files(self, split):
         args = {}
         args['name'] = self.package.name
         args['p_prefix'] = self.package_prefix
@@ -352,11 +355,11 @@ class DebianPackager(LinuxPackager):
                 if self.package.longdesc != 'default' else args['shortdesc']
 
         try:
-            runtime_files = self._files_list(PackageType.RUNTIME)
+            runtime_files = self._files_list(PackageType.RUNTIME, split)
         except EmptyPackageError:
             runtime_files = ''
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             requires, recommends, suggests = \
                     self.get_meta_requires(PackageType.RUNTIME, '')
             requires = ', '.join(requires)
@@ -389,7 +392,7 @@ class DebianPackager(LinuxPackager):
         except EmptyPackageError:
             devel_files = ''
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             requires, recommends, suggests = \
                 self.get_meta_requires(PackageType.DEVEL, '-dev')
             requires = ', '.join(requires)
@@ -419,7 +422,7 @@ class DebianPackager(LinuxPackager):
         args['license_notes'] = self.license
         args['license'] = self.package.license.pretty_name
 
-        if isinstance(self.package, MetaPackage):
+        if self.package.build_meta_package:
             return COPYRIGHT_TPL_META % args
 
         args['recipes_licenses'] = ',\n    '.join(
@@ -434,7 +437,7 @@ class DebianPackager(LinuxPackager):
         if isinstance(self.package, App):
             args['excl'] =  ' '.join(['-X%s' % x for x in
                 self.package.strip_excludes])
-        if not isinstance(self.package, MetaPackage) and \
+        if not self.package.build_meta_package and \
            self.package.has_runtime_package:
             args['dh_strip'] = DH_STRIP_TPL % args
         else:

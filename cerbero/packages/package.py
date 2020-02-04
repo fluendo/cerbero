@@ -266,6 +266,8 @@ class Package(PackageBase):
     @type platform_files_Devel: dict
     @cvar osx_framework_library: name and link for the Framework library
     @type osx_framework_library: tuple
+    @cvar build_meta_package: If true generate a meta package
+    @type build_meta_package: bool
     '''
 
     deps = list()
@@ -274,6 +276,7 @@ class Package(PackageBase):
     files_devel = list()
     platform_files_devel = dict()
     osx_framework_library = None
+    build_meta_package = False
 
     def __init__(self, config, store, cookbook):
         PackageBase.__init__(self, config, store)
@@ -415,6 +418,7 @@ class MetaPackage(PackageBase):
     resources_wix_installer = None
     resources_distribution = 'distribution.xml'
     user_resources = []
+    build_meta_package = True
 
     def __init__(self, config, store):
         PackageBase.__init__(self, config, store)

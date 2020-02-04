@@ -41,7 +41,7 @@ class LinuxPackager(PackagerBase):
         self._check_packager()
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             pack_deps=True, tmpdir=None):
+             pack_deps=True, tmpdir=None, split=True):
         self.install_dir = self.package.get_install_dir()
         self.devel = devel
         self.force = force
@@ -54,9 +54,12 @@ class LinuxPackager(PackagerBase):
         if isinstance(self.package, App) and self.package.embed_deps:
             pass
         elif pack_deps:
-            self.pack_deps(output_dir, tmpdir, force)
+            self.pack_deps(output_dir, tmpdir, force, split)
 
-        if not isinstance(self.package, MetaPackage):
+        if isinstance(self.package, MetaPackage) and not self.package.build_meta_package:
+            return []
+
+        if not self.package.build_meta_package:
             # create a tarball with all the package's files
             tarball_packager = DistTarball(self.config, self.package,
                     self.store)
@@ -72,7 +75,7 @@ class LinuxPackager(PackagerBase):
 
         try:
             # do the preparations, fill spec file, write debian files, etc
-            self.prepare(tarname, tmpdir, packagedir, srcdir)
+            self.prepare(tarname, tmpdir, packagedir, srcdir, split)
 
             # and build the package
             paths = self.build(output_dir, tarname, tmpdir, packagedir, srcdir)
@@ -95,24 +98,25 @@ class LinuxPackager(PackagerBase):
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):
         pass
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
         pass
 
     def build(self, output_dir, tarname, tmpdir, packagedir, srcdir):
         pass
 
-    def pack_deps(self, output_dir, tmpdir, force):
+    def pack_deps(self, output_dir, tmpdir, force, split):
         for p in self.store.get_package_deps(self.package.name):
             stamp_path = os.path.join(tmpdir, p.name + '-stamp')
             if os.path.exists(stamp_path):
                 # already built, skipping
                 continue
-
+            p.pre_package()
             m.action(_('Packing dependency %s for package %s') %
                      (p.name, self.package.name))
             packager = self.__class__(self.config, p, self.store)
             try:
-                packager.pack(output_dir, self.devel, force, True, True, tmpdir)
+                paths = packager.pack(output_dir, self.devel, force, True, True, tmpdir, split=split)
+                p.post_package(paths, output_dir)
             except EmptyPackageError:
                 self._empty_packages.append(p)
 
@@ -174,10 +178,10 @@ class LinuxPackager(PackagerBase):
                 licenses.extend(category_licenses)
         return sorted(list(set(licenses)))
 
-    def files_list(self, package_type):
-        if isinstance(self.package, MetaPackage):
+    def files_list(self, package_type, split):
+        if self.package.build_meta_package:
             return ''
-        return PackagerBase.files_list(self, package_type, self.force)
+        return PackagerBase.files_list(self, package_type, self.force, split)
 
     def _package_prefix(self, package):
         if self.config.packages_prefix not in [None, '']:

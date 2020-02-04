@@ -39,27 +39,26 @@ class MergeModulePackager(PackagerBase):
         self._with_wine = config.platform != Platform.WINDOWS
         self.wix_prefix = get_wix_prefix()
 
-    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False, split=True):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp)
-
         paths = []
 
         # create runtime package
         p = self.create_merge_module(output_dir, PackageType.RUNTIME, force,
-                                     self.package.version, keep_temp)
+                                     self.package.version, keep_temp, split=split)
         paths.append(p)
 
         if devel:
             p = self.create_merge_module(output_dir, PackageType.DEVEL, force,
-                                         self.package.version, keep_temp)
+                                         self.package.version, keep_temp, split=split)
             paths.append(p)
 
         return paths
 
     def create_merge_module(self, output_dir, package_type, force, version,
-                            keep_temp, keep_strip_temp_dir=False):
+                            keep_temp, keep_strip_temp_dir=False, split=True):
         self.package.set_mode(package_type)
-        files_list = self.files_list(package_type, force)
+        files_list = self.files_list(package_type, force, split)
         if isinstance(self.package, VSTemplatePackage):
             mergemodule = VSMergeModule(self.config, files_list, self.package)
         else:
@@ -157,7 +156,7 @@ class MSIPackager(PackagerBase):
         self._with_wine = config.platform != Platform.WINDOWS
         self.wix_prefix = get_wix_prefix()
 
-    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False, split=True):
         self.output_dir = os.path.realpath(output_dir)
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -168,7 +167,7 @@ class MSIPackager(PackagerBase):
         self.merge_modules = {}
 
         # create runtime package
-        p = self._create_msi_installer(PackageType.RUNTIME)
+        p = self._create_msi_installer(PackageType.RUNTIME, split)
         paths.append(p)
 
         # create devel package
@@ -200,16 +199,16 @@ class MSIPackager(PackagerBase):
         return "%s-%s-%s-%s" % (self.package.name, platform,
                                 self.config.target_arch, self.package.version)
 
-    def _create_msi_installer(self, package_type):
+    def _create_msi_installer(self, package_type, split):
         self.package.set_mode(package_type)
         self.packagedeps = self.store.get_package_deps(self.package, True)
         if isinstance(self.package, App):
             self.packagedeps = [self.package]
-        tmp_dirs = self._create_merge_modules(package_type)
+        tmp_dirs = self._create_merge_modules(package_type, split)
         config_path = self._create_config()
         return self._create_msi(config_path, tmp_dirs)
 
-    def _create_merge_modules(self, package_type):
+    def _create_merge_modules(self, package_type, split):
         packagedeps = {}
         tmp_dirs = []
         for package in self.packagedeps:
@@ -220,7 +219,7 @@ class MSIPackager(PackagerBase):
             try:
                 path = packager.create_merge_module(self.output_dir,
                                                     package_type, self.force, self.package.version,
-                                                    self.keep_temp, True)
+                                                    self.keep_temp, True, split)
                 packagedeps[package] = path[0]
                 if path[1]:
                     tmp_dirs.append(path[1])
