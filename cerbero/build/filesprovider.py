@@ -302,7 +302,7 @@ class FilesProvider(object):
 
     def _find_plugin_dll_files(self, f):
         # Plugin template is always libfoo%(mext)s
-        if not os.path.basename(f).startswith('lib'):
+        if not f.startswith('lib') and not os.path.basename(f).startswith('lib'):
             raise AssertionError('Plugin files must start with "lib": {!r}'.format(f))
         # Plugin DLLs are required to be libfoo.dll (mingw) or foo.dll (msvc)
         if (Path(self.config.prefix) / f).is_file():
