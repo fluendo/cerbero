@@ -50,6 +50,7 @@ Build-Depends: debhelper
 Standards-Version: 3.8.4
 Section: libs
 %(homepage)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -62,6 +63,7 @@ Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -72,6 +74,7 @@ Architecture: any
 Depends: %(p_prefix)s%(name)s (= ${binary:Version})
 Description: Debug symbols for %(p_prefix)s%(name)s
  Debug symbols for %(p_prefix)s%(name)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -84,6 +87,8 @@ Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
+Pre-Depends: debconf (>= 0.2.17)
+
 '''
 
 COPYRIGHT_TPL = \
@@ -201,10 +206,6 @@ class DebianPackager(LinuxPackager):
         os.mkdir(os.path.join(packagedir, 'source'))
         m.action(_('Creating debian package structure at %s for package %s') %
                   (srcdir, self.package.name))
-        template_path = self.package.relative_path('templates')
-        if os.path.exists(template_path):
-            shutil.copy(os.path.join(template_path),
-                        os.path.join(packagedir, 'templates'))
         if os.path.exists(self.package.resources_preinstall):
             shutil.copy(os.path.join(self.package.resources_preinstall),
                         os.path.join(packagedir, 'preinst'))
@@ -214,6 +215,9 @@ class DebianPackager(LinuxPackager):
         if os.path.exists(self.package.resources_postremove):
             shutil.copy(os.path.join(self.package.resources_postremove),
                         os.path.join(packagedir, 'postrm'))
+        if os.path.exists(self.package.resources_templates):
+            shutil.copy(os.path.join(self.package.resources_templates),
+                        os.path.join(packagedir, 'templates'))
         return (tmpdir, packagedir, srcdir)
 
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):

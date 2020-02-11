@@ -172,7 +172,7 @@ class MSIPackager(PackagerBase):
 
         # create devel package
         if devel and not isinstance(self.package, App):
-            p = self._create_msi_installer(PackageType.DEVEL)
+            p = self._create_msi_installer(PackageType.DEVEL, split)
             paths.append(p)
 
         # create zip with merge modules
