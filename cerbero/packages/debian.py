@@ -50,6 +50,7 @@ Build-Depends: debhelper
 Standards-Version: 3.8.4
 Section: libs
 %(homepage)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -62,6 +63,7 @@ Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -72,6 +74,7 @@ Architecture: any
 Depends: %(p_prefix)s%(name)s (= ${binary:Version})
 Description: Debug symbols for %(p_prefix)s%(name)s
  Debug symbols for %(p_prefix)s%(name)s
+Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -84,6 +87,8 @@ Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
+Pre-Depends: debconf (>= 0.2.17)
+
 '''
 
 COPYRIGHT_TPL = \
@@ -160,7 +165,9 @@ binary-arch: build install
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -a
 	dh_gencontrol -a
 	dh_md5sums -a
+	dh_installdebconf
 	dh_builddeb -a
+
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
@@ -208,6 +215,9 @@ class DebianPackager(LinuxPackager):
         if os.path.exists(self.package.resources_postremove):
             shutil.copy(os.path.join(self.package.resources_postremove),
                         os.path.join(packagedir, 'postrm'))
+        if os.path.exists(self.package.resources_templates):
+            shutil.copy(os.path.join(self.package.resources_templates),
+                        os.path.join(packagedir, 'templates'))
         return (tmpdir, packagedir, srcdir)
 
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):
@@ -318,7 +328,7 @@ class DebianPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return ', '.join(deps)
 
-    def _files_list(self, package_type, split):
+    def _files_list(self, package_type, split=True):
         # metapackages only have dependencies in other packages
         if self.package.build_meta_package:
             return ''

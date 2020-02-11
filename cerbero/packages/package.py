@@ -71,6 +71,8 @@ class PackageBase(object):
     @type resources_postinstall = str
     @cvar resources_postremove = filename for the post-remove script
     @type resources_postremove = str
+    @cvar resources_templates = filename for the debconf templates
+    @type resources_templates = str
     @cvar wix_use_fragment = uses fragments instead of merge modules
     @type wix_use_fragment = bool
     @cvar wix_sign_binaries = sign the files of package
@@ -103,6 +105,7 @@ class PackageBase(object):
     resources_preinstall = 'preinstall'
     resources_postinstall = 'postinstall'
     resources_postremove = 'postremove'
+    resources_templates = 'templates'
     wix_use_fragment = False
     wix_sign_binaries = False
     strip = False
