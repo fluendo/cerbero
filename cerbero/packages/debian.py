@@ -160,7 +160,9 @@ binary-arch: build install
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -a
 	dh_gencontrol -a
 	dh_md5sums -a
+	dh_installdebconf
 	dh_builddeb -a
+
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
@@ -199,6 +201,10 @@ class DebianPackager(LinuxPackager):
         os.mkdir(os.path.join(packagedir, 'source'))
         m.action(_('Creating debian package structure at %s for package %s') %
                   (srcdir, self.package.name))
+        template_path = self.package.relative_path('templates')
+        if os.path.exists(template_path):
+            shutil.copy(os.path.join(template_path),
+                        os.path.join(packagedir, 'templates'))
         if os.path.exists(self.package.resources_preinstall):
             shutil.copy(os.path.join(self.package.resources_preinstall),
                         os.path.join(packagedir, 'preinst'))
@@ -318,7 +324,7 @@ class DebianPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return ', '.join(deps)
 
-    def _files_list(self, package_type, split):
+    def _files_list(self, package_type, split=True):
         # metapackages only have dependencies in other packages
         if self.package.build_meta_package:
             return ''
