@@ -68,8 +68,7 @@ class PackagerBase(object):
             else:
                 files = self.package.files_list()
         else:
-            files = self.package.devel_files_list()
-            files += self.package.files_list()
+            files = self.package.all_files_list()
         real_files = []
         for f in files:
             if os.path.exists(os.path.join(self.config.prefix, f)):
