@@ -126,7 +126,7 @@ class Main(object):
     def self_update(self):
         '''Update this instance of cerbero git repository'''
 
-        if not hasattr(self.args, "self_update"):
+        if not hasattr(self.args, "self_update") or not self.args.self_update:
            return
 
         try:
