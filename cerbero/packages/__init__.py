@@ -37,10 +37,15 @@ class PackagerBase(object):
         self.config = config
         self.package = package
         self.store = store
+        self.output_dir = ''
+        self.devel = True
+        self.force = False
+        self.keep_temp = False
+        self.split = True
 
-    def pack(self, output_dir, devel=True, force=False, keep_temp=False):
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True):
         '''
-        Creates a package and puts it the the output directory
+        Creates a package and puts it in the output directory
 
         @param output_dir: output directory where the package will be saved
         @type  output_dir: str
@@ -50,6 +55,8 @@ class PackagerBase(object):
         @type  force: bool
         @param keep_temp: do not delete temporary files
         @type  force: bool
+        @param split: split package in two parts: (development and runtime files)
+        @param split: bool
 
         @return: list of filenames for the packages created
         @rtype: list
@@ -60,9 +67,10 @@ class PackagerBase(object):
         self.devel = devel
         self.force = force
         self.keep_temp = keep_temp
+        self.split = split
 
-    def files_list(self, package_type, force, split):
-        if split:
+    def files_list(self, package_type):
+        if self.split:
             if package_type == PackageType.DEVEL:
                 files = self.package.devel_files_list()
             else:
@@ -75,7 +83,7 @@ class PackagerBase(object):
                 real_files.append(f)
         diff = list(set(files) - set(real_files))
         if len(diff) != 0:
-            if force:
+            if self.force:
                 m.warning(_("Some files required by this package are missing "
                             "in the prefix:\n%s" % '\n'.join(diff)))
             else:

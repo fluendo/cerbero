@@ -47,7 +47,7 @@ class PackageMakerTest(unittest.TestCase):
         p = self.store.get_package('gstreamer-test1')
         self.files = p.files_list()
         packager = OSXPackage(self.config, p, self.store)
-        files = OSXPackage.files_list(packager, PackageType.RUNTIME, False)
+        files = OSXPackage.files_list(packager, PackageType.RUNTIME)
         tmpdest = packager._create_bundle(files, PackageType.RUNTIME)[0]
         bundlefiles = shell.check_call('find . -type f ', tmpdest).split('\n')
         bundlefiles = sorted([f[2:] for f in bundlefiles])[1:]
@@ -79,7 +79,7 @@ class DummyPackageMaker(PackageMaker):
 
 
 class TestPackageMaker(unittest.TestCase):
-    
+
 
     def testFillArgs(self):
         pm = PackageMaker()

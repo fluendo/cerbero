@@ -50,10 +50,9 @@ class BundlePackagerBase(PackagerBase):
         self.package.__file__ = package.__file__
         PackagerBase.__init__(self, package.config, self.package, package.store)
 
-    def pack(self, output_dir, root=None):
-        output_dir = os.path.realpath(output_dir)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
+             root=None):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         path = self._create_package(output_dir, self.package.get_install_dir(),
                 self.package.version, root)
