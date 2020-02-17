@@ -19,6 +19,7 @@
 import os
 import shutil
 import tempfile
+import tarfile
 
 from cerbero.config import Architecture
 from cerbero.enums import Distro, DistroVersion
@@ -159,9 +160,21 @@ class RPMPackager(LinuxPackager):
                 os.path.join(tmpdir, 'SOURCES'))
 
     def setup_source(self, tarball, tmpdir, packagedir, srcdir):
-        # move the tarball to SOURCES
-        shutil.move(tarball, srcdir)
+        with tarfile.open(tarball, 'r:bz2') as tar:
+            tar.extractall(srcdir)
+        os.remove(tarball)
+
+        root_path = os.path.join(srcdir, self.full_package_name)
+        self.package.pre_build(root_path)
+
         tarname = os.path.split(tarball)[1]
+        if tarname.endswith('.bz2'):
+            tarname = tarname[:-4]
+
+        with tarfile.open(os.path.join(srcdir, tarname), 'w') as tar:
+            tar.add(root_path, self.full_package_name)
+
+        shutil.rmtree(root_path)
         return tarname
 
     def prepare(self, tarname, tmpdir, packagedir, srcdir):
@@ -199,26 +212,26 @@ class RPMPackager(LinuxPackager):
             licenses = sorted(list(set(licenses)))
 
         template_dict = {
-                'name': self.package.name,
-                'p_prefix': self.package_prefix,
-                'version': self.package.version,
-                'package_name': self.full_package_name,
-                'summary': self.package.shortdesc,
-                'description': self.package.longdesc != 'default' and \
-                        self.package.longdesc or self.package.shortdesc,
-                'licenses': ' and '.join([l.acronym for l in licenses]),
-                'packager': self.packager,
-                'vendor': self.package.vendor,
-                'url': URL_TPL % self.package.url if \
-                        self.package.url != 'default' else '',
-                'requires': requires,
-                'prefix': self.install_dir,
-                'source': tarname,
-                'topdir': tmpdir,
-                'devel_package': devel_package,
-                'devel_files': devel_files,
-                'files': runtime_files,
-                'sources_dir': self.config.sources}
+            'name': self.package.name,
+            'p_prefix': self.package_prefix,
+            'version': self.package.version,
+            'package_name': self.full_package_name,
+            'summary': self.package.shortdesc,
+            'description': self.package.longdesc != 'default' and
+            self.package.longdesc or self.package.shortdesc,
+            'licenses': ' and '.join([l.acronym for l in licenses]),
+            'packager': self.packager,
+            'vendor': self.package.vendor,
+            'url': URL_TPL % self.package.url if
+            self.package.url != 'default' else '',
+            'requires': requires,
+            'prefix': self.install_dir,
+            'source': tarname,
+            'topdir': tmpdir,
+            'devel_package': devel_package,
+            'devel_files': devel_files,
+            'files': runtime_files,
+            'sources_dir': self.config.sources}
 
         scripts = ''
 
@@ -250,7 +263,7 @@ class RPMPackager(LinuxPackager):
         elif self.config.target_arch == Architecture.X86_64:
             target = 'x86_64-redhat-linux'
         else:
-            raise FatalError(_('Architecture %s not supported') % \
+            raise FatalError(_('Architecture %s not supported') %
                              self.config.target_arch)
 
         extra_options = ''
@@ -275,11 +288,11 @@ class RPMPackager(LinuxPackager):
             return False
 
         if ("fedora" in self.config.distro_version
-           and self.config.distro_version > DistroVersion.FEDORA_26):
+                and self.config.distro_version > DistroVersion.FEDORA_26):
             return True
 
         if ("redhat" in self.config.distro_version
-           and self.config.distro_version > DistroVersion.REDHAT_7):
+                and self.config.distro_version > DistroVersion.REDHAT_7):
             return True
 
         return False

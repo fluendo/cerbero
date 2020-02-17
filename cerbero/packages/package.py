@@ -168,7 +168,23 @@ class PackageBase(object):
 
     def pre_package(self):
         '''
-        Subclasses can override to to perform actions before packaging
+        Subclasses can override it to perform actions before packaging
+        '''
+        pass
+
+    def pre_build(self, src_dir):
+        '''
+        Subclasses can override it to customize package files right before building the
+        package itself.
+
+        This feature is currently only available with DebianPackager (.deb for Linux),
+        RPMPackager (.rpm for Linux) and MergeModulePackager (.msm/.msi (Wix) for Windows).
+
+        @param src_dir: path of the package sources directory, this is a temporary directory
+                        containing all package files which will be included in the final package.
+                        You can modify those files in-place in order to customize their content
+                        right before building the package itself.
+        @type src_dir: str
         '''
         pass
 
@@ -195,7 +211,7 @@ class PackageBase(object):
     def get_install_dir(self):
         try:
             return self.install_dir[self.config.target_platform]
-        except:
+        except Exception:
             return self.config.install_dir
 
     def get_sys_deps(self, package_mode=None):
@@ -287,9 +303,9 @@ class Package(PackageBase):
 
     def load_files(self):
         self._files = self.files + \
-                self.platform_files.get(self.config.target_platform, [])
+            self.platform_files.get(self.config.target_platform, [])
         self._files_devel = self.files_devel + \
-                self.platform_files_devel.get(self.config.target_platform, [])
+            self.platform_files_devel.get(self.config.target_platform, [])
         self._parse_files()
 
     def recipes_dependencies(self, use_devel=True):
@@ -314,10 +330,10 @@ class Package(PackageBase):
                 r = self.cookbook.get_recipe(recipe_name)
                 if recipe_name in licenses:
                     licenses[recipe_name].update(
-                            r.list_licenses_by_categories(categories))
+                        r.list_licenses_by_categories(categories))
                 else:
                     licenses[recipe_name] = \
-                            r.list_licenses_by_categories(categories)
+                        r.list_licenses_by_categories(categories)
         return licenses
 
     def files_list(self):
@@ -464,7 +480,7 @@ class MetaPackage(PackageBase):
             platform_attr_name = 'platform_%s' % name
             if hasattr(self, platform_attr_name):
                 platform_attr = PackageBase.__getattribute__(self,
-                        platform_attr_name)
+                                                             platform_attr_name)
                 if self.config.target_platform in platform_attr:
                     platform_list = platform_attr[self.config.target_platform]
                     ret.extend(platform_list)
@@ -636,7 +652,7 @@ class App(Package):
             wrapper_file = self.relative_path('%s_%s' % (platform, wrapper))
         else:
             wrapper_file = os.path.join(self.config.data_dir, 'templates',
-                    '%s_%s' % (self.wrapper, platform))
+                                        '%s_%s' % (self.wrapper, platform))
 
         if not os.path.exists(wrapper_file):
             return None
@@ -656,7 +672,7 @@ class App(Package):
             platform_attr_name = 'platform_%s' % name
             if hasattr(self, platform_attr_name):
                 platform_attr = PackageBase.__getattribute__(self,
-                        platform_attr_name)
+                                                             platform_attr_name)
                 if self.config.target_platform in platform_attr:
                     platform_list = platform_attr[self.config.target_platform]
                     ret.extend(platform_list)
