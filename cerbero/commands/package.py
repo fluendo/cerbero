@@ -44,8 +44,7 @@ class Package(Command):
                 help=_('Creates a tarball instead of a native package')),
             ArgparseArgument('-n', '--no-split', action='store_true',
                 default=False,
-                help=_('(only meaningfull when --tarball is set) Create one single '
-                       'tarball with devel and runtime files')),
+                help=_('Create one single package with devel and runtime files')),
             ArgparseArgument('-f', '--force', action='store_true',
                 default=False, help=_('Delete any existing package file')),
             ArgparseArgument('-d', '--no-devel', action='store_false',
@@ -121,12 +120,12 @@ class Package(Command):
         if args.tarball:
             paths = pkg.pack(output_dir, args.no_devel,
                              args.force, args.keep_temp,
-                             split=not args.no_split,
+                             not args.no_split,
                              strip_binaries=p.strip)
         else:
             paths = pkg.pack(output_dir, args.no_devel,
                              args.force, args.keep_temp,
-                             split=not args.no_split)
+                             not args.no_split)
         if None in paths:
             paths.remove(None)
         paths = p.post_package(paths, output_dir) or paths

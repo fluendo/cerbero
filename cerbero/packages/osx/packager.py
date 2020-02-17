@@ -118,10 +118,9 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
     def __init__(self, config, package, store):
         PackagerBase.__init__(self, config, package, store)
 
-    def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             version=None, install_dir=None, include_dirs=None,
-             sdk_version=None, split=True):
-        PackagerBase.pack(self, output_dir, devel, force, keep_temp)
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
+             version=None, install_dir=None, include_dirs=None, sdk_version=None):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         self.install_dir = install_dir or self.package.get_install_dir()
         self.version = version or self.package.version
@@ -130,8 +129,7 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
 
         # create the runtime package
         try:
-            runtime_path = self._create_package(PackageType.RUNTIME,
-                    output_dir, force)
+            runtime_path = self._create_package(PackageType.RUNTIME)
         except EmptyPackageError as e:
             if not devel:
                 raise e
@@ -142,8 +140,7 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
 
         try:
             # create the development package
-            devel_path = self._create_package(PackageType.DEVEL, output_dir,
-                    force)
+            devel_path = self._create_package(PackageType.DEVEL)
         except EmptyPackageError as e:
             if runtime_path is None:
                 raise e
@@ -152,23 +149,22 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         return [runtime_path, devel_path]
 
     def _get_install_dir(self):
-        #if self.config.target_arch != Architecture.UNIVERSAL:
+        # if self.config.target_arch != Architecture.UNIVERSAL:
         #    arch_dir = self.config.target_arch
-        #else:
+        # else:
         #    arch_dir = ''
-        return os.path.join(self.install_dir, 'Versions',
-                self.sdk_version) #, arch_dir)
+        return os.path.join(self.install_dir, 'Versions', self.sdk_version)
 
-    def _create_package(self, package_type, output_dir, force):
+    def _create_package(self, package_type):
         self.package.set_mode(package_type)
-        files = self.files_list(package_type, force)
-        output_file = os.path.join(output_dir, '%s-%s-%s.pkg' %
-                (self.package.name, self.version, self.config.target_arch))
+        files = self.files_list(package_type)
+        output_file = os.path.join(self.output_dir, '%s-%s-%s.pkg' %
+                                   (self.package.name, self.version, self.config.target_arch))
         tmp, root, resources = self._create_bundle(files, package_type)
         packagebuild = PackageBuild()
         packagebuild.create_package(root, self.package.identifier(),
-            self.package.version, self.package.shortdesc, output_file,
-            self._get_install_dir(), scripts_path=resources)
+                                    self.package.version, self.package.shortdesc, output_file,
+                                    self._get_install_dir(), scripts_path=resources)
         shutil.rmtree(tmp)
         return output_file
 
@@ -224,8 +220,8 @@ class ProductPackage(PackagerBase):
         self.packages_paths = {}
         self.empty_packages = {}
 
-    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
-        PackagerBase.pack(self, output_dir, devel, force, keep_temp)
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False, split=True):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         self._prepare_pack()
 
@@ -284,7 +280,7 @@ class ProductPackage(PackagerBase):
         self.store.add_package(package)
         packages = self.package.packages[:] + [(package.name, True, True)]
         self.package.packages = packages
-        path = packager.pack(self.output_dir, self.fw_path)[0]
+        path = packager.pack(self.output_dir, root=self.fw_path)[0]
         if self.config.target_platform == Platform.IOS:
             self.packages_paths[PackageType.DEVEL][package] = path
             self.empty_packages[PackageType.RUNTIME].append(package)
@@ -313,10 +309,10 @@ class ProductPackage(PackagerBase):
             packager = OSXPackage(self.config, p, self.store)
             try:
                 paths = packager.pack(self.output_dir, self.devel, self.force,
-                        self.keep_temp, self.package.version,
-                        install_dir=self.package.get_install_dir(),
-                        include_dirs=self.include_dirs,
-                        sdk_version=self.package.sdk_version)
+                                      self.keep_temp, self.split, self.package.version,
+                                      install_dir=self.package.get_install_dir(),
+                                      include_dirs=self.include_dirs,
+                                      sdk_version=self.package.sdk_version)
                 m.action(_("Package created sucessfully"))
             except EmptyPackageError:
                 paths = [None, None]
@@ -332,12 +328,11 @@ class ProductPackage(PackagerBase):
 
     def _create_packages_dmg(self):
         paths = list(self.packages_paths[PackageType.RUNTIME].values())
-        dmg_file = os.path.join(self.output_dir,
-            self._package_name('-packages.dmg'))
+        dmg_file = os.path.join(self.output_dir, self._package_name('-packages.dmg'))
 
         m.action(_("Creating image %s ") % dmg_file)
         # create a temporary directory to store packages
-        workdir = os.path.join (self.tmp, "hdidir")
+        workdir = os.path.join(self.tmp, "hdidir")
         os.makedirs(workdir)
         try:
             for p in paths:
@@ -360,8 +355,8 @@ class ApplicationPackage(PackagerBase):
     def __init__(self, config, package, store):
         PackagerBase.__init__(self, config, package, store)
 
-    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
-        PackagerBase.pack(self, output_dir, devel, force, keep_temp)
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False, split=True):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         self.tmp = tempfile.mkdtemp()
         self.approot = os.path.join(self.tmp, 'app')
@@ -486,8 +481,8 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
     home_folder = True
     user_resources = []
 
-    def pack(self, output_dir, devel=False, force=False, keep_temp=False):
-        PackagerBase.pack(self, output_dir, devel, force, keep_temp)
+    def pack(self, output_dir, devel=False, force=False, keep_temp=False, split=True):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         framework_name = self.package.osx_framework_library[0]
         self._prepare_pack()

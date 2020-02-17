@@ -47,23 +47,23 @@ class DistTarball(PackagerBase):
             raise UsageError('Invalid compression type {!r}'.format(self.compress))
 
     @lru_cache(maxsize=None)
-    def _files_list(self, devel=True, force=True, split=True):
+    def _files_list(self):
         try:
-            dist_files = super().files_list(PackageType.RUNTIME, force, split)
+            dist_files = self.files_list(PackageType.RUNTIME)
         except EmptyPackageError:
             m.warning(_("The runtime package is empty"))
             dist_files = []
 
-        if devel:
+        if self.devel:
             try:
-                devel_files = super().files_list(PackageType.DEVEL, force, split)
+                devel_files = self.files_list(PackageType.DEVEL)
             except EmptyPackageError:
                 m.warning(_("The development package is empty"))
                 devel_files = []
         else:
             devel_files = []
 
-        if not split:
+        if not self.split:
             dist_files += devel_files
             dist_files = list(set(dist_files))
 
@@ -72,13 +72,14 @@ class DistTarball(PackagerBase):
 
         return dist_files, devel_files
 
-    def pack(self, output_dir, devel=True, force=False, keep_temp=False,
-             split=True, package_prefix='', strip_binaries=False, force_empty=False,
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
+             package_prefix='', strip_binaries=False, force_empty=False,
              relocatable=False, lib64_link=False):
+        PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
         dist_files = []
         devel_files = []
         try:
-            dist_files, devel_files = self._files_list(force=force, devel=devel, split=split)
+            dist_files, devel_files = self._files_list()
         except EmptyPackageError:
             pass
         filenames = []

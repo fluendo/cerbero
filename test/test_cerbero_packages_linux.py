@@ -31,7 +31,8 @@ packed = []
 
 class LoggerPackager(linux.LinuxPackager):
 
-    def pack(self, output_dir, devel, force, keep_temp, pack_deps, tmpdir):
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
+             pack_deps=True, tmpdir=None):
         packed.append(self.package.name)
 
 
@@ -49,7 +50,7 @@ class DummyPackager(linux.LinuxPackager):
 
 class DummyTarballPackager(PackagerBase):
 
-    def pack(self, output_dir, devel=True, force=False, split=True,
+    def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
              package_prefix=''):
         return ['test']
 
@@ -153,30 +154,27 @@ class LinuxPackagesTest(unittest.TestCase):
                            'gstreamer-test1'])
         self.packager = LoggerPackager(self.config,
             self.store.get_package('gstreamer-runtime'), self.store)
+        self.packager.output_dir = ''
         self.packager.devel = False
         self.packager.force = False
+        self.packager.split = True
         global packed
         packed = []
-        self.packager.pack_deps('', '', True)
-        self.assertEqual(sorted(packed), expected)
-        packed = []
-
-        self.packager.devel = False
-        self.packager.pack_deps('', '', True)
+        self.packager.pack_deps('')
         self.assertEqual(sorted(packed), expected)
         packed = []
 
     def testPack(self):
         self.packager = DummyPackager(self.config,
             self.store.get_package('gstreamer-runtime'), self.store)
-        paths = self.packager.pack('', False, True, True, False, None)
+        paths = self.packager.pack('', False, True, True, True, False, None)
         self.assertTrue(os.path.exists('gstreamer-runtime-stamp'))
         os.remove('gstreamer-runtime-stamp')
         self.assertEqual(paths, ['test'])
 
         self.packager = DummyPackager(self.config,
             self.store.get_package('gstreamer-test1'), self.store)
-        paths = self.packager.pack('', False, True, True, False, None)
+        paths = self.packager.pack('', False, True, True, True, False, None)
         self.assertTrue(os.path.exists('gstreamer-test1-stamp'))
         os.remove('gstreamer-test1-stamp')
         self.assertEqual(paths, ['test'])

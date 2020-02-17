@@ -164,9 +164,9 @@ class RPMPackager(LinuxPackager):
         tarname = os.path.split(tarball)[1]
         return tarname
 
-    def prepare(self, tarname, tmpdir, packagedir, srcdir, split):
+    def prepare(self, tarname, tmpdir, packagedir, srcdir):
         try:
-            runtime_files = self._files_list(PackageType.RUNTIME, split)
+            runtime_files = self._files_string_list(PackageType.RUNTIME)
         except EmptyPackageError:
             runtime_files = ''
 
@@ -179,7 +179,7 @@ class RPMPackager(LinuxPackager):
             self.package.has_runtime_package = False
 
         if self.devel:
-            devel_package, devel_files = self._devel_package_and_files(split)
+            devel_package, devel_files = self._devel_package_and_files()
         else:
             devel_package, devel_files = ('', '')
 
@@ -300,10 +300,10 @@ class RPMPackager(LinuxPackager):
         deps = self.get_requires(package_type, devel_suffix)
         return reduce(lambda x, y: x + REQUIRE_TPL % y, deps, '')
 
-    def _files_list(self, package_type, split):
+    def _files_string_list(self, package_type):
         if self.package.build_meta_package:
             return ''
-        files = self.files_list(package_type, split)
+        files = self.files_list(package_type)
         for f in [x for x in files if x.endswith('.py')]:
             if f + 'c' not in files:
                 files.append(f + 'c')
@@ -311,7 +311,7 @@ class RPMPackager(LinuxPackager):
                 files.append(f + 'o')
         return '\n'.join([os.path.join('%{prefix}',  x) for x in files])
 
-    def _devel_package_and_files(self, split):
+    def _devel_package_and_files(self):
         args = {}
         args['summary'] = 'Development files for %s' % self.package.name
         args['description'] = args['summary']
@@ -322,7 +322,7 @@ class RPMPackager(LinuxPackager):
         args['name'] = self.package.name
         args['p_prefix'] = self.package_prefix
         try:
-            devel = DEVEL_TPL % self._files_list(PackageType.DEVEL, split)
+            devel = DEVEL_TPL % self._files_string_list(PackageType.DEVEL)
         except EmptyPackageError:
             devel = ''
         return DEVEL_PACKAGE_TPL % args, devel
