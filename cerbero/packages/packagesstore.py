@@ -23,7 +23,7 @@ from collections import defaultdict
 
 from cerbero.build.cookbook import CookBook
 from cerbero.config import Platform, Architecture, Distro, DistroVersion,\
-        License
+    License
 from cerbero.packages import package, PackageType
 from cerbero.errors import FatalError, PackageNotFoundError
 from cerbero.utils import _, shell, remove_list_duplicates, parse_file
@@ -163,7 +163,7 @@ class PackagesStore (object):
         repos = self._config.get_packages_repos()
         for reponame, (repodir, priority) in repos.items():
             packages[int(priority)].update(
-                    self._load_packages_from_dir(repodir))
+                self._load_packages_from_dir(repodir))
         # Add recipes by asceding pripority
         for key in sorted(packages.keys()):
             self._packages.update(packages[key])
@@ -213,7 +213,7 @@ class PackagesStore (object):
              'PackageType': PackageType, 'custom': custom}
         d_keys = set(list(d.keys()))
         try:
-            new_d = d.copy ()
+            new_d = d.copy()
             parse_file(filepath, new_d)
             # List new objects parsed added to the globals dict
             diff_vals = [new_d[x] for x in set(new_d.keys()) - d_keys]
@@ -228,13 +228,13 @@ class PackagesStore (object):
         return packages
 
     def _load_package_from_file(self, package_cls, filepath, custom=None):
-        if issubclass (package_cls, package.App):
+        if issubclass(package_cls, package.App):
             p = package_cls(self._config, self, self.cookbook)
-        elif issubclass (package_cls, package.SDKPackage):
+        elif issubclass(package_cls, package.SDKPackage):
             p = package_cls(self._config, self)
-        elif issubclass (package_cls, package.InstallerPackage):
+        elif issubclass(package_cls, package.InstallerPackage):
             p = package_cls(self._config, self)
-        elif issubclass (package_cls, package.Package):
+        elif issubclass(package_cls, package.Package):
             p = package_cls(self._config, self, self.cookbook)
         else:
             raise Exception('Uknown package type %s' % package_cls)
@@ -244,11 +244,10 @@ class PackagesStore (object):
         p.load_files()
         return p
 
-
     def _is_package_class(self, cls):
         # The final check for 'builtins' is to make sure we only take in
         # account classes defined in the package file and not the imported
         # ones in the, for example base classes that inherit from PackageBase
         return isinstance(cls, type) and \
-            issubclass (cls, package.PackageBase) and \
+            issubclass(cls, package.PackageBase) and \
             cls.__module__ == 'builtins'

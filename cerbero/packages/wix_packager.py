@@ -112,6 +112,7 @@ class MergeModulePackager(PackagerBase):
             final_wixobjs = wixobjs
             final_sources = sources
 
+        self.package.pre_build(tmpdir)
         candle = Candle(self.wix_prefix, self._with_wine)
         candle.compile(' '.join(final_sources), self.output_dir)
 
