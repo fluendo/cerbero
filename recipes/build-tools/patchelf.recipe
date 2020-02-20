@@ -1,0 +1,15 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+
+
+class Recipe(recipe.Recipe):
+    name = 'patchelf'
+    version = '0.10'
+    licenses = [License.GPLv3Plus]
+    stype = SourceType.TARBALL
+    url = 'https://github.com/NixOS/patchelf/archive/{0}.tar.gz'.format(version)
+    tarball_checksum = 'b3cb6bdedcef5607ce34a350cf0b182eb979f8f7bc31eae55a93a70a3f020d13'
+    deps = ['autoconf', 'automake']
+    autoreconf = True
+
+    files_bin = ['bin/patchelf']
+    files_share = ['share/doc/patchelf', 'share/man/man1/patchelf.1']

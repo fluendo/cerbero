@@ -37,7 +37,7 @@ class BuildTools (BootstrapperBase, Fetch):
     PLAT_BUILD_TOOLS = {
         Platform.DARWIN: ['intltool', 'yasm', 'bison', 'flex'],
         Platform.WINDOWS: ['intltool', 'yasm'],
-        Platform.LINUX: ['intltool-m4'],
+        Platform.LINUX: ['intltool-m4', 'patchelf'],
     }
 
     def __init__(self, config, offline, use_binaries=False, upload_binaries=False,
