@@ -397,7 +397,8 @@ class MakefilesBase (Build, ModifyEnvBase):
             'target': self.config.target,
             'build': self.config.build,
             'options': self.configure_options,
-            'build_dir': to_unixpath(self.build_dir)}
+            'build_dir': to_unixpath(self.build_dir),
+            'make_dir': to_unixpath(self.make_dir)}
 
         await shell.async_call(configure_cmd, self.make_dir,
                                logfile=self.logfile, env=self.env)
@@ -522,7 +523,7 @@ class CMake (MakefilesBase):
     config_sh = 'cmake'
     configure_tpl = '%(config-sh)s -DCMAKE_INSTALL_PREFIX=%(prefix)s ' \
                     '-S %(build_dir)s ' \
-                    '-B %(build_dir)s ' \
+                    '-B %(make_dir)s ' \
                     '-DCMAKE_LIBRARY_OUTPUT_PATH=%(libdir)s ' \
                     '-DCMAKE_INSTALL_LIBDIR=%(libdir)s ' \
                     '-DCMAKE_INSTALL_BINDIR=%(prefix)s/bin ' \
@@ -530,6 +531,10 @@ class CMake (MakefilesBase):
                     '%(options)s -DCMAKE_BUILD_TYPE=Release '\
                     '-DCMAKE_FIND_ROOT_PATH=$CERBERO_PREFIX '\
                     '-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true '
+
+    def __init__(self):
+        MakefilesBase.__init__(self)
+        self.make_dir = os.path.join(self.build_dir, '_builddir')
 
     @async_modify_environment
     async def configure(self):
@@ -563,8 +568,8 @@ class CMake (MakefilesBase):
         self.configure_options += ' -DCMAKE_CXX_FLAGS="%s"' % cxxflags
         self.configure_options += ' -DLIB_SUFFIX=%s ' % self.config.lib_suffix
 
-        cmake_cache = os.path.join(self.build_dir, 'CMakeCache.txt')
-        cmake_files = os.path.join(self.build_dir, 'CMakeFiles')
+        cmake_cache = os.path.join(self.make_dir, 'CMakeCache.txt')
+        cmake_files = os.path.join(self.make_dir, 'CMakeFiles')
         if os.path.exists(cmake_cache):
             os.remove(cmake_cache)
         if os.path.exists(cmake_files):
