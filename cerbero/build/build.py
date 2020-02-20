@@ -531,7 +531,6 @@ class CMake (MakefilesBase):
                     '-DCMAKE_FIND_ROOT_PATH=$CERBERO_PREFIX '\
                     '-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true '
 
-    @async_modify_environment
     async def configure(self):
         cc = self.env.get('CC', 'gcc')
         cxx = self.env.get('CXX', 'g++')
