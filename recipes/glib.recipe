@@ -114,14 +114,14 @@ class Recipe(recipe.Recipe):
         # Glib doesn't support static libraries on Windows yet
         if self.config.target_platform == Platform.WINDOWS:
             self.library_type = LibraryType.SHARED
-            self.deps.append('gettext')
+            self.deps.append('proxy-libintl')
 
         if self.config.target_platform != Platform.LINUX:
             # Disable valgrind code on non-Linux, in the best case it just
             # gives us compiler errors :)
             self.append_env('CFLAGS', '-DNVALGRIND=1')
             self.meson_options.update({'xattr': 'false'})
-            self.deps.append('gettext')
+            self.deps.append('proxy-libintl')
 
         # macOS and iOS provide libiconv as a separate library
         if self.config.target_platform in (Platform.DARWIN, Platform.IOS):
@@ -200,7 +200,7 @@ class Recipe(recipe.Recipe):
                 path1 = '/usr/lib/gio/modules/'
             elif self.config.target_distro == Distro.NONE:
                 if self.config.target_distro_version == DistroVersion.NONE_UCLIBC:
-                    self.deps += ('gettext', 'libiconv')
+                    self.deps += ('proxy-libintl', 'libiconv')
             else:
                 raise FatalError(_("Add specific for other Linux distributions here"))
             self._set_gio_flags(path1, path2, use_old_uri_scheme)
