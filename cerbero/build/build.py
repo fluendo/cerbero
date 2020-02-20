@@ -379,8 +379,13 @@ class MakefilesBase (Build, ModifyEnvBase):
             # so add -fembed-bitcode again
             self.append_env('LDFLAGS', *bitcode_ldflags)
 
-    @async_modify_environment
     async def configure(self):
+        '''
+        Base configure method
+
+        When called from a method in deriverd class, that method has to be
+        decorated with async_modify_environment decorator.
+        '''
         if not os.path.exists(self.make_dir):
             os.makedirs(self.make_dir)
         if self.requires_non_src_build:
@@ -422,6 +427,15 @@ class MakefilesBase (Build, ModifyEnvBase):
             shell.call(self.make_check, self.build_dir, logfile=self.logfile, env=self.env)
 
 
+class Makefile (MakefilesBase):
+    '''
+    Build handler for Makefile project
+    '''
+    @async_modify_environment
+    async def configure(self):
+        await MakefilesBase.configure(self)
+
+
 class Autotools (MakefilesBase):
     '''
     Build handler for autotools project
@@ -443,6 +457,7 @@ class Autotools (MakefilesBase):
     disable_introspection = False
     override_libtool = True
 
+    @async_modify_environment
     async def configure(self):
         # Build with PIC for static linking
         self.configure_tpl += ' --with-pic '
@@ -891,7 +906,7 @@ class Meson (Build, ModifyEnvBase) :
 class BuildType (object):
 
     CUSTOM = CustomBuild
-    MAKEFILE = MakefilesBase
+    MAKEFILE = Makefile
     AUTOTOOLS = Autotools
     CMAKE = CMake
     MESON = Meson
