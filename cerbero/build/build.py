@@ -397,7 +397,8 @@ class MakefilesBase (Build, ModifyEnvBase):
             'target': self.config.target,
             'build': self.config.build,
             'options': self.configure_options,
-            'build_dir': to_unixpath(self.build_dir)}
+            'build_dir': to_unixpath(self.build_dir),
+            'make_dir': to_unixpath(self.make_dir)}
 
         await shell.async_call(configure_cmd, self.make_dir,
                                logfile=self.logfile, env=self.env)
@@ -522,7 +523,7 @@ class CMake (MakefilesBase):
     config_sh = 'cmake'
     configure_tpl = '%(config-sh)s -DCMAKE_INSTALL_PREFIX=%(prefix)s ' \
                     '-S %(build_dir)s ' \
-                    '-B %(build_dir)s ' \
+                    '-B %(make_dir)s ' \
                     '-DCMAKE_LIBRARY_OUTPUT_PATH=%(libdir)s ' \
                     '-DCMAKE_INSTALL_LIBDIR=%(libdir)s ' \
                     '-DCMAKE_INSTALL_BINDIR=%(prefix)s/bin ' \
