@@ -160,7 +160,8 @@ class MergeModule(WixBase):
         self.module = etree.SubElement(self.root, "Module",
                                        Id=self._format_id(self.package.name),
                                        Version=self._format_version(self.package.version),
-                                       Language='1033')
+                                       Language='1033',
+                                       Codepage='1252')
 
     def _add_package(self):
         self.pkg = etree.SubElement(self.module, "Package",
