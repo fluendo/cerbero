@@ -522,8 +522,8 @@ class CMake (MakefilesBase):
 
     config_sh = 'cmake'
     configure_tpl = '%(config-sh)s -DCMAKE_INSTALL_PREFIX=%(prefix)s ' \
-                    '-S %(build_dir)s ' \
-                    '-B %(make_dir)s ' \
+                    '-H%(build_dir)s ' \
+                    '-B%(make_dir)s ' \
                     '-DCMAKE_LIBRARY_OUTPUT_PATH=%(libdir)s ' \
                     '-DCMAKE_INSTALL_LIBDIR=%(libdir)s ' \
                     '-DCMAKE_INSTALL_BINDIR=%(prefix)s/bin ' \
