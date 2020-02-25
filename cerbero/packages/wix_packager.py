@@ -83,8 +83,12 @@ class MergeModulePackager(PackagerBase):
                     s.strip_dir(os.path.join(tmpdir, p))
 
             if self.package.wix_sign_binaries:
-                self.package.sign_binaries([os.path.join(tmpdir, f)
-                                            for f in files_list if os.path.splitext(f)[1] in ['.exe', '.dll']])
+                m.action("Signing binaries for %s" % self.package)
+                files_to_sign = [f for f in files_list if os.path.splitext(f)[1] in ['.exe', '.dll']]
+                if self.package.wix_sign_excludes:
+                    files_to_sign = [f for f in files_to_sign if all(
+                        excluded not in f for excluded in self.package.wix_sign_excludes)]
+                self.package.sign_binaries([os.path.join(tmpdir, f) for f in files_to_sign])
 
         package_name = self._package_name()
         if self.package.wix_use_fragment:
@@ -113,6 +117,7 @@ class MergeModulePackager(PackagerBase):
             final_sources = sources
 
         self.package.pre_build(tmpdir)
+        m.action("Building Wix package for %s" % self.package)
         candle = Candle(self.wix_prefix, self._with_wine)
         candle.compile(' '.join(final_sources), self.output_dir)
 
@@ -130,7 +135,7 @@ class MergeModulePackager(PackagerBase):
                     os.remove(f)
                     try:
                         os.remove(f.replace('.wixobj', '.wixpdb'))
-                    except:
+                    except Exception:
                         pass
 
         if keep_strip_temp_dir:
@@ -256,6 +261,7 @@ class MSIPackager(PackagerBase):
             final_wixobjs = wixobjs
             final_sources = sources
 
+        m.action("Building MSI package for %s" % self.package)
         candle = Candle(self.wix_prefix, self._with_wine)
         candle.compile(' '.join(final_sources), self.output_dir)
         light = Light(self.wix_prefix, self._with_wine,
@@ -269,7 +275,7 @@ class MSIPackager(PackagerBase):
                 os.remove(f)
                 try:
                     os.remove(f.replace('.wixobj', '.wixpdb'))
-                except:
+                except Exception:
                     pass
             os.remove(config_path)
 

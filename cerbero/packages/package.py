@@ -75,8 +75,13 @@ class PackageBase(object):
     @type resources_templates = str
     @cvar wix_use_fragment = uses fragments instead of merge modules
     @type wix_use_fragment = bool
-    @cvar wix_sign_binaries = sign the files of package
+    @cvar wix_sign_binaries = Wix packager will sign package binary files
+                              (if True, you also need to override sign_binaries()
+                              method in order to implement concrete files signing
+                              process)
     @type wix_sign_binaries = bool
+    @cvar wix_sign_excludes: files that won't be signed by Wix packager
+    @type wix_sign_excludes: list
     @cvar strip: strip binaries for this package
     @type strip: bool
     @cvar strip_dirs: directories to strip
@@ -108,6 +113,7 @@ class PackageBase(object):
     resources_templates = 'templates'
     wix_use_fragment = False
     wix_sign_binaries = False
+    wix_sign_excludes = []
     strip = False
     strip_dirs = ['bin']
     strip_excludes = []
@@ -159,9 +165,9 @@ class PackageBase(object):
 
     def sign_binaries(self, binaries_paths: list):
         '''
-        Subclasses can override to sign binaries
+        Subclasses can override it to sign binaries
 
-        @param binaries_paths: list of files to sign
+        @param binaries_paths: list of binary files to sign
         @type binaries_paths: list
         '''
         pass
