@@ -45,39 +45,40 @@ class LinuxPackager(PackagerBase):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
         self.install_dir = self.package.get_install_dir()
         self._empty_packages = []
+        paths = []
 
         # Create a tmpdir for packages
         tmpdir, packagedir, srcdir = self.create_tree(tmpdir)
 
-        # only build each package once
+        # Only build each package once
         if isinstance(self.package, App) and self.package.embed_deps:
             pass
         elif pack_deps:
-            self.pack_deps(tmpdir)
+            paths += self.pack_deps(tmpdir)
 
         if isinstance(self.package, MetaPackage) and not self.package.build_meta_package:
-            return []
+            return list(set(paths))
 
         if not self.package.build_meta_package:
-            # create a tarball with all the package's files
+            # Create a tarball with all the package's files
             tarball_packager = DistTarball(self.config, self.package,
                                            self.store)
             tarball = tarball_packager.pack(tmpdir, devel, True,
                                             split=False, package_prefix=self.full_package_name)[0]
             tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
         else:
-            # metapackages only contains Requires dependencies with
+            # Metapackages only contains Requires dependencies with
             # other packages
             tarname = None
 
         m.action(_('Creating package for %s') % self.package.name)
 
         try:
-            # do the preparations, fill spec file, write debian files, etc
+            # Do the preparations, fill spec file, write debian files, etc
             self.prepare(tarname, tmpdir, packagedir, srcdir)
 
-            # and build the package
-            paths = self.build(output_dir, tarname, tmpdir, packagedir, srcdir)
+            # And build the package
+            paths += self.build(output_dir, tarname, tmpdir, packagedir, srcdir)
 
             stamp_path = os.path.join(tmpdir, self.package.name + '-stamp')
             open(stamp_path, 'w').close()
@@ -86,7 +87,7 @@ class LinuxPackager(PackagerBase):
                 m.action(_('Removing temporary dir %s') % tmpdir)
                 shutil.rmtree(tmpdir)
 
-        return paths
+        return list(set(paths))
 
     def setup(self):
         pass
@@ -104,21 +105,24 @@ class LinuxPackager(PackagerBase):
         pass
 
     def pack_deps(self, tmpdir):
+        paths = []
         for p in self.store.get_package_deps(self.package.name):
             stamp_path = os.path.join(tmpdir, p.name + '-stamp')
             if os.path.exists(stamp_path):
-                # already built, skipping
+                # Already built, skipping
                 continue
-            p.pre_package()
             m.action(_('Packing dependency %s for package %s') %
                      (p.name, self.package.name))
+            p.pre_package()
             packager = self.__class__(self.config, p, self.store)
+            dep_paths = []
             try:
-                paths = packager.pack(self.output_dir, self.devel, self.force, True, self.split, True, tmpdir)
+                dep_paths = packager.pack(self.output_dir, self.devel, self.force, True, self.split, True, tmpdir)
             except EmptyPackageError:
                 self._empty_packages.append(p)
-                paths = []
-            p.post_package(paths, self.output_dir)
+            finally:
+                paths += p.post_package(dep_paths, self.output_dir)
+        return paths
 
     def get_meta_requires(self, package_type, package_suffix):
         requires = []
