@@ -18,33 +18,53 @@
 # Boston, MA 02111-1307, USA.
 
 import os
+import asyncio
 from cerbero.config import Platform
-from cerbero.utils import shell
+from cerbero.utils import shell, messages as m
+
 
 class Strip(object):
     '''Wrapper for the strip tool'''
-
-    STRIP_CMD = '$STRIP'
 
     def __init__(self, config, excludes=None, keep_symbols=None):
         self.config = config
         self.excludes = excludes or []
         self.keep_symbols = keep_symbols or []
+        self.strip_cmd = os.environ['STRIP']
 
-    def strip_file(self, path):
+    async def async_strip_file(self, path):
+        if not self.strip_cmd:
+            m.warning('Strip command is not defined')
+            return
+
         for f in self.excludes:
             if f in path:
                 return
+
+        if self.config.target_platform == Platform.DARWIN:
+            cmd = [self.strip_cmd, '-x', path]
+        else:
+            cmd = [self.strip_cmd]
+            for symbol in self.keep_symbols:
+                cmd += ['-K', symbol]
+            cmd += ['--strip-unneeded', path]
+
         try:
-            if self.config.target_platform == Platform.DARWIN:
-                shell.call("%s -x %s" % (self.STRIP_CMD, path))
-            else:
-                shell.call("%s %s --strip-unneeded %s" % (self.STRIP_CMD,
-                    ' '.join(['-K %s' % x for x in self.keep_symbols]), path))
-        except:
-            pass
+            await shell.async_call(cmd)
+        except Exception as e:
+            m.warning(e)
+
+    def strip_file(self, path):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.async_strip_file(path))
 
     def strip_dir(self, dir_path):
+        if not self.strip_cmd:
+            m.warning('Strip command is not defined')
+            return
+
+        tasks = []
         for dirpath, dirnames, filenames in os.walk(dir_path):
             for f in filenames:
-                self.strip_file(os.path.join(dirpath, f))
+                tasks.append(self.async_strip_file(os.path.join(dirpath, f)))
+        shell.run_until_complete(tasks)
