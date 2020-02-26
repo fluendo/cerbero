@@ -129,7 +129,15 @@ def fetch(git_dir, fail=True, logfile=None):
     @param fail: raise an error if the command failed
     @type fail: false
     '''
-    return shell.call('%s fetch --all --tags' % GIT, git_dir, fail=fail, logfile=logfile)
+    # git 1.9 introduced the possibility to fetch both branches and tags at the
+    # same time when using --tags: https://stackoverflow.com/a/20608181.
+    # centOS 7 ships with git 1.8.3.1, hence for old git versions, we need to
+    # run two separate commands.
+    ret = shell.call('%s fetch --all' % GIT, git_dir, fail=fail, logfile=logfile)
+    if ret != 0:
+        return ret
+    ret = shell.call('%s fetch --all --tags' % GIT, git_dir, fail=fail, logfile=logfile)
+    return ret
 
 def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
     '''
