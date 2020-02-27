@@ -40,7 +40,7 @@ CHANGELOG_TPL = \
  -- %(packager)s  %(datetime)s
 '''
 
-COMPAT_TPL = '''7'''
+COMPAT_TPL = '''9'''
 
 CONTROL_TPL = \
 '''Source: %(p_prefix)s%(name)s
@@ -50,7 +50,6 @@ Build-Depends: debhelper
 Standards-Version: 3.8.4
 Section: libs
 %(homepage)s
-Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -58,12 +57,12 @@ CONTROL_RUNTIME_PACKAGE_TPL = \
 '''Package: %(p_prefix)s%(name)s
 Section: libs
 Architecture: any
+Pre-Depends: debconf (>= 0.2.17)
 Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
-Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -74,7 +73,6 @@ Architecture: any
 Depends: %(p_prefix)s%(name)s (= ${binary:Version})
 Description: Debug symbols for %(p_prefix)s%(name)s
  Debug symbols for %(p_prefix)s%(name)s
-Pre-Depends: debconf (>= 0.2.17)
 
 '''
 
@@ -87,7 +85,6 @@ Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s
  %(longdesc)s
-Pre-Depends: debconf (>= 0.2.17)
 
 '''
 

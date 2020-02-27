@@ -17,37 +17,44 @@
 # Boston, MA 02111-1307, USA.
 import os
 import re
+import asyncio
 
 from cerbero.config import Platform
-from cerbero.utils import shell
+from cerbero.utils import shell, messages as m
 
 
 class RecursiveLister():
 
-    def list_file_deps(self, prefix, path):
+    async def async_list_file_deps(self, prefix, path):
         raise NotImplemented()
 
-    def find_deps(self, prefix, lib, state={}, ordered=[]):
+    async def async_find_deps(self, prefix, lib, state={}, ordered=[]):
         if state.get(lib, 'clean') == 'processed':
             return
         if state.get(lib, 'clean') == 'in-progress':
             return
         state[lib] = 'in-progress'
-        lib_deps = self.list_file_deps(prefix, lib)
+        lib_deps = await self.async_list_file_deps(prefix, lib)
         for libdep in lib_deps:
-            self.find_deps(prefix, libdep, state, ordered)
+            await self.async_find_deps(prefix, libdep, state, ordered)
         state[lib] = 'processed'
         ordered.append(lib)
         return ordered
 
-    def list_deps(self, prefix, path):
-        return self.find_deps(prefix, os.path.realpath(path), {}, [])
+    async def async_list_deps(self, prefix, path):
+        return await self.async_find_deps(prefix, os.path.realpath(path), {}, [])
 
 
 class ObjdumpLister(RecursiveLister):
 
-    def list_file_deps(self, prefix, path):
-        files = shell.check_call('objdump -xw %s' % path).splitlines()
+    async def async_list_file_deps(self, prefix, path):
+        try:
+            files = await shell.async_call_output(['objdump', '-xw', path])
+        except Exception as e:
+            m.warning(e)
+            return []
+
+        files = files.splitlines()
         prog = re.compile(r"(?i)^.*DLL[^:]*: (\S+\.dll)$")
         files = [prog.sub(r"\1", x) for x in files if prog.match(x) is not None]
         files = [os.path.join(prefix, 'bin', x) for x in files if
@@ -57,16 +64,28 @@ class ObjdumpLister(RecursiveLister):
 
 class OtoolLister(RecursiveLister):
 
-    def list_file_deps(self, prefix, path):
-        files = shell.check_call('otool -L %s' % path).split('\n')[1:]
+    async def async_list_file_deps(self, prefix, path):
+        try:
+            files = await shell.async_call_output(['otool', '-L', path])
+        except Exception as e:
+            m.warning(e)
+            return []
+
+        files = files.split('\n')[1:]
         files = [x.split(' ')[0][1:] for x in files if prefix in x or "@rpath" in x]
         return [x.replace("@rpath/", prefix) for x in files]
 
 
 class LddLister():
 
-    def list_deps(self, prefix,  path):
-        files = shell.check_call('ldd %s' % path).split('\n')
+    async def async_list_deps(self, prefix,  path):
+        try:
+            files = await shell.async_call_output(['ldd', path])
+        except Exception as e:
+            m.warning(e)
+            return []
+
+        files = files.split('\n')
         return [x.split(' ')[2] for x in files if prefix in x]
 
 
@@ -85,7 +104,8 @@ class DepsTracker():
         self.lister = self.BACKENDS[platform]()
 
     def list_deps(self, path):
-        deps = self.lister.list_deps(self.prefix, path)
+        loop = asyncio.get_event_loop()
+        deps = loop.run_until_complete(self.lister.async_list_deps(self.prefix, path))
         rdeps = []
         for d in deps:
             if os.path.islink(d):

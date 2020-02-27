@@ -102,6 +102,13 @@ class WixBase():
     def _format_path_id(self, path, replace_dots=False):
         ret = self._format_id(os.path.split(path)[1], replace_dots)
         ret = ret.lower()
+
+        # Wix Id length is limited to 72 characters which can be short
+        # for some files paths. As the returned Id can add a counter of
+        # references, we're gonna limit our max length to 68 characters.
+        if len(ret) > 68:
+            ret = ret[:60] + '_trunked'
+
         if ret not in self.ids:
             self.ids[ret] = 0
         else:
@@ -111,8 +118,12 @@ class WixBase():
         return ret
 
     def _format_dir_id(self, string, path, replace_dots=False):
-        return self._format_id(string, replace_dots) + '_' +\
+        ret = self._format_id(string, replace_dots) + '_' +\
             self._format_path_id(path, replace_dots)
+        # Wix Id length is limited to 72 characters.
+        if len(ret) > 72:
+            ret = ret[:64] + '_trunked'
+        return ret
 
     def _format_group_id(self, string, replace_dots=False):
         return self._format_id(string, replace_dots) + '_group'
@@ -556,7 +567,8 @@ class MSI(WixBase):
                                             Id='RegistryInstallDir', Guid=self._get_uuid())
             regkey = etree.SubElement(regcomponent, 'RegistryKey',
                                       Id='RegistryInstallDirRoot',
-                                      Action='createAndRemoveOnUninstall',
+                                      ForceCreateOnInstall='yes',
+                                      ForceDeleteOnUninstall='yes',
                                       Key=self._registry_key(name),
                                       Root=self.REG_ROOT)
             etree.SubElement(regkey, 'RegistryValue',
