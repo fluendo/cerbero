@@ -22,7 +22,6 @@ import tarfile
 import urllib.request, urllib.parse, urllib.error
 from hashlib import sha256
 from functools import lru_cache
-import asyncio
 
 from cerbero.config import Platform, DEFAULT_MIRRORS
 from cerbero.utils import git, svn, shell, _
@@ -346,7 +345,7 @@ class GitCache (Source):
 
     def built_version(self):
         if not self.cached_built_version:
-            asyncio.get_event_loop().run_until_complete(self.async_built_version())
+            shell.run_until_complete(self.async_built_version())
         return self.cached_built_version
 
 

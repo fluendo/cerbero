@@ -17,7 +17,6 @@
 # Boston, MA 02111-1307, USA.
 import os
 import re
-import asyncio
 
 from cerbero.config import Platform
 from cerbero.utils import shell, messages as m
@@ -104,8 +103,7 @@ class DepsTracker():
         self.lister = self.BACKENDS[platform]()
 
     def list_deps(self, path):
-        loop = asyncio.get_event_loop()
-        deps = loop.run_until_complete(self.lister.async_list_deps(self.prefix, path))
+        deps = shell.run_until_complete(self.lister.async_list_deps(self.prefix, path))
         rdeps = []
         for d in deps:
             if os.path.islink(d):

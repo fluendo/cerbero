@@ -30,11 +30,14 @@ import time
 import glob
 import shutil
 import hashlib
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 import math
 from ftplib import FTP
 from pathlib import Path, PurePath
 from distutils.version import StrictVersion
+from typing import Iterable
 
 from cerbero.enums import Platform
 from cerbero.utils import _, system_info, to_unixpath
@@ -52,6 +55,7 @@ DRY_RUN = False
 
 CALL_ENV = None
 
+
 def console_is_interactive():
     if not os.isatty(sys.stdout.fileno()):
         return False
@@ -59,11 +63,13 @@ def console_is_interactive():
         return False
     return True
 
+
 def log(msg, logfile):
     if logfile is None:
         logging.info(msg)
     else:
         logfile.write(msg + '\n')
+
 
 def _fix_mingw_cmd(path):
     reserved = ['/', ' ', '\\', ')', '(', '"']
@@ -73,6 +79,7 @@ def _fix_mingw_cmd(path):
             if i + 1 == len(path) or path[i + 1] not in reserved:
                 l_path[i] = '/'
     return ''.join(l_path)
+
 
 def _cmd_string_to_array(cmd):
     if not isinstance(cmd, str):
@@ -89,6 +96,7 @@ def _cmd_string_to_array(cmd):
 def set_call_env(env):
     global CALL_ENV
     CALL_ENV = env
+
 
 def restore_call_env():
     global CALL_ENV
@@ -144,9 +152,9 @@ def call(cmd, cmd_dir='.', fail=True, verbose=False, logfile=None, env=None):
             # of on exit. Ensures that we get continuous output in log files.
             env['PYTHONUNBUFFERED'] = '1'
             ret = subprocess.check_call(cmd, cwd=cmd_dir, bufsize=1,
-                                       stderr=subprocess.STDOUT, stdout=stream,
-                                       universal_newlines=True,
-                                       env=env, shell=shell)
+                                        stderr=subprocess.STDOUT, stdout=stream,
+                                        universal_newlines=True,
+                                        env=env, shell=shell)
     except subprocess.CalledProcessError:
         if fail:
             raise FatalError(_("Error running command: %s") % cmd)
@@ -231,8 +239,8 @@ async def async_call(cmd, cmd_dir='.', logfile=None, env=None):
     # of on exit. Ensures that we get continuous output in log files.
     env['PYTHONUNBUFFERED'] = '1'
     proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-                           stderr=subprocess.STDOUT, stdout=stream,
-                           env=env)
+                                                stderr=subprocess.STDOUT, stdout=stream,
+                                                env=env)
     await proc.wait()
     if proc.returncode != 0:
         raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
@@ -263,7 +271,7 @@ async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None):
         tempfile.tempdir = str(PurePath(tempfile.gettempdir()))
 
     proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-            stdout=subprocess.PIPE, stderr=logfile, env=env)
+                                                stdout=subprocess.PIPE, stderr=logfile, env=env)
     (output, unused_err) = await proc.communicate()
 
     if PLATFORM == Platform.WINDOWS:
@@ -321,6 +329,7 @@ def unpack(filepath, output_dir, logfile=None):
     else:
         raise FatalError("Unknown tarball format %s" % filepath)
 
+
 def download_wget(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Downloads a file with wget
@@ -354,6 +363,7 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False, user=
             os.remove(destination)
         raise e
 
+
 def download_urllib2(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
     Download a file with urllib2, which does not rely on external programs
@@ -382,6 +392,7 @@ def download_urllib2(url, destination=None, check_cert=True, overwrite=False, us
         if os.path.exists(destination):
             os.remove(destination)
         raise e
+
 
 def download_curl(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
     '''
@@ -412,6 +423,7 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False, user=
         if os.path.exists(destination):
             os.remove(destination)
         raise e
+
 
 def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None, user=None, password=None):
     '''
@@ -466,7 +478,8 @@ def download(url, destination=None, check_cert=True, overwrite=False, logfile=No
             return download_func(murl, destination, check_cert, overwrite, user, password)
         except Exception as ex:
             errors.append(ex)
-    raise Exception (errors)
+    raise Exception(errors)
+
 
 def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
     remote = urllib.parse.urlparse(remote_url)
@@ -478,9 +491,11 @@ def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
         ftp.login(user, password)
     return ftp, remote
 
+
 def ftp_end(ftp, ftp_connection=None):
     if not ftp_connection:
         ftp.quit()
+
 
 def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
     try:
@@ -493,12 +508,14 @@ def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
     except Exception:
         return False
 
+
 def ftp_download(remote_url, local_filename, ftp_connection=None, user=None, password=None):
     ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
     ftp.cwd(os.path.dirname(remote.path))
     with open(local_filename, 'wb') as f:
         ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
     ftp_end(ftp, ftp_connection)
+
 
 def ftp_upload(local_filename, remote_url, ftp_connection=None, user=None, password=None):
     ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
@@ -511,6 +528,7 @@ def ftp_upload(local_filename, remote_url, ftp_connection=None, user=None, passw
         ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
     ftp_end(ftp, ftp_connection)
 
+
 def _splitter(string, base_url):
     lines = string.split('\n')
     for line in lines:
@@ -518,6 +536,7 @@ def _splitter(string, base_url):
             yield "%s/%s" % (base_url, line.split(' ')[2])
         except:
             continue
+
 
 def ls_files(files, prefix):
     if not files:
@@ -527,6 +546,7 @@ def ls_files(files, prefix):
     for f in ' '.join(files).split():
         sfiles.update([i.relative_to(prefix).as_posix() for i in prefix.glob(f)])
     return list(tuple(sfiles))
+
 
 def ls_dir(dirpath, prefix):
     files = []
@@ -546,7 +566,7 @@ def find_newer_files(prefix, compfile, include_link=False):
     '''
     include_links = include_link and '-L' or ''
     cmd = 'find %s * \( -type f -o -type l \) \( -cnewer %s -o -newer %s \)' % \
-           (include_links, compfile, compfile)
+        (include_links, compfile, compfile)
     sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
     return sfiles
@@ -617,11 +637,13 @@ def file_md5(path):
     '''
     return hashlib.md5(open(path, 'rb').read()).digest()
 
+
 def file_sha256(path):
     '''
     Get the file SHA256 hash
     '''
     return hashlib.sha256(open(path, 'rb').read()).digest()
+
 
 def files_checksum(paths):
     '''
@@ -642,14 +664,14 @@ def enter_build_environment(platform, arch, sourcedir=None):
     '''
     Enters to a new shell with the build environment
     '''
-    BASHRC =  '''
+    BASHRC = '''
 if [ -e ~/.bashrc ]; then
 source ~/.bashrc
 fi
 %s
 PS1='\[\033[01;32m\][cerbero-%s-%s]\[\033[00m\]%s '
 '''
-    MSYSBAT =  '''
+    MSYSBAT = '''
 start bash.exe --rcfile %s
 '''
     if sourcedir:
@@ -696,6 +718,7 @@ def which(pgm, path=None):
                 if os.path.exists(pext):
                     return pext
 
+
 def check_perl_version(needed, env):
     perl = which('perl', env['PATH'])
     try:
@@ -708,6 +731,7 @@ def check_perl_version(needed, env):
     found = m.group()[1:]
     newer = StrictVersion(found) >= StrictVersion(needed)
     return perl, found, newer
+
 
 def check_compiler_version(config, cc):
     '''
@@ -725,6 +749,7 @@ def check_compiler_version(config, cc):
             raise FatalError(_('Cannot retrieve version of the compiler'))
     else:
         return config.msvc_version
+
 
 def windows_proof_rename(from_name, to_name):
     '''
@@ -745,6 +770,7 @@ def windows_proof_rename(from_name, to_name):
     # Try one last time and throw an error if it fails again
     os.rename(from_name, to_name)
 
+
 def run_until_complete(tasks, max_concurrent=16):
     '''
     Runs all tasks, blocking until all of them have finished.
@@ -753,6 +779,23 @@ def run_until_complete(tasks, max_concurrent=16):
     @param max_concurrent: Maximum number of concurrent tasks running
     @type max_concurrent: int
     '''
-    slices = [tasks[i*max_concurrent:i*max_concurrent+max_concurrent] for i in range(math.ceil(len(tasks) / max_concurrent))]
-    for s in slices:
-        asyncio.get_event_loop().run_until_complete(asyncio.gather(*s))
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # On Windows the default SelectorEventLoop is not available:
+    # https://docs.python.org/3.5/library/asyncio-subprocess.html#windows-event-loop
+    if sys.platform == 'win32' and \
+       not isinstance(loop, asyncio.ProactorEventLoop):
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+
+    if isinstance(tasks, Iterable):
+        slices = [tasks[i * max_concurrent:i * max_concurrent + max_concurrent]
+                  for i in range(math.ceil(len(tasks) / max_concurrent))]
+        for s in slices:
+            loop.run_until_complete(asyncio.gather(*s))
+    else:
+        loop.run_until_complete(tasks)
