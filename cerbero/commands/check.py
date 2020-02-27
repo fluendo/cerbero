@@ -22,7 +22,7 @@ from cerbero.commands import Command, register_command
 from cerbero.build.cookbook import CookBook
 from cerbero.errors import FatalError
 from cerbero.utils import _, N_, ArgparseArgument
-from cerbero.utils import messages as m
+from cerbero.utils import shell, messages as m
 
 
 class Check(Command):
@@ -64,8 +64,7 @@ class Check(Command):
             if stepfunc:
                 try:
                     if asyncio.iscoroutinefunction(stepfunc):
-                        loop = asyncio.get_event_loop()
-                        loop.run_until_complete(stepfunc(recipe))
+                        shell.run_until_complete(stepfunc())
                     else:
                         stepfunc()
                 except FatalError as e:

@@ -80,8 +80,7 @@ class Fetch(Command):
             m.build_step(i + 1, len(fetch_recipes), recipe, 'fetch')
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(stepfunc(recipe))
+                shell.run_until_complete(stepfunc())
             else:
                 stepfunc()
             bv = cookbook.recipe_built_version(recipe.name)

@@ -19,7 +19,6 @@
 import os
 import time
 import shutil
-import asyncio
 
 from cerbero.config import Platform
 from cerbero.utils import shell
@@ -225,7 +224,7 @@ async def async_get_hash(git_dir, commit, remotes=None):
     return output.rstrip()
 
 def get_hash(git_dir, commit, remotes=None):
-    return asyncio.get_event_loop().run_until_complete(async_get_hash(git_dir, commit, remote))
+    return shell.run_until_complete(async_get_hash(git_dir, commit, remote))
 
 def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''

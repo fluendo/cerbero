@@ -22,7 +22,6 @@ import pickle
 import time
 import imp
 import traceback
-import asyncio
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License, LibraryType
