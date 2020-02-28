@@ -68,7 +68,7 @@ class Recipe(recipe.Recipe):
         # `make install` also needs the exact same parameters as `make`
         self.make_install = make + ' install'
 
-    def configure(self):
+    async def configure(self):
         if self.config.platform == Platform.WINDOWS:
             # Convert c:/foo to /c/foo for this build system. It will add the
             # initial / by itself, /c:/foo does not work and and //c is not
