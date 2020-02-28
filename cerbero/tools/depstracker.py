@@ -28,10 +28,9 @@ class RecursiveLister():
         raise NotImplemented()
 
     async def async_find_deps(self, prefix, lib, state={}, ordered=[]):
-        if state.get(lib, 'clean') == 'processed':
-            return
-        if state.get(lib, 'clean') == 'in-progress':
-            return
+        lib_state = state.get(lib, 'clean')
+        if lib_state == 'processed' or lib_state == 'in-progress':
+            return ordered
         state[lib] = 'in-progress'
         lib_deps = await self.async_list_file_deps(prefix, lib)
         for libdep in lib_deps:
@@ -41,7 +40,7 @@ class RecursiveLister():
         return ordered
 
     async def async_list_deps(self, prefix, path):
-        return await self.async_find_deps(prefix, os.path.realpath(path), {}, [])
+        return await self.async_find_deps(prefix, os.path.realpath(path))
 
 
 class ObjdumpLister(RecursiveLister):
