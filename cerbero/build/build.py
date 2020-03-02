@@ -22,6 +22,7 @@ import copy
 import shutil
 import shlex
 import subprocess
+import asyncio
 from pathlib import Path
 
 from cerbero.enums import Platform, Architecture, Distro, LibraryType
@@ -151,27 +152,25 @@ def modify_environment(func):
         finally:
             self._restore_env()
 
-    call.__name__ = func.__name__
-    return call
-
-
-def async_modify_environment(func):
-    '''
-    Decorator to modify the build environment
-
-    When called recursively, it only modifies the environment once.
-    '''
-    async def call(*args):
+    async def async_call(*args):
         self = args[0]
         if self.use_system_libs and self.config.allow_system_libs:
             self._add_system_libs()
         self._modify_env()
-        res = await func(*args)
-        self._restore_env()
-        return res
+        try:
+            res = await func(*args)
+            return res
+        finally:
+            self._restore_env()
 
-    call.__name__ = func.__name__
-    return call
+    if asyncio.iscoroutinefunction(func):
+        ret = async_call
+    else:
+        ret = call
+
+    ret.__name__ = func.__name__
+    return ret
+
 
 class EnvVarOp:
     '''
@@ -383,7 +382,7 @@ class MakefilesBase (Build, ModifyEnvBase):
         Base configure method
 
         When called from a method in deriverd class, that method has to be
-        decorated with async_modify_environment decorator.
+        decorated with modify_environment decorator.
         '''
         if not os.path.exists(self.make_dir):
             os.makedirs(self.make_dir)
@@ -431,7 +430,7 @@ class Makefile (MakefilesBase):
     '''
     Build handler for Makefile project
     '''
-    @async_modify_environment
+    @modify_environment
     async def configure(self):
         await MakefilesBase.configure(self)
 
@@ -457,7 +456,7 @@ class Autotools (MakefilesBase):
     disable_introspection = False
     override_libtool = True
 
-    @async_modify_environment
+    @modify_environment
     async def configure(self):
         # Build with PIC for static linking
         self.configure_tpl += ' --with-pic '
@@ -550,7 +549,7 @@ class CMake (MakefilesBase):
         MakefilesBase.__init__(self)
         self.make_dir = os.path.join(self.build_dir, '_builddir')
 
-    @async_modify_environment
+    @modify_environment
     async def configure(self):
         cc = self.env.get('CC', 'gcc')
         cxx = self.env.get('CXX', 'g++')
@@ -820,7 +819,7 @@ class Meson (Build, ModifyEnvBase) :
 
         return native_file
 
-    @async_modify_environment
+    @modify_environment
     async def configure(self):
         # self.build_dir is different on each call to configure() when doing universal builds
         self.meson_dir = os.path.join(self.build_dir, self.meson_builddir)

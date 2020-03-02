@@ -778,6 +778,9 @@ def run_until_complete(tasks, max_concurrent=16):
     @type tasks: list
     @param max_concurrent: Maximum number of concurrent tasks running
     @type max_concurrent: int
+    @return: the result of the asynchronous task execution or a list of
+             all results in case of multiple tasks
+    @rtype: any type or list of any types in case of multiple tasks
     '''
     try:
         loop = asyncio.get_event_loop()
@@ -793,9 +796,11 @@ def run_until_complete(tasks, max_concurrent=16):
         asyncio.set_event_loop(loop)
 
     if isinstance(tasks, Iterable):
+        result = []
         slices = [tasks[i * max_concurrent:i * max_concurrent + max_concurrent]
                   for i in range(math.ceil(len(tasks) / max_concurrent))]
         for s in slices:
-            loop.run_until_complete(asyncio.gather(*s))
+            result += loop.run_until_complete(asyncio.gather(*s))
     else:
-        loop.run_until_complete(tasks)
+        result = loop.run_until_complete(tasks)
+    return result

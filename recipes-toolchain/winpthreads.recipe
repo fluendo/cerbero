@@ -50,7 +50,7 @@ class Recipe(recipe.Recipe):
         self.build_dir_64 = os.path.join(self.make_dir, 'winpthread_build_64')
 
     @modify_environment
-    def configure(self):
+    async def configure(self):
         # Since the toolchain is built with multilib support
         # this recipe builds winpthreads for both x86_64 and x86
         try:
