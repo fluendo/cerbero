@@ -50,26 +50,35 @@ class LinuxPackager(PackagerBase):
         # Create a tmpdir for packages
         tmpdir, packagedir, srcdir = self.create_tree(tmpdir)
 
-        # Only build each package once
-        if isinstance(self.package, App) and self.package.embed_deps:
-            pass
-        elif pack_deps:
-            paths += self.pack_deps(tmpdir)
+        try:
+            # Only build each package once
+            if isinstance(self.package, App) and self.package.embed_deps:
+                pass
+            elif pack_deps:
+                paths += self.pack_deps(tmpdir)
 
-        if isinstance(self.package, MetaPackage) and not self.package.build_meta_package:
-            return list(set(paths))
+            if isinstance(self.package, MetaPackage) and not self.package.build_meta_package:
+                if not keep_temp:
+                    m.action(_('Removing temporary dir %s') % tmpdir)
+                    shutil.rmtree(tmpdir)
+                return list(set(paths))
 
-        if not self.package.build_meta_package:
-            # Create a tarball with all the package's files
-            tarball_packager = DistTarball(self.config, self.package,
-                                           self.store)
-            tarball = tarball_packager.pack(tmpdir, devel, True,
-                                            split=False, package_prefix=self.full_package_name)[0]
-            tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
-        else:
-            # Metapackages only contains Requires dependencies with
-            # other packages
-            tarname = None
+            if not self.package.build_meta_package:
+                # Create a tarball with all the package's files
+                tarball_packager = DistTarball(self.config, self.package,
+                                               self.store)
+                tarball = tarball_packager.pack(tmpdir, devel, True,
+                                                split=False, package_prefix=self.full_package_name)[0]
+                tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
+            else:
+                # Metapackages only contains Requires dependencies with
+                # other packages
+                tarname = None
+        except Exception:
+            if not keep_temp:
+                m.action(_('Removing temporary dir %s') % tmpdir)
+                shutil.rmtree(tmpdir)
+            raise
 
         m.action(_('Creating package for %s') % self.package.name)
 
