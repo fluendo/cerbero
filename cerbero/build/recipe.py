@@ -136,6 +136,7 @@ class BuildSteps(object):
     GEN_LIBFILES = (N_('Gen Library File'), 'gen_library_file')
     MERGE = (N_('Merge universal binaries'), 'merge')
     RELOCATE_OSX_LIBRARIES = (N_('Relocate OSX libraries'), 'relocate_osx_libraries')
+    DELETE_RPATH = (N_('Delate rpath from binaries'), 'delete_rpath')
 
     def __new__(cls):
         return [BuildSteps.FETCH, BuildSteps.EXTRACT,
@@ -243,6 +244,9 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             self._steps.append(BuildSteps.GEN_LIBFILES)
         if self.config.target_platform == Platform.DARWIN:
             self._steps.append(BuildSteps.RELOCATE_OSX_LIBRARIES)
+        if ((self.config.target_platform == Platform.LINUX) and ('no_rpath' in config.extra_properties and
+                                                                 config.extra_properties['no_rpath'])):
+            self._steps.append(BuildSteps.DELETE_RPATH)
         FilesProvider.__init__(self, config)
         try:
             self.stype.__init__(self)
@@ -457,6 +461,20 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         for f in set([get_real_path(x) for x in self.files_list() \
                 if file_is_relocatable(x)]):
             relocator.relocate_file(f)
+
+    def delete_rpath(self):
+        def is_elf(fp):
+            try:
+                with open(fp, 'rb') as f:
+                    if (f.read(4) == b'\x7fELF'):
+                        return True
+            except Exception:
+                pass
+            return False
+
+        for fp in [os.path.join(self.config.prefix, x) for x in self.files_list()]:
+            if is_elf(fp):
+                shell.call('chrpath --delete %s' % fp)
 
     def _install_srcdir_license(self, lfiles, install_dir):
         '''
