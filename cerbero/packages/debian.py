@@ -80,7 +80,7 @@ CONTROL_DEVEL_PACKAGE_TPL = \
 '''Package: %(p_prefix)s%(name)s-dev
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends} %(requires)s
+Depends: ${misc:Depends} %(requires)s
 Recommends: %(recommends)s
 Suggests: %(suggests)s
 Description: %(shortdesc)s

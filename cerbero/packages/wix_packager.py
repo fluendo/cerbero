@@ -66,84 +66,86 @@ class MergeModulePackager(PackagerBase):
         else:
             mergemodule = MergeModule(self.config, files_list, self.package)
         tmpdir = None
-        # For packages that requires stripping object files, we need
-        # to copy all the files to a new tree and strip them there:
-        if self.package.strip or self.package.wix_sign_binaries:
-            tmpdir = tempfile.mkdtemp()
-            for f in files_list:
-                src = os.path.join(self.config.prefix, f)
-                dst = os.path.join(tmpdir, f)
-                if not os.path.exists(os.path.dirname(dst)):
-                    os.makedirs(os.path.dirname(dst))
-                shutil.copy(src, dst)
+        try:
+            # For packages that requires stripping object files, we need
+            # to copy all the files to a new tree and strip them there:
+            if self.package.strip or self.package.wix_sign_binaries:
+                tmpdir = tempfile.mkdtemp()
+                for f in files_list:
+                    src = os.path.join(self.config.prefix, f)
+                    dst = os.path.join(tmpdir, f)
+                    if not os.path.exists(os.path.dirname(dst)):
+                        os.makedirs(os.path.dirname(dst))
+                    shutil.copy(src, dst)
 
-            if self.package.strip:
-                s = strip.Strip(self.config, self.package.strip_excludes)
-                for p in self.package.strip_dirs:
-                    s.strip_dir(os.path.join(tmpdir, p))
+                if self.package.strip:
+                    s = strip.Strip(self.config, self.package.strip_excludes)
+                    for p in self.package.strip_dirs:
+                        s.strip_dir(os.path.join(tmpdir, p))
 
-            if self.package.wix_sign_binaries:
-                m.action("Signing binaries for %s" % self.package)
-                files_to_sign = [f for f in files_list if os.path.splitext(f)[1] in ['.exe', '.dll']]
-                if self.package.wix_sign_excludes:
-                    files_to_sign = [f for f in files_to_sign if all(
-                        excluded not in f for excluded in self.package.wix_sign_excludes)]
-                self.package.sign_binaries([os.path.join(tmpdir, f) for f in files_to_sign])
+                if self.package.wix_sign_binaries:
+                    m.action("Signing binaries for %s" % self.package)
+                    files_to_sign = [f for f in files_list if os.path.splitext(f)[1] in ['.exe', '.dll']]
+                    if self.package.wix_sign_excludes:
+                        files_to_sign = [f for f in files_to_sign if all(
+                            excluded not in f for excluded in self.package.wix_sign_excludes)]
+                    self.package.sign_binaries([os.path.join(tmpdir, f) for f in files_to_sign])
 
-        package_name = self._package_name()
-        if self.package.wix_use_fragment:
-            mergemodule = Fragment(self.config, files_list, self.package)
-            sources = [os.path.join(self.output_dir, "%s-fragment.wxs" % package_name)]
-            wixobjs = [os.path.join(self.output_dir, "%s-fragment.wixobj" % package_name)]
-        else:
-            mergemodule = MergeModule(self.config, files_list, self.package)
-            sources = [os.path.join(self.output_dir, "%s.wxs" % package_name)]
-            wixobjs = [os.path.join(self.output_dir, "%s.wixobj" % package_name)]
+            package_name = self._package_name()
+            if self.package.wix_use_fragment:
+                mergemodule = Fragment(self.config, files_list, self.package)
+                sources = [os.path.join(self.output_dir, "%s-fragment.wxs" % package_name)]
+                wixobjs = [os.path.join(self.output_dir, "%s-fragment.wixobj" % package_name)]
+            else:
+                mergemodule = MergeModule(self.config, files_list, self.package)
+                sources = [os.path.join(self.output_dir, "%s.wxs" % package_name)]
+                wixobjs = [os.path.join(self.output_dir, "%s.wixobj" % package_name)]
 
-        if tmpdir:
-            mergemodule.prefix = tmpdir
-        mergemodule.write(sources[0])
+            if tmpdir:
+                mergemodule.prefix = tmpdir
+            mergemodule.write(sources[0])
 
-        for x in ['utils']:
-            wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
-            sources.append(os.path.join(os.path.abspath(self.config.data_dir),
-                                        'wix/%s.wxs' % x))
+            for x in ['utils']:
+                wixobjs.append(os.path.join(self.output_dir, "%s.wixobj" % x))
+                sources.append(os.path.join(os.path.abspath(self.config.data_dir),
+                                            'wix/%s.wxs' % x))
 
-        if self._with_wine:
-            final_wixobjs = [to_winepath(x) for x in wixobjs]
-            final_sources = [to_winepath(x) for x in sources]
-        else:
-            final_wixobjs = wixobjs
-            final_sources = sources
+            if self._with_wine:
+                final_wixobjs = [to_winepath(x) for x in wixobjs]
+                final_sources = [to_winepath(x) for x in sources]
+            else:
+                final_wixobjs = wixobjs
+                final_sources = sources
 
-        self.package.pre_build(tmpdir)
-        m.action("Building Wix package for %s" % self.package)
-        candle = Candle(self.wix_prefix, self._with_wine)
-        candle.compile(' '.join(final_sources), self.output_dir)
+            self.package.pre_build(tmpdir)
+            m.action("Building Wix package for %s" % self.package)
+            candle = Candle(self.wix_prefix, self._with_wine)
+            candle.compile(' '.join(final_sources), self.output_dir)
 
-        if self.package.wix_use_fragment:
-            path = wixobjs[0]
-        else:
-            light = Light(self.wix_prefix, self._with_wine)
-            path = light.compile(final_wixobjs, package_name, self.output_dir, True)
+            if self.package.wix_use_fragment:
+                path = wixobjs[0]
+            else:
+                light = Light(self.wix_prefix, self._with_wine)
+                path = light.compile(final_wixobjs, package_name, self.output_dir, True)
 
-        # Clean up
-        if not self.keep_temp:
-            os.remove(sources[0])
-            if not self.package.wix_use_fragment:
-                for f in wixobjs:
-                    os.remove(f)
-                    try:
-                        os.remove(f.replace('.wixobj', '.wixpdb'))
-                    except Exception:
-                        pass
+            # Clean up
+            if not self.keep_temp:
+                os.remove(sources[0])
+                if not self.package.wix_use_fragment:
+                    for f in wixobjs:
+                        os.remove(f)
+                        try:
+                            os.remove(f.replace('.wixobj', '.wixpdb'))
+                        except Exception:
+                            pass
 
-        if keep_strip_temp_dir:
-            return (path, tmpdir)
-        elif tmpdir:
-            shutil.rmtree(tmpdir)
-
-        return path
+            if keep_strip_temp_dir:
+                return (path, tmpdir)
+            else:
+                return path
+        finally:
+            if tmpdir and not keep_strip_temp_dir:
+                shutil.rmtree(tmpdir)
 
     def _package_name(self):
         if self.config.variants.visualstudio:
