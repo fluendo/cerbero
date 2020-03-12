@@ -136,7 +136,7 @@ class BuildSteps(object):
     GEN_LIBFILES = (N_('Gen Library File'), 'gen_library_file')
     MERGE = (N_('Merge universal binaries'), 'merge')
     RELOCATE_OSX_LIBRARIES = (N_('Relocate OSX libraries'), 'relocate_osx_libraries')
-    DELETE_RPATH = (N_('Delate rpath from binaries'), 'delete_rpath')
+    DELETE_RPATH = (N_('Delete rpath from binaries'), 'delete_rpath')
 
     def __new__(cls):
         return [BuildSteps.FETCH, BuildSteps.EXTRACT,
