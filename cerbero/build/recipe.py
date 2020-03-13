@@ -23,8 +23,9 @@ import tempfile
 import time
 import inspect
 import asyncio
-from functools import reduce
+from functools import reduce, lru_cache
 from pathlib import Path
+import hashlib
 
 from cerbero.enums import LicenseDescription, LibraryType
 from cerbero.build import build, source
@@ -516,6 +517,31 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             licenses_files.append(lfiles)
         return licenses_files
 
+    @lru_cache(maxsize=None)
+    def _get_single_class_checksum(self, clazz):
+        '''
+        Return the SHA256 hash from the source lines of a class.
+        This method uses an LRU cache to avoid calculating the same
+        again and again
+        '''
+        sha256 = hashlib.sha256()
+        lines = inspect.getsourcelines(clazz)[0]
+        for line in lines:
+            sha256.update(line.encode('utf-8'))
+        return sha256.digest()
+
+    def _get_parents_checksum(self):
+        '''
+        Rather than calculating the SHA256 from the source lines of each
+        class that a class inherits from, generate the SHA256 from the hashes of
+        each of those classes
+        '''
+        sha256 = hashlib.sha256()
+        classes = [c for c in inspect.getmro(self.__class__)[1:] if c.__module__ != 'builtins']
+        for c in classes:
+            sha256.update(self._get_single_class_checksum(c))
+        return sha256
+
     def install_licenses(self):
         '''
         NOTE: This list of licenses is only indicative and is not guaranteed to
@@ -689,7 +715,10 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         @return: a checksum of the recipe file and its dependencies
         @rtype: str
         '''
-        return shell.files_checksum(self._get_files_dependencies())
+        sha256 = self._get_parents_checksum()
+        for f in self._get_files_dependencies():
+            sha256.update(open(f, 'rb').read())
+        return sha256.hexdigest()
 
     def get_mtime(self):
         '''

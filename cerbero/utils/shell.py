@@ -631,33 +631,11 @@ def touch(path, create_if_not_exists=False, offset=0):
     os.utime(path, (t, t))
 
 
-def file_md5(path):
-    '''
-    Get the file md5 hash
-    '''
-    return hashlib.md5(open(path, 'rb').read()).digest()
-
-
 def file_sha256(path):
     '''
     Get the file SHA256 hash
     '''
     return hashlib.sha256(open(path, 'rb').read()).digest()
-
-
-def files_checksum(paths):
-    '''
-    Get the md5 checksum of the files
-
-    @paths: list of paths
-    @type: list
-    @return: the md5 checksum
-    @rtype: str
-    '''
-    m = hashlib.md5()
-    for f in paths:
-        m.update(open(f, 'rb').read())
-    return m.hexdigest()
 
 
 def enter_build_environment(platform, arch, sourcedir=None):
