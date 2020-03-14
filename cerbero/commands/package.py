@@ -105,6 +105,10 @@ class Package(Command):
         if p is None:
             raise PackageNotFoundError(args.package[0])
         p.pre_package()
+
+        paths = []
+        paths.append(self._write_versions_file(config, p, args.output_dir))
+
         if args.tarball:
             if config.target_platform == Platform.ANDROID and \
                config.target_arch == Architecture.UNIVERSAL:
@@ -113,6 +117,7 @@ class Package(Command):
                 pkg = DistTarball(config, p, self.store)
         else:
             pkg = Packager(config, p, self.store)
+
         m.action(_("Creating package for %s") % p.name)
         output_dir = os.path.abspath(args.output_dir)
         if args.no_split:
@@ -129,8 +134,28 @@ class Package(Command):
         if None in paths:
             paths.remove(None)
         paths = p.post_package(paths, output_dir) or paths
+
         m.action(_("Package successfully created in %s") %
                  ' '.join([os.path.abspath(x) for x in paths]))
+
+    def _write_versions_file(self, config, pkg, output_dir):
+        m.action(_("Creating versions file for %s") % pkg.name)
+        v_path = os.path.join(output_dir,
+            "{}-{}-{}-{}.versions".format(pkg.name, config.target_platform, pkg.version, config.target_arch))
+        all_recipes = []
+        for recipe_name in pkg.recipes_dependencies():
+            recipe = self.store.cookbook.get_recipe(recipe_name)
+            all_recipes.append(recipe)
+            all_recipes += self.store.cookbook.list_recipe_deps(recipe.name)
+        all_recipes = list(set(all_recipes))
+        all_recipes.sort(key=lambda x: x.name)
+        max_name_len = len(max(all_recipes, key=lambda x: len(x.name)).name)
+
+        with open(v_path, 'w') as v_file:
+            for recipe in all_recipes:
+                v_file.write("{}{}{}\n".format(recipe.name,
+                    " " * (max_name_len - len(recipe.name) + 4), recipe.built_version()))
+        return v_path
 
     def _build_deps(self, config, package, has_devel, offline, dry_run, use_binaries=False,
                     upload_binaries=False, build_missing=False):
