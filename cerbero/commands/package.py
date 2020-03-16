@@ -117,7 +117,7 @@ class Package(Command):
         output_dir = os.path.abspath(args.output_dir)
         if args.no_split:
             args.no_devel = False
-        if args.tarball:
+        if isinstance(pkg, DistTarball):
             paths = pkg.pack(output_dir, args.no_devel,
                              args.force, args.keep_temp,
                              not args.no_split,
