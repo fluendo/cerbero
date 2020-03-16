@@ -197,13 +197,21 @@ class CookBook (object):
         @type files: list
         '''
         status = self._recipe_status(recipe_name)
-        installed_files = list(set(files + status.installed_files))
-        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), installed_files))
-        removed_files = list(set(installed_files) - set(existing_files))
-        if removed_files:
+        installed_files = set(files)
+        previous_files = set(list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), status.installed_files)))
+        existing_files = set(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), installed_files))
+        non_existing_files = list(installed_files - existing_files)
+        if non_existing_files:
             m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
-                      'Removing them from recipe\'s cache' % (recipe_name, removed_files))
-        status.installed_files = existing_files
+                      'Removing them from recipe\'s cache' % (recipe_name, non_existing_files))
+        remove_files = list(previous_files - existing_files)
+        remove_files = [os.path.join(self._config.prefix, f) for f in remove_files]
+        if remove_files:
+            m.message('Removing old files that existed in previous installation but don\'t exist '
+                      'anymore:\n{}'.format(remove_files))
+            for f in remove_files:
+                os.remove(f)
+        status.installed_files = list(existing_files)
         self._update_status(recipe_name, status)
         return status.installed_files
 
@@ -265,7 +273,11 @@ class CookBook (object):
         @type recipe_name: str
         '''
         if recipe_name in self.status:
+            # We need to save the previous installed_files to remove the
+            # old files that may not be present in a new installation
+            installed_files = self.status[recipe_name].installed_files
             del self.status[recipe_name]
+            self._recipe_status(recipe_name).installed_files = installed_files
             self.save()
 
     def recipe_needs_build(self, recipe_name):
