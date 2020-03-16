@@ -68,7 +68,8 @@ class LinuxPackager(PackagerBase):
                 tarball_packager = DistTarball(self.config, self.package,
                                                self.store)
                 tarball = tarball_packager.pack(tmpdir, devel, True,
-                                                split=False, package_prefix=self.full_package_name)[0]
+                                                split=False, package_prefix=self.full_package_name,
+                                                strip_binaries=False)[0]
                 tarname = self.setup_source(tarball, tmpdir, packagedir, srcdir)
             else:
                 # Metapackages only contains Requires dependencies with

@@ -73,7 +73,7 @@ class DistTarball(PackagerBase):
         return dist_files, devel_files
 
     def pack(self, output_dir, devel=True, force=False, keep_temp=False, split=True,
-             package_prefix='', strip_binaries=False, force_empty=False,
+             package_prefix='', strip_binaries=None, force_empty=False,
              relocatable=False, lib64_link=False):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
         dist_files = []
@@ -83,6 +83,7 @@ class DistTarball(PackagerBase):
         except EmptyPackageError:
             pass
         filenames = []
+        strip_binaries = strip_binaries if strip_binaries is not None else self.package.strip
         create_tarball_func = self._create_tarball if not strip_binaries else self._create_tarball_stripped
         if dist_files or force_empty:
             runtime = create_tarball_func(output_dir, PackageType.RUNTIME,
