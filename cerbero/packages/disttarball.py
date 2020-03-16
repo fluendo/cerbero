@@ -169,8 +169,8 @@ class DistTarball(PackagerBase):
 
         for f in files:
             filepath = os.path.join(self.prefix, f)
-            stat = os.stat(filepath)
             if relocatable and not os.path.islink(filepath):
+                stat = os.stat(filepath)
                 if is_text_file(filepath) and stat.st_ino not in inodes_copied:
                     if stat.st_nlink > 1:
                         inodes_copied.append(stat.st_ino)
