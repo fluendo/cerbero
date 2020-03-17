@@ -47,9 +47,6 @@ class RecipeStatus (object):
     @ivar needs_build: whether the recipe needs to be build or not
                        True when all steps where successful
     @type needs_build: bool
-    @ivar mtime: modification time of the recipe file, used to reset the
-                 state when the recipe was modified
-    @type mtime: float
     @ivar filepath: recipe's file path
     @type filepath: str
     @ivar built_version: string with the last version built
@@ -61,23 +58,18 @@ class RecipeStatus (object):
     '''
 
     def __init__(self, filepath, steps=[], needs_build=True,
-                 mtime=time.time(), built_version='', file_hash='',
+                 built_version='', file_hash='',
                  installed_files=[]):
         self.steps = steps
         self.needs_build = needs_build
-        self.mtime = mtime
         self.filepath = filepath
         self.built_version = built_version
         self.file_hash = file_hash
         self.installed_files = installed_files
 
-    def touch(self):
-        ''' Touches the recipe updating its modification time '''
-        self.mtime = time.time()
-
     def __repr__(self):
-        return "steps: %r, needs_build: %r, mtime: %r, filepath: %r, built_version: %r, file_hash: %r\ninstalled_files: %r" % \
-            (self.steps, self.needs_build, self.mtime, self.filepath, self.built_version, self.file_hash,
+        return "steps: %r, needs_build: %r, filepath: %r, built_version: %r, file_hash: %r\ninstalled_files: %r" % \
+            (self.steps, self.needs_build, self.filepath, self.built_version, self.file_hash,
             self.installed_files)
 
 
@@ -99,7 +91,6 @@ class CookBook (object):
         self.set_config(config)
         self.recipes = {}  # recipe_name -> recipe
         self._invalid_recipes = {} # recipe -> error
-        self._mtimes = {}
 
         if not load:
             return
@@ -335,7 +326,6 @@ class CookBook (object):
             m.warning(_("Could not cache the CookBook: %s") % ex)
 
     def _update_status(self, recipe_name, status):
-        status.touch()
         self.status[recipe_name] = status
         self.save()
 
@@ -390,23 +380,35 @@ class CookBook (object):
                     file_hash=recipe.get_checksum(), installed_files=[])
         return self.status[recipe_name]
 
-    def _reset_recipe_if_needed(self, recipe, st):
+    def _reset_recipe_status(self, recipe, change_name, previous, now):
+        m.message('Resetting {}\'s status because its {} changed from {} to {}'.format(
+            recipe.name, change_name, previous, now))
+        self.reset_recipe_status(recipe.name)
+        if recipe.library_type == LibraryType.STATIC:
+            rdeps = self.list_recipe_reverse_deps(recipe.name)
+            rdeps_names = ' '.join([r.name for r in rdeps])
+            m.message('Resetting also the status of all its reverse dependencies '
+                'because it\'s a static library: {}'.format(rdeps_names))
+            for r in rdeps:
+                self.reset_recipe_status(r.name)
+
+    def _reset_recipe_if_needed(self, recipe):
+        # Check that the recipe still exists in cache, because
+        # a prior recipe might have reset its status
+        if not recipe.name in self.status:
+            return
+        st = self.status[recipe.name]
         # Need to check the version too, because the version can be
         # inherited from a different file, f.ex. recipes/custom.py
-        if recipe.built_version() != st.built_version:
-            self.reset_recipe_status(recipe.name)
+        bv = recipe.built_version()
+        if bv != st.built_version:
+            self._reset_recipe_status(recipe, 'built_version', st, bv)
         else:
-            rmtime = recipe.get_mtime()
-            if rmtime > st.mtime:
-                # The mtime is different, check the file hash now
-                # Use getattr as file_hash we added later
-                saved_hash = getattr(st, 'file_hash', 0)
-                current_hash = recipe.get_checksum()
-                if saved_hash == current_hash:
-                    # Update the status with the mtime
-                    st.touch()
-                else:
-                    self.reset_recipe_status(recipe.name)
+            # Use getattr as file_hash we added later
+            saved_hash = getattr(st, 'file_hash', '')
+            current_hash = recipe.get_checksum()
+            if saved_hash != current_hash:
+                self._reset_recipe_status(recipe, 'file_hash', saved_hash, current_hash)
 
     def _load_recipes(self):
         self.recipes = {}
@@ -434,8 +436,7 @@ class CookBook (object):
             # allow safe relocation of the recipes.
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__
-                st.mtime = 0;
-            recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe, st)
+            recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
 
         shell.run_until_complete(async_tasks)
 
