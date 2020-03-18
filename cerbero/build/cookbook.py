@@ -414,7 +414,7 @@ class CookBook (object):
         # inherited from a different file, f.ex. recipes/custom.py
         bv = recipe.built_version()
         if bv != st.built_version:
-            self._reset_recipe_status(recipe, 'built_version', st, bv)
+            self._reset_recipe_status(recipe, 'built_version', st.built_version, bv)
         else:
             # Use getattr as file_hash we added later
             saved_hash = getattr(st, 'file_hash', '')
