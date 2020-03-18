@@ -116,6 +116,12 @@ class Build (object):
         '''
         raise NotImplemented("'install' must be implemented by subclasses")
 
+    def uninstall(self):
+        '''
+        Uninstalls the module
+        '''
+        raise NotImplemented("'uninstall' must be implemented by subclasses")
+
     def check(self):
         '''
         Runs any checks on the module
@@ -132,6 +138,9 @@ class CustomBuild(Build):
         pass
 
     def install(self):
+        pass
+
+    def uninstall(self):
         pass
 
 
@@ -335,6 +344,7 @@ class MakefilesBase (Build, ModifyEnvBase):
     configure_options = ''
     make = 'make V=1'
     make_install = 'make install'
+    make_uninstall = 'make uninstall'
     make_check = None
     make_clean = 'make clean'
     allow_parallel_build = True
@@ -381,7 +391,7 @@ class MakefilesBase (Build, ModifyEnvBase):
         '''
         Base configure method
 
-        When called from a method in deriverd class, that method has to be
+        When called from a method in derived class, that method has to be
         decorated with modify_environment decorator.
         '''
         if not os.path.exists(self.make_dir):
@@ -415,6 +425,10 @@ class MakefilesBase (Build, ModifyEnvBase):
     @modify_environment
     def install(self):
         shell.call(self.make_install, self.make_dir, logfile=self.logfile, env=self.env)
+
+    @modify_environment
+    def uninstall(self):
+        shell.call(self.make_uninstall, self.make_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def clean(self):
@@ -623,6 +637,7 @@ class Meson (Build, ModifyEnvBase) :
 
     make = None
     make_install = None
+    make_uninstall = None
     make_check = None
     make_clean = None
     meson_sh = None
@@ -635,6 +650,7 @@ class Meson (Build, ModifyEnvBase) :
 
     def __init__(self):
         self.meson_options = self.meson_options or {}
+        self.meson_dir = os.path.join(self.build_dir, self.meson_builddir)
 
         Build.__init__(self)
         ModifyEnvBase.__init__(self)
@@ -656,6 +672,8 @@ class Meson (Build, ModifyEnvBase) :
             self.make = 'ninja -v -d keeprsp'
         if not self.make_install:
             self.make_install = self.make + ' install'
+        if not self.make_uninstall:
+            self.make_uninstall = self.make + ' uninstall'
         if not self.make_check:
             self.make_check = self.make + ' test'
         if not self.make_clean:
@@ -892,6 +910,10 @@ class Meson (Build, ModifyEnvBase) :
     @modify_environment
     def install(self):
         shell.call(self.make_install, self.meson_dir, logfile=self.logfile, env=self.env)
+
+    @modify_environment
+    def uninstall(self):
+        shell.call(self.make_uninstall, self.meson_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def clean(self):
