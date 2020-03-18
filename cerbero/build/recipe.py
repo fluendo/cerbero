@@ -555,7 +555,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         each of those classes
         '''
         sha256 = hashlib.sha256()
-        classes = [c for c in inspect.getmro(self.__class__)[1:] if c.__module__ != 'builtins']
+        classes = [c for c in inspect.getmro(self.__class__) if c.__module__ not in [None, 'builtins']]
         for c in classes:
             sha256.update(self._get_single_class_checksum(c))
         return sha256
