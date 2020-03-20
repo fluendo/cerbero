@@ -447,8 +447,8 @@ class Config (object):
         self.set_property('extra_properties', {})
         self.set_property('extra_mirrors', [])
         self.set_property('extra_bootstrap_packages', {})
-        self.set_property('binaries_local', os.path.join(self.home_dir, "binaries",
-        "%s_%s" % (self.target_platform, self.target_arch)))
+        self.set_property('binaries_local', None)
+        self.set_property('binaries_remote', None)
         # Increase open-files limits
         set_nofile_ulimit()
 
@@ -647,6 +647,8 @@ class Config (object):
         self.set_property('build_tools_sources',
                 os.path.join(self.home_dir, 'sources', 'build-tools'))
         self.set_property('build_tools_cache', 'build-tools.cache')
+        self.set_property('binaries_local', os.path.join(self.home_dir, "binaries",
+        "%s_%s" % (self.target_platform, self.target_arch)))
 
     def _find_data_dir(self):
         if self.uninstalled:
