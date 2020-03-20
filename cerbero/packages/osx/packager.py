@@ -160,13 +160,18 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         files = self.files_list(package_type)
         output_file = os.path.join(self.output_dir, '%s-%s-%s.pkg' %
                                    (self.package.name, self.version, self.config.target_arch))
-        tmp, root, resources = self._create_bundle(files, package_type)
-        packagebuild = PackageBuild()
-        packagebuild.create_package(root, self.package.identifier(),
-                                    self.package.version, self.package.shortdesc, output_file,
-                                    self._get_install_dir(), scripts_path=resources)
-        shutil.rmtree(tmp)
-        return output_file
+        tmp = None
+        try:
+            tmp, root, resources = self._create_bundle(files, package_type)
+            self.package.pre_build(root)
+            packagebuild = PackageBuild()
+            packagebuild.create_package(root, self.package.identifier(),
+                                        self.package.version, self.package.shortdesc, output_file,
+                                        self._get_install_dir(), scripts_path=resources)
+            return output_file
+        finally:
+            if tmp is not None:
+                shutil.rmtree(tmp)
 
     def _create_bundle(self, files, package_type):
         '''
@@ -174,32 +179,35 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         directory to create the bundle
         '''
         tmp = tempfile.mkdtemp()
-        root = os.path.join(tmp, 'Root')
-        resources = os.path.join(tmp, 'Resources')
-        for f in files:
-            in_path = os.path.join(self.config.prefix, f)
-            if not os.path.exists(in_path):
-                m.warning("File %s is missing and won't be added to the "
-                          "package" % in_path)
-                continue
-            out_path = os.path.join(root, f)
-            out_dir = os.path.split(out_path)[0]
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
-            shutil.copy(in_path, out_path)
-        if package_type == PackageType.DEVEL:
-            self._create_framework_headers(self.config.prefix, self.include_dirs, root)
+        try:
+            root = os.path.join(tmp, 'Root')
+            resources = os.path.join(tmp, 'Resources')
+            for f in files:
+                in_path = os.path.join(self.config.prefix, f)
+                if not os.path.exists(in_path):
+                    m.warning("File %s is missing and won't be added to the "
+                            "package" % in_path)
+                    continue
+                out_path = os.path.join(root, f)
+                out_dir = os.path.split(out_path)[0]
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+                shutil.copy(in_path, out_path, follow_symlinks=False)
+            if package_type == PackageType.DEVEL:
+                self._create_framework_headers(self.config.prefix, self.include_dirs, root)
 
-        # Copy scripts to the Resources directory
-        os.makedirs(resources)
-        if os.path.exists(self.package.resources_preinstall):
-            shutil.copy(os.path.join(self.package.resources_preinstall),
-                        os.path.join(resources, 'preinstall'))
-        if os.path.exists(self.package.resources_postinstall):
-            shutil.copy(os.path.join(self.package.resources_postinstall),
-                        os.path.join(resources, 'postinstall'))
-        return tmp, root, resources
-
+            # Copy scripts to the Resources directory
+            os.makedirs(resources)
+            if os.path.exists(self.package.resources_preinstall):
+                shutil.copy(os.path.join(self.package.resources_preinstall),
+                            os.path.join(resources, 'preinstall'))
+            if os.path.exists(self.package.resources_postinstall):
+                shutil.copy(os.path.join(self.package.resources_postinstall),
+                            os.path.join(resources, 'postinstall'))
+            return tmp, root, resources
+        except Exception:
+            shutil.rmtree(tmp)
+            raise
 
 
 class ProductPackage(PackagerBase):

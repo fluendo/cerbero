@@ -183,8 +183,9 @@ class PackageBase(object):
         Subclasses can override it to customize package files right before building the
         package itself.
 
-        This feature is currently only available with DebianPackager (.deb for Linux),
-        RPMPackager (.rpm for Linux) and MergeModulePackager (.msm/.msi (Wix) for Windows).
+        This feature is currently available with DebianPackager (.deb for Linux),
+        RPMPackager (.rpm for Linux), OSXPackager (.pkg for Mac) and MergeModulePackager
+        (.msm/.msi (Wix) for Windows).
 
         @param src_dir: path of the package sources directory, this is a temporary directory
                         containing all package files which will be included in the final package.
