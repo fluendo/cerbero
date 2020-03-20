@@ -158,7 +158,7 @@ class Config (object):
         c._raw_environ = os.environ.copy()
         return c
 
-    def load(self, filename=None, variants_override=None):
+    def load(self, filename=None, variants_override=None, home_dir=None):
         if variants_override is None:
             variants_override = []
 
@@ -175,6 +175,11 @@ class Config (object):
         # Next, if a config file is provided use it to override the settings
         # from the main configuration file
         self._load_cmd_config(filename)
+
+        # After loading the configuration, we set the home_dir if passed
+        # as a parameter to override the configuration value
+        if home_dir:
+            self.home_dir = home_dir
 
         # Create a copy of the config for each architecture in case we are
         # building Universal binaries

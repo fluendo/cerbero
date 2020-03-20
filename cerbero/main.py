@@ -102,6 +102,8 @@ class Main(object):
                 help=_('List available variants'))
         self.parser.add_argument('-v', '--variants', action=VariantAction, default=None,
                 help=_('Variants to be used for the build'))
+        self.parser.add_argument('--home', action='store', type=str, default=None,
+                help=_('Home dir to use. Overrides the one in the configuration'))
         self.parser.add_argument('-c', '--config', action='append', type=str, default=None,
                 help=_('Configuration file used for the build'))
         self.parser.add_argument('-m', '--manifest', action='store', type=str, default=None,
@@ -152,7 +154,7 @@ class Main(object):
             self.config = config.Config()
             if self.args.command == 'shell':
                 self.config.for_shell = True
-            self.config.load(self.args.config, self.args.variants)
+            self.config.load(self.args.config, self.args.variants, home_dir=self.args.home)
             if self.args.manifest:
                 self.config.manifest = self.args.manifest
         except ConfigurationError as exc:
