@@ -82,6 +82,7 @@ class Uninstall(Command):
             if os.path.isdir(build_dir):
                 shutil.rmtree(build_dir)
 
+        shell.remove_empty_dirs(config.install_dir)
         m.message('Recipes uninstalled: {}'.format(' '.join(recipe_names)))
 
 
