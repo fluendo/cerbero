@@ -70,7 +70,7 @@ class Uninstall(Command):
             # or in case it misses some of the installed files, remove
             # them manually
             installed_files = cookbook.recipe_installed_files(recipe_name)
-            for f in [os.path.join(config.prefix, f) for f in installed_files]:
+            for f in [os.path.join(config.install_dir, f) for f in installed_files]:
                 # os.path.exists returns False for broken symbolic links
                 if os.path.exists(f) or os.path.islink(f):
                     os.remove(f)
