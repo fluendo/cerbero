@@ -790,4 +790,4 @@ def remove_empty_dirs(path):
     @param path: the path to remove empty dirs from
     @type path: str
     '''
-    new_call('find {} -type d -delete'.format(path))
+    new_call('find {} -type d -empty -delete'.format(path))

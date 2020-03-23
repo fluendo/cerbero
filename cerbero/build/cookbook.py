@@ -196,10 +196,9 @@ class CookBook (object):
         @param files: installed files
         @type files: list
         '''
-        # os.path.exists returns False for broken symbolic links
         def _file_exists(install_dir, file):
             f = os.path.join(install_dir, file)
-            return os.path.exists(f)
+            return os.path.isfile(f)
 
         status = self._recipe_status(recipe_name)
         installed_files = set(files)
