@@ -31,7 +31,10 @@ from distutils.version import StrictVersion
 import gettext
 import platform as pplatform
 import re
+import inspect
+import hashlib
 from pathlib import Path
+from functools import lru_cache
 
 from cerbero.enums import Platform, Architecture, Distro, DistroVersion
 from cerbero.errors import FatalError
@@ -577,3 +580,16 @@ def is_text_file(filename):
     global TEXTCHARS
     with open(filename, 'rb') as f:
         return len(f.read(1024).translate(None, TEXTCHARS)) <= 10
+
+@lru_cache(maxsize=None)
+def get_class_checksum(clazz):
+    '''
+    Return the SHA256 hash from the source lines of a class.
+    This method uses an LRU cache to avoid calculating the same
+    again and again
+    '''
+    sha256 = hashlib.sha256()
+    lines = inspect.getsourcelines(clazz)[0]
+    for line in lines:
+        sha256.update(line.encode('utf-8'))
+    return sha256.digest()
