@@ -144,6 +144,8 @@ class FtpBinaryRemote (BinaryRemote):
                 if upload_needed:
                     shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
                     shell.ftp_upload(local_sha256_filename, remote_filename + '.sha256', ftp_connection=ftp)
+                else:
+                    m.action('No need to upload since local and remote SHA256 are the same')
         if ftp:
             ftp.quit()
 
@@ -235,7 +237,7 @@ class Fridge (object):
                     tarclass = RelocatableTar
                 tar = tarclass.open(os.path.join(self.binaries_local,
                                                  filename), 'r:bz2')
-                tar.extract_and_relocate(self.config.prefix)
+                tar.extract_and_relocate(self.config.install_dir)
                 tar.close()
 
     def generate_binary(self, recipe):
@@ -294,14 +296,14 @@ class Fridge (object):
             m.build_step(count, total, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
-                m.action(_("Step done"))
+                m.action("Step done")
                 continue
 
             # check if the recipe was installed from a frozen one,
             # in which case, we won't generate it again unless force is used
             if step in [self.GEN_BINARY[1], self.UPLOAD_BINARY[1]]:
                 if self.cookbook.step_done(recipe.name, self.EXTRACT_BINARY[1]) and not self.force:
-                    m.action(_('No need since a package exists in remote for this recipe'))
+                    m.action('No need since a package exists in remote for this recipe')
                     self.cookbook.update_step_status(recipe.name, step)
                     continue
 

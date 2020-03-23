@@ -782,3 +782,12 @@ def run_until_complete(tasks, max_concurrent=16):
     else:
         result = loop.run_until_complete(tasks)
     return result
+
+
+def remove_empty_dirs(path):
+    '''
+    Remove all empty dirs within path
+    @param path: the path to remove empty dirs from
+    @type path: str
+    '''
+    new_call('find {} -type d -empty -delete'.format(path))

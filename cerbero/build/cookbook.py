@@ -196,14 +196,26 @@ class CookBook (object):
         @param files: installed files
         @type files: list
         '''
+        def _file_exists(install_dir, file):
+            f = os.path.join(install_dir, file)
+            return os.path.isfile(f)
+
         status = self._recipe_status(recipe_name)
-        installed_files = list(set(files + status.installed_files))
-        existing_files = list(filter(lambda x: os.path.exists(os.path.join(self._config.prefix, x)), installed_files))
-        removed_files = list(set(installed_files) - set(existing_files))
-        if removed_files:
-            m.warning('There are some installed files for recipe %s that don\'t exist anymore: %s\n'
-                      'Removing them from recipe\'s cache' % (recipe_name, removed_files))
-        status.installed_files = existing_files
+        installed_files = set(files)
+        previous_files = set(list(filter(lambda x: _file_exists(self._config.install_dir, x), status.installed_files)))
+        existing_files = set(filter(lambda x: _file_exists(self._config.install_dir, x), installed_files))
+        non_existing_files = list(installed_files - existing_files)
+        if non_existing_files:
+            m.warning('There are some installed files for recipe {} that don\'t exist anymore.'
+                      'Removing them from recipe\'s cache:\n{}'.format(recipe_name, '\n'.join(non_existing_files)))
+        remove_files = list(previous_files - existing_files)
+        remove_files = [os.path.join(self._config.install_dir, f) for f in remove_files]
+        if remove_files:
+            m.message('Removing old files that existed in previous installation but don\'t exist '
+                      'anymore:\n{}'.format('\n'.join(remove_files)))
+            for f in remove_files:
+                os.remove(f)
+        status.installed_files = list(existing_files)
         self._update_status(recipe_name, status)
         return status.installed_files
 
@@ -257,6 +269,17 @@ class CookBook (object):
         '''
         return step in self._recipe_status(recipe_name).steps
 
+    def clean_recipe_status(self, recipe_name):
+        '''
+        Cleans completely the build status of a recipe
+
+        @param recipe_name: name of the recipe
+        @type recipe_name: str
+        '''
+        if recipe_name in self.status:
+            del self.status[recipe_name]
+            self.save()
+
     def reset_recipe_status(self, recipe_name):
         '''
         Resets the build status of a recipe
@@ -265,7 +288,11 @@ class CookBook (object):
         @type recipe_name: str
         '''
         if recipe_name in self.status:
-            del self.status[recipe_name]
+            # We need to save the previous installed_files to remove the
+            # old files that may not be present in a new installation
+            installed_files = self.status[recipe_name].installed_files
+            self.clean_recipe_status(recipe_name)
+            self._recipe_status(recipe_name).installed_files = installed_files
             self.save()
 
     def recipe_needs_build(self, recipe_name):
@@ -402,7 +429,7 @@ class CookBook (object):
         # inherited from a different file, f.ex. recipes/custom.py
         bv = recipe.built_version()
         if bv != st.built_version:
-            self._reset_recipe_status(recipe, 'built_version', st, bv)
+            self._reset_recipe_status(recipe, 'built_version', st.built_version, bv)
         else:
             # Use getattr as file_hash we added later
             saved_hash = getattr(st, 'file_hash', '')
