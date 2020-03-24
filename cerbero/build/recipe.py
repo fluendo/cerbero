@@ -23,7 +23,7 @@ import tempfile
 import time
 import inspect
 import asyncio
-from functools import reduce, lru_cache
+from functools import reduce
 from pathlib import Path
 import hashlib
 
@@ -36,7 +36,7 @@ from cerbero.ide.vs.genlib import GenLib, GenGnuLib
 from cerbero.tools.osxuniversalgenerator import OSXUniversalGenerator
 from cerbero.tools.osxrelocator import OSXRelocator
 from cerbero.utils import N_, _
-from cerbero.utils import shell, add_system_libs
+from cerbero.utils import shell, add_system_libs, get_class_checksum
 from cerbero.utils import messages as m
 from cerbero.tools.libtool import LibtoolLibrary
 
@@ -535,29 +535,23 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             licenses_files.append(lfiles)
         return licenses_files
 
-    @lru_cache(maxsize=None)
-    def _get_single_class_checksum(self, clazz):
-        '''
-        Return the SHA256 hash from the source lines of a class.
-        This method uses an LRU cache to avoid calculating the same
-        again and again
-        '''
-        sha256 = hashlib.sha256()
-        lines = inspect.getsourcelines(clazz)[0]
-        for line in lines:
-            sha256.update(line.encode('utf-8'))
-        return sha256.digest()
-
     def _get_parents_checksum(self):
         '''
         Rather than calculating the SHA256 from the source lines of each
         class that a class inherits from, generate the SHA256 from the hashes of
         each of those classes
         '''
+        def _class_filter(clazz, strict):
+            if clazz.__module__ in [None, 'builtins']:
+                return False
+            if not strict and clazz.__module__.startswith('cerbero.build'):
+                return False
+            return True
+
         sha256 = hashlib.sha256()
-        classes = [c for c in inspect.getmro(self.__class__) if c.__module__ not in [None, 'builtins']]
+        classes = list(filter(lambda c: _class_filter(c, self.config.strict_recipe_checksum), inspect.getmro(self.__class__)))
         for c in classes:
-            sha256.update(self._get_single_class_checksum(c))
+            sha256.update(get_class_checksum(c))
         return sha256
 
     def install_licenses(self):

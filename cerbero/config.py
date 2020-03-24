@@ -136,7 +136,8 @@ class Config (object):
                    'qt5_qmake_path', 'qt5_pkgconfigdir', 'for_shell',
                    'package_tarball_compression', 'extra_mirrors',
                    'extra_bootstrap_packages', 'moltenvk_prefix',
-                   'binaries_local', 'binaries_remote']
+                   'binaries_local', 'binaries_remote',
+                   'strict_recipe_checksum']
 
     cookbook = None
 
@@ -449,6 +450,7 @@ class Config (object):
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('binaries_local', None)
         self.set_property('binaries_remote', None)
+        self.set_property('strict_recipe_checksum', False)
         # Increase open-files limits
         set_nofile_ulimit()
 
