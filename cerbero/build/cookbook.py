@@ -22,6 +22,7 @@ import pickle
 import time
 import imp
 import traceback
+import shutils
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License, LibraryType
@@ -198,7 +199,7 @@ class CookBook (object):
         '''
         def _file_exists(install_dir, file):
             f = os.path.join(install_dir, file)
-            return os.path.isfile(f)
+            return os.path.exists(f)
 
         status = self._recipe_status(recipe_name)
         installed_files = set(files)
@@ -214,7 +215,10 @@ class CookBook (object):
             m.message('Removing old files that existed in previous installation but don\'t exist '
                       'anymore:\n{}'.format('\n'.join(remove_files)))
             for f in remove_files:
-                os.remove(f)
+                if os.path.islink(f) or not os.path.isdir(f):
+                    os.remove(f)
+                else:
+                    shutils.rmtree(f)
         status.installed_files = list(existing_files)
         self._update_status(recipe_name, status)
         return status.installed_files
