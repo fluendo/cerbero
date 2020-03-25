@@ -22,7 +22,7 @@ import pickle
 import time
 import imp
 import traceback
-import shutils
+import shutil
 
 from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
     DistroVersion, License, LibraryType
@@ -218,7 +218,7 @@ class CookBook (object):
                 if os.path.islink(f) or not os.path.isdir(f):
                     os.remove(f)
                 else:
-                    shutils.rmtree(f)
+                    shutil.rmtree(f)
         status.installed_files = list(existing_files)
         self._update_status(recipe_name, status)
         return status.installed_files
