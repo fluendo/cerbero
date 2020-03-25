@@ -170,7 +170,7 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
                                         self._get_install_dir(), scripts_path=resources)
             return output_file
         finally:
-            if tmp is not None:
+            if tmp is not None and not self.keep_temp:
                 shutil.rmtree(tmp)
 
     def _create_bundle(self, files, package_type):
@@ -198,15 +198,18 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
 
             # Copy scripts to the Resources directory
             os.makedirs(resources)
-            if os.path.exists(self.package.resources_preinstall):
-                shutil.copy(os.path.join(self.package.resources_preinstall),
-                            os.path.join(resources, 'preinstall'))
-            if os.path.exists(self.package.resources_postinstall):
-                shutil.copy(os.path.join(self.package.resources_postinstall),
-                            os.path.join(resources, 'postinstall'))
+            if os.path.isfile(self.package.resources_preinstall):
+                dst = os.path.join(resources, 'preinstall')
+                shutil.copy(self.package.resources_preinstall, dst)
+                os.chmod(dst, 0o755)
+            if os.path.isfile(self.package.resources_postinstall):
+                dst = os.path.join(resources, 'postinstall')
+                shutil.copy(self.package.resources_postinstall, dst)
+                os.chmod(dst, 0o755)
             return tmp, root, resources
         except Exception:
-            shutil.rmtree(tmp)
+            if not self.keep_temp:
+                shutil.rmtree(tmp)
             raise
 
 

@@ -67,12 +67,14 @@ class BundlePackagerBase(PackagerBase):
             root = self.create_bundle()
 
         resources = tempfile.mkdtemp()
-        if os.path.exists(self.package.resources_preinstall):
-            shutil.copy(os.path.join(self.package.resources_preinstall),
-                        os.path.join(resources, 'preinstall'))
-        if os.path.exists(self.package.resources_postinstall):
-            shutil.copy(os.path.join(self.package.resources_postinstall),
-                        os.path.join(resources, 'postinstall'))
+        if os.path.isfile(self.package.resources_preinstall):
+            dst = os.path.join(resources, 'preinstall')
+            shutil.copy(self.package.resources_preinstall, dst)
+            os.chmod(dst, 0o755)
+        if os.path.isfile(self.package.resources_postinstall):
+            dst = os.path.join(resources, 'postinstall')
+            shutil.copy(self.package.resources_postinstall, dst)
+            os.chmod(dst, 0o755)
         packagebuild = PackageBuild()
         packagebuild.create_package(root, self.package.identifier(),
             self.package.version, self.title, output_file, install_dir,
@@ -118,14 +120,14 @@ class FrameworkBundlePackager(BundlePackagerBase):
         else:
             tmp = tempfile.mkdtemp()
 
-        #if self.config.target_arch == Architecture.UNIVERSAL:
+        # if self.config.target_arch == Architecture.UNIVERSAL:
         #    arch_dir = ''
-        #else:
+        # else:
         #    arch_dir = self.config.target_arch
 
-        vdir = os.path.join('Versions', self.package.sdk_version) #, arch_dir)
+        vdir = os.path.join('Versions', self.package.sdk_version)
         rdir = '%s/Resources/' % vdir
-        shell.call ('mkdir -p %s' % rdir, tmp)
+        shell.call('mkdir -p %s' % rdir, tmp)
 
         links = {'Versions/Current': '%s' % self.package.sdk_version,
                  'Resources': 'Versions/Current/Resources',
