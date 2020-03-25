@@ -300,21 +300,33 @@ class FilesProvider(object):
                                        self._searchfuncs['default'])
         return search(self._get_category_files_list(category))
 
-    def _find_plugin_dll_files(self, f):
-        # Plugin template is always libfoo%(mext)s
-        if not os.path.basename(f).startswith('lib'):
-            raise AssertionError('Plugin files must start with "lib": {!r}'.format(f))
-        # Plugin DLLs are required to be libfoo.dll (mingw) or foo.dll (msvc)
-        if (Path(self.config.prefix) / f).is_file():
-            # libfoo.dll
-            return [f]
-        if self.using_msvc():
+    def _find_dll_files(self, f):
+        # Lists files with the .dll extension that are not shared libraries,
+        # such as modules (like GStreamer plugins) or .Net assemblies
+        # The actual filenames we select are stricter to avoid picking up the
+        # wrong DLLs in case the prefix is dirty.
+        if not self.using_msvc():
+            # Plugin DLLs are required to be libfoo.dll when the recipe uses MinGW
+            # .Net assemblies do not start with the 'lib' prefix
+            if (Path(self.config.prefix) / f).is_file():
+                # libfoo.dll
+                # Mono.Cairo.dll
+                return [f]
+        else:
+            # Plugin DLLs are required to be foo.dll when the recipe uses MSVC
             fdir, fname = os.path.split(f)
             fmsvc = '{}/{}'.format(fdir, fname[3:])
+            fmsvcpdb = fmsvc[:-3] + 'pdb'
             if (Path(self.config.prefix) / fmsvc).is_file():
-                # foo.dll, foo.pdb
-                return [fmsvc, fmsvc[:-3] + 'pdb']
-        raise FatalError('GStreamer plugin {!r} not found'.format(f))
+                if self.config.variants.nodebug or not (Path(self.config.prefix) / fmsvcpdb).is_file():
+                    # foo.dll
+                    # Mono.Cairo.dll
+                    return [fmsvc]
+                else:
+                    # foo.dll, foo.pdb
+                    # Mono.Cairo.pdb
+                    return [fmsvc, fmsvc[:-3] + 'pdb']
+        raise FatalError('Module, GStreamer plugin or .Net assembly {!r} not found'.format(f))
 
     def _search_files(self, files):
         '''
@@ -328,7 +340,7 @@ class FilesProvider(object):
             if not f.endswith('.dll'):
                 fs.append(f)
                 continue
-            fs += self._find_plugin_dll_files(f)
+            fs += self._find_dll_files(f)
         # fill directories
         dirs = [x for x in fs if
                 os.path.isdir(os.path.join(self.config.prefix, x))]
