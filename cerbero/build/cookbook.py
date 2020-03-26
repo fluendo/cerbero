@@ -344,7 +344,7 @@ class CookBook (object):
         @rtype: list
         '''
         recipe = self.get_recipe(recipe_name)
-        return [r for r in list(self.recipes.values()) if recipe.name in r.deps]
+        return list(set([r for r in list(self.recipes.values()) if recipe.name in r.deps]))
 
     def save(self):
         try:
@@ -411,22 +411,34 @@ class CookBook (object):
                     file_hash=recipe.get_checksum(), installed_files=[])
         return self.status[recipe_name]
 
+    def _recipe_is_reset(self, recipe_name):
+        if not recipe_name in self.status:
+            return True
+
+        st = self.status[recipe_name]
+        return not st.built_version and st.needs_build
+
     def _reset_recipe_status(self, recipe, change_name, previous, now):
+        if self._recipe_is_reset(recipe.name):
+            return
+
         m.message('Resetting {}\'s status because its {} changed from {} to {}'.format(
             recipe.name, change_name, previous, now))
         self.reset_recipe_status(recipe.name)
         if recipe.library_type == LibraryType.STATIC:
             rdeps = self.list_recipe_reverse_deps(recipe.name)
-            rdeps_names = ' '.join([r.name for r in rdeps])
-            m.message('Resetting also the status of all its reverse dependencies '
-                'because it\'s a static library: {}'.format(rdeps_names))
-            for r in rdeps:
-                self.reset_recipe_status(r.name)
+            rdeps = [r for r in rdeps if not self._recipe_is_reset(r.name)]
+            if rdeps:
+                rdeps_names = ' '.join([r.name for r in rdeps])
+                m.message('Resetting also the status of all its reverse dependencies '
+                    'because it\'s a static library: {}'.format(rdeps_names))
+                for r in rdeps:
+                    self.reset_recipe_status(r.name)
 
     def _reset_recipe_if_needed(self, recipe):
         # Check that the recipe still exists in cache, because
         # a prior recipe might have reset its status
-        if not recipe.name in self.status:
+        if self._recipe_is_reset(recipe.name):
             return
         st = self.status[recipe.name]
         # Need to check the version too, because the version can be
@@ -467,7 +479,8 @@ class CookBook (object):
             # allow safe relocation of the recipes.
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__
-            recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
+            if not self._recipe_is_reset(recipe.name):
+                recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
 
         shell.run_until_complete(async_tasks)
 
