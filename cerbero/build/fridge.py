@@ -142,8 +142,8 @@ class FtpBinaryRemote (BinaryRemote):
                     pass
 
                 if upload_needed:
-                    shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
                     shell.ftp_upload(local_sha256_filename, remote_filename + '.sha256', ftp_connection=ftp)
+                    shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
                 else:
                     m.action('No need to upload since local and remote SHA256 are the same')
         if ftp:
