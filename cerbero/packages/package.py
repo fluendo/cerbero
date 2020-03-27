@@ -183,8 +183,9 @@ class PackageBase(object):
         Subclasses can override it to customize package files right before building the
         package itself.
 
-        This feature is currently only available with DebianPackager (.deb for Linux),
-        RPMPackager (.rpm for Linux) and MergeModulePackager (.msm/.msi (Wix) for Windows).
+        This feature is currently available with DebianPackager (.deb for Linux),
+        RPMPackager (.rpm for Linux), OSXPackager (.pkg for Mac) and MergeModulePackager
+        (.msm/.msi (Wix) for Windows).
 
         @param src_dir: path of the package sources directory, this is a temporary directory
                         containing all package files which will be included in the final package.
@@ -289,8 +290,6 @@ class Package(PackageBase):
     @cvar platform_files_devel: dict of platform devel files included in
                                 this package
     @type platform_files_Devel: dict
-    @cvar osx_framework_library: name and link for the Framework library
-    @type osx_framework_library: tuple
     @cvar build_meta_package: If true generate a meta package
     @type build_meta_package: bool
     '''
@@ -300,7 +299,6 @@ class Package(PackageBase):
     platform_files = dict()
     files_devel = list()
     platform_files_devel = dict()
-    osx_framework_library = None
     build_meta_package = False
 
     def __init__(self, config, store, cookbook):
@@ -434,6 +432,13 @@ class MetaPackage(PackageBase):
     @type resources_distribution: string
     @cvar user_resources: folders included in the .dmg for iOS packages
     @type user_resources: list
+    @cvar osx_framework_library: name and link as a (name, relative_path)
+                                 tuple to the Framework library directory
+    @type osx_framework_library: tuple
+    @cvar osx_build_dmg: set to True (default) to move all product packages
+                         to a dmg file. Set to False to just create the pkg
+                         files
+    @type osx_build_dmg: bool
     '''
 
     packages = []
@@ -443,6 +448,8 @@ class MetaPackage(PackageBase):
     resources_wix_installer = None
     resources_distribution = 'distribution.xml'
     user_resources = []
+    osx_framework_library = None
+    osx_build_dmg = True
     build_meta_package = True
 
     def __init__(self, config, store):
@@ -513,13 +520,9 @@ class SDKPackage(MetaPackage):
 
     @cvar root_env_var: name of the environment variable with the prefix
     @type root_env_var: str
-    @cvar osx_framework_library: (name, path) of the lib used for the Framework
-    @type osx_framework_library: tuple
-
     '''
 
     root_env_var = 'CERBERO_SDK_ROOT_%(arch)s'
-    osx_framework_library = None
 
     def __init__(self, config, store):
         MetaPackage.__init__(self, config, store)

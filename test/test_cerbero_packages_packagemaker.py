@@ -24,7 +24,7 @@ import tempfile
 from cerbero.config import Platform
 from cerbero.packages import PackageType
 from cerbero.packages.osx.packagemaker import PackageMaker
-from cerbero.packages.osx.packager import OSXPackage
+from cerbero.packages.osx.packager import OSXPackager
 from cerbero.utils import shell
 from test.test_packages_common import create_store
 from test.test_common import DummyConfig
@@ -46,8 +46,8 @@ class PackageMakerTest(unittest.TestCase):
         self._add_files()
         p = self.store.get_package('gstreamer-test1')
         self.files = p.files_list()
-        packager = OSXPackage(self.config, p, self.store)
-        files = OSXPackage.files_list(packager, PackageType.RUNTIME)
+        packager = OSXPackager(self.config, p, self.store)
+        files = OSXPackager.files_list(packager, PackageType.RUNTIME)
         tmpdest = packager._create_bundle(files, PackageType.RUNTIME)[0]
         bundlefiles = shell.check_call('find . -type f ', tmpdest).split('\n')
         bundlefiles = sorted([f[2:] for f in bundlefiles])[1:]

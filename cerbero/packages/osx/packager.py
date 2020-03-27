@@ -26,7 +26,7 @@ from cerbero.ide.xcode.fwlib import StaticFrameworkLibrary
 from cerbero.errors import EmptyPackageError, FatalError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.packages.package import Package, MetaPackage, App,\
-        PackageBase, SDKPackage
+    PackageBase, SDKPackage
 from cerbero.packages.osx.distribution import DistributionXML
 from cerbero.packages.osx.bundles import FrameworkBundlePackager,\
     ApplicationBundlePackager
@@ -104,10 +104,10 @@ class FrameworkHeadersMixin(object):
                 else:
                     # Copy the directory
                     self._copy_unversioned_headers(path, include,
-                        headers, include_dirs)
+                                                   headers, include_dirs)
 
 
-class OSXPackage(PackagerBase, FrameworkHeadersMixin):
+class OSXPackager(PackagerBase, FrameworkHeadersMixin):
     '''
     Creates an osx package from a L{cerbero.packages.package.Package}
 
@@ -124,6 +124,8 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
 
         self.install_dir = install_dir or self.package.get_install_dir()
         self.version = version or self.package.version
+        if not sdk_version and hasattr(self.package, 'sdk_version'):
+            sdk_version = self.package.sdk_version
         self.sdk_version = sdk_version or self.version
         self.include_dirs = include_dirs or PkgConfig.list_all_include_dirs()
 
@@ -160,13 +162,18 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         files = self.files_list(package_type)
         output_file = os.path.join(self.output_dir, '%s-%s-%s.pkg' %
                                    (self.package.name, self.version, self.config.target_arch))
-        tmp, root, resources = self._create_bundle(files, package_type)
-        packagebuild = PackageBuild()
-        packagebuild.create_package(root, self.package.identifier(),
-                                    self.package.version, self.package.shortdesc, output_file,
-                                    self._get_install_dir(), scripts_path=resources)
-        shutil.rmtree(tmp)
-        return output_file
+        tmp = None
+        try:
+            tmp, root, resources = self._create_bundle(files, package_type)
+            self.package.pre_build(root)
+            packagebuild = PackageBuild()
+            packagebuild.create_package(root, self.package.identifier(),
+                                        self.package.version, self.package.shortdesc, output_file,
+                                        self._get_install_dir(), scripts_path=resources)
+            return output_file
+        finally:
+            if tmp is not None and not self.keep_temp:
+                shutil.rmtree(tmp)
 
     def _create_bundle(self, files, package_type):
         '''
@@ -174,35 +181,41 @@ class OSXPackage(PackagerBase, FrameworkHeadersMixin):
         directory to create the bundle
         '''
         tmp = tempfile.mkdtemp()
-        root = os.path.join(tmp, 'Root')
-        resources = os.path.join(tmp, 'Resources')
-        for f in files:
-            in_path = os.path.join(self.config.prefix, f)
-            if not os.path.exists(in_path):
-                m.warning("File %s is missing and won't be added to the "
-                          "package" % in_path)
-                continue
-            out_path = os.path.join(root, f)
-            out_dir = os.path.split(out_path)[0]
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
-            shutil.copy(in_path, out_path)
-        if package_type == PackageType.DEVEL:
-            self._create_framework_headers(self.config.prefix, self.include_dirs, root)
+        try:
+            root = os.path.join(tmp, 'Root')
+            resources = os.path.join(tmp, 'Resources')
+            for f in files:
+                in_path = os.path.join(self.config.prefix, f)
+                if not os.path.exists(in_path):
+                    m.warning("File %s is missing and won't be added to the "
+                              "package" % in_path)
+                    continue
+                out_path = os.path.join(root, f)
+                out_dir = os.path.split(out_path)[0]
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+                shutil.copy(in_path, out_path, follow_symlinks=False)
+            if package_type == PackageType.DEVEL:
+                self._create_framework_headers(self.config.prefix, self.include_dirs, root)
 
-        # Copy scripts to the Resources directory
-        os.makedirs(resources)
-        if os.path.exists(self.package.resources_preinstall):
-            shutil.copy(os.path.join(self.package.resources_preinstall),
-                        os.path.join(resources, 'preinstall'))
-        if os.path.exists(self.package.resources_postinstall):
-            shutil.copy(os.path.join(self.package.resources_postinstall),
-                        os.path.join(resources, 'postinstall'))
-        return tmp, root, resources
+            # Copy scripts to the Resources directory
+            os.makedirs(resources)
+            if os.path.isfile(self.package.resources_preinstall):
+                dst = os.path.join(resources, 'preinstall')
+                shutil.copy(self.package.resources_preinstall, dst)
+                os.chmod(dst, 0o755)
+            if os.path.isfile(self.package.resources_postinstall):
+                dst = os.path.join(resources, 'postinstall')
+                shutil.copy(self.package.resources_postinstall, dst)
+                os.chmod(dst, 0o755)
+            return tmp, root, resources
+        except Exception:
+            if not self.keep_temp:
+                shutil.rmtree(tmp)
+            raise
 
 
-
-class ProductPackage(PackagerBase):
+class ProductPackager(PackagerBase):
     '''
     Creates an osx package from a L{cerbero.package.package.MetaPackage} using
     productbuild.
@@ -224,26 +237,32 @@ class ProductPackage(PackagerBase):
         PackagerBase.pack(self, output_dir, devel, force, keep_temp, split)
 
         self._prepare_pack()
-
-        if isinstance(self.package, MetaPackage):
-            packager = self._create_framework_bundle_packager()
-            self._create_framework_bundle_layout(packager)
-            self._create_framework_bundle_package(packager)
-        self._create_packages()
-
         paths = []
         try:
-            # create runtime package
+            # Create osx-bundle package (self.package is ALWAYS a MetaPackage)
+            self.fw_path = os.path.join(self.tmp, 'osx-bundle')
+            os.mkdir(self.fw_path)
+            packager = self._create_framework_bundle_packager()
+            self._create_framework_bundle_layout(packager)
+            self._create_framework_bundle_package(packager, self.tmp)
+            self.fw_path = self.tmp
+
+            # Create deps packages
+            paths += self._create_packages()
+
+            # Create runtime product
             r_path = self._create_product(PackageType.RUNTIME)
             paths.append(r_path)
 
+            # Create devel product (if requested)
             if devel:
-                # create devel package
                 d_path = self._create_product(PackageType.DEVEL)
                 paths.append(d_path)
+                self.package.set_mode(PackageType.RUNTIME)
 
-            self.package.set_mode(PackageType.RUNTIME)
-            self._create_packages_dmg()
+            # Move products to dmg archive (if requested)
+            if self.package.osx_build_dmg:
+                paths = [self._create_packages_dmg(paths)]
         finally:
             if not keep_temp:
                 shutil.rmtree(self.tmp)
@@ -258,29 +277,30 @@ class ProductPackage(PackagerBase):
         self.empty_packages = {PackageType.RUNTIME: [], PackageType.DEVEL: []}
         self.packages_paths = {PackageType.RUNTIME: {}, PackageType.DEVEL: {}}
 
-
     def _package_name(self, suffix):
         return '%s-%s-%s%s' % (self.package.name, self.package.version,
-                self.config.target_arch, suffix)
+                               self.config.target_arch, suffix)
 
     def _create_framework_bundle_packager(self):
         m.action(_("Creating framework package"))
-        packager = FrameworkBundlePackager(self.package, 'osx-framework',
-                'GStreamer',
-                'GStreamer OSX Framework Bundle Version %s' % (self.package.version),
-                '3ffe67c2-4565-411f-8287-e8faa892f853')
+        packager = FrameworkBundlePackager(self.package,
+                                           'osx-framework',
+                                           '%s-osx-framework' % self.package.name,
+                                           '%s OSX Framework Bundle Version %s' %
+                                           (self.package.name, self.package.version),
+                                           '3ffe67c2-4565-411f-8287-e8faa892f853')
         return packager
 
     def _create_framework_bundle_layout(self, packager):
         packager.create_bundle(self.fw_path)
 
-    def _create_framework_bundle_package(self, packager):
+    def _create_framework_bundle_package(self, packager, output_dir):
         package = packager.package
         package.install_dir = self.package.install_dir
         self.store.add_package(package)
         packages = self.package.packages[:] + [(package.name, True, True)]
         self.package.packages = packages
-        path = packager.pack(self.output_dir, root=self.fw_path)[0]
+        path = packager.pack(output_dir, root=self.fw_path)[0]
         if self.config.target_platform == Platform.IOS:
             self.packages_paths[PackageType.DEVEL][package] = path
             self.empty_packages[PackageType.RUNTIME].append(package)
@@ -292,59 +312,70 @@ class ProductPackage(PackagerBase):
         self.package.set_mode(package_type)
         m.action(_("Creating Distribution.xml for package %s " % self.package))
         distro = DistributionXML(self.package, self.store, self.tmp,
-            self.packages_paths[package_type],
-            self.empty_packages[package_type], package_type,
-            self.config.target_arch, home_folder=self.home_folder)
+                                 self.packages_paths[package_type],
+                                 self.empty_packages[package_type], package_type,
+                                 self.config.target_arch, home_folder=self.home_folder)
         distro_path = os.path.join(self.tmp, "Distribution.xml")
         distro.write(distro_path)
         output_file = os.path.join(self.output_dir, self._package_name('.pkg'))
         output_file = os.path.abspath(output_file)
         pb = ProductBuild()
-        pb.create_package(distro_path, output_file, [self.package.relative_path('.')])
+        search_paths = [self.package.relative_path('.')]
+        search_paths += set([os.path.dirname(p) for p in self.packages_paths[package_type].values()])
+        pb.create_package(distro_path, output_file, search_paths)
         return output_file
 
     def _create_packages(self):
+        extra_paths = []
         for p in self.packages:
             m.action(_("Creating package %s ") % p)
-            packager = OSXPackage(self.config, p, self.store)
+            p.pre_package()
+            packager = OSXPackager(self.config, p, self.store)
+            paths = [None, None]
             try:
-                paths = packager.pack(self.output_dir, self.devel, self.force,
+                paths = packager.pack(self.tmp, self.devel, self.force,
                                       self.keep_temp, self.split, self.package.version,
                                       install_dir=self.package.get_install_dir(),
                                       include_dirs=self.include_dirs,
                                       sdk_version=self.package.sdk_version)
                 m.action(_("Package created sucessfully"))
             except EmptyPackageError:
-                paths = [None, None]
+                pass
+            finally:
+                paths = p.post_package(paths, self.output_dir)
 
             if paths[0] is not None:
                 self.packages_paths[PackageType.RUNTIME][p] = paths[0]
             else:
                 self.empty_packages[PackageType.RUNTIME].append(p)
+
             if paths[1] is not None:
                 self.packages_paths[PackageType.DEVEL][p] = paths[1]
             else:
                 self.empty_packages[PackageType.DEVEL].append(p)
 
-    def _create_packages_dmg(self):
-        paths = list(self.packages_paths[PackageType.RUNTIME].values())
+            extra_paths += paths[2:]
+        return extra_paths
+
+    def _create_packages_dmg(self, paths):
         dmg_file = os.path.join(self.output_dir, self._package_name('-packages.dmg'))
 
         m.action(_("Creating image %s ") % dmg_file)
         # create a temporary directory to store packages
-        workdir = os.path.join(self.tmp, "hdidir")
+        workdir = os.path.join(self.tmp, self.package.name)
         os.makedirs(workdir)
         try:
             for p in paths:
-                shutil.copy(p, workdir)
+                shutil.move(p, workdir)
             # Create Disk Image
             cmd = 'hdiutil create %s -ov -srcfolder %s' % (dmg_file, workdir)
             shell.call(cmd)
         finally:
             shutil.rmtree(workdir)
+        return dmg_file
 
 
-class ApplicationPackage(PackagerBase):
+class ApplicationPackager(PackagerBase):
     '''
     Creates an osx package from a L{cerbero.packages.package.Package}
 
@@ -417,7 +448,7 @@ class ApplicationPackage(PackagerBase):
 
     def _package_name(self, suffix):
         return '%s-%s-%s%s' % (self.package.name, self.package.version,
-                self.config.target_arch, suffix)
+                               self.config.target_arch, suffix)
 
     def _copy_scripts(self):
         resources = os.path.join(self.tmp, 'Resources')
@@ -437,22 +468,22 @@ class ApplicationPackage(PackagerBase):
         app_pkg_name = self._package_name('.pkg')
         app_pkg = os.path.join(self.tmp, app_pkg_name)
         packagebuild.create_package(self.approot, self.package.identifier(),
-            self.package.version, self.package.shortdesc, app_pkg,
-            '/Applications', scripts_path=resources)
+                                    self.package.version, self.package.shortdesc, app_pkg,
+                                    '/Applications', scripts_path=resources)
         self.package.packages = [(self.package.name, True, True)]
         m.action(_("Creating Distribution.xml for package %s " % self.package))
         distro = DistributionXML(self.package, self.store, self.tmp,
-            {self.package: app_pkg_name},
-            self.store.get_package_deps(self.package),
-            PackageType.RUNTIME,
-            self.config.target_arch, home_folder=False)
+                                 {self.package: app_pkg_name},
+                                 self.store.get_package_deps(self.package),
+                                 PackageType.RUNTIME,
+                                 self.config.target_arch, home_folder=False)
         distro_path = tempfile.NamedTemporaryFile().name
         distro.write(distro_path)
         output_file = os.path.join(self.output_dir, self._package_name('.pkg'))
         output_file = os.path.abspath(output_file)
         pb = ProductBuild()
         pb.create_package(distro_path, output_file,
-            [self.package.relative_path('.'), self.tmp])
+                          [self.package.relative_path('.'), self.tmp])
         return output_file
 
     def _create_dmg(self):
@@ -460,12 +491,12 @@ class ApplicationPackage(PackagerBase):
             self.package.app_name, self.package.version, self.config.target_arch))
         # Create Disk Image
         cmd = 'hdiutil create %s -volname %s -ov -srcfolder %s' % \
-                (dmg_file, self.package.app_name, self.approot)
+            (dmg_file, self.package.app_name, self.approot)
         shell.call(cmd)
         return dmg_file
 
 
-class IOSPackage(ProductPackage, FrameworkHeadersMixin):
+class IOSPackager(ProductPackager, FrameworkHeadersMixin):
     '''
     Creates an ios Framework package from a
     L{cerbero.package.package.MetaPackage} using productbuild.
@@ -507,23 +538,23 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         self._create_merged_lib(libname, files)
         self.package.packages = []
         self.fw_path = self.tmp
-        self._create_framework_bundle_package(packager)
+        self._create_framework_bundle_package(packager, self.output_dir)
         self.fw_path = os.path.join(self.tmp, '%s.framework' % framework_name)
 
         if isinstance(self.package, SDKPackage):
             pkg_path = self._create_product(PackageType.DEVEL)
             if self.package.user_resources:
-                pkg_path = self._create_dmg (pkg_path,
-                    pkg_path.replace('.pkg', '.dmg'))
+                pkg_path = self._create_dmg(pkg_path,
+                                            pkg_path.replace('.pkg', '.dmg'))
         else:
-            pkg_path = self._create_dmg (self.fw_path,
-                os.path.join(output_dir, self._package_name('.dmg')))
+            pkg_path = self._create_dmg(self.fw_path,
+                                        os.path.join(output_dir, self._package_name('.dmg')))
 
         if not keep_temp:
             shutil.rmtree(self.tmp)
         return [pkg_path]
 
-    def _copy_files (self, files, root):
+    def _copy_files(self, files, root):
         for f in files:
             out_path = f.replace(self.config.prefix, root)
             out_dir = os.path.split(out_path)[0]
@@ -536,7 +567,7 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         templates = [x for x in files if templates_prefix in x]
         for f in templates:
             out_path = f.replace(self.config.prefix,
-                    os.path.join(self.tmp, 'Templates'))
+                                 os.path.join(self.tmp, 'Templates'))
             out_path = out_path.replace(templates_prefix, '')
             out_dir = os.path.split(out_path)[0]
             if not os.path.exists(out_dir):
@@ -552,14 +583,14 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         include_dirs.append(os.path.join(self.config.prefix, 'include'))
         for d in include_dirs:
             include_files += [x for x in files if d in x]
-        self._copy_files (include_files, version_dir)
+        self._copy_files(include_files, version_dir)
 
     def _create_framework_bundle_packager(self):
         m.action(_("Creating framework package"))
         packager = FrameworkBundlePackager(self.package, 'ios-framework',
-                'GStreamer',
-                'GStreamer iOS Framework Bundle Version %s' % (self.package.version),
-                '3ffe67c2-3421-411f-8287-e8faa892f853')
+                                           'GStreamer',
+                                           'GStreamer iOS Framework Bundle Version %s' % (self.package.version),
+                                           '3ffe67c2-3421-411f-8287-e8faa892f853')
         return packager
 
     def _create_merged_lib(self, libname, files):
@@ -567,7 +598,7 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         static_files = [x for x in files if x.endswith('.a')]
 
         fwlib = StaticFrameworkLibrary(libname, libname, static_files,
-            self.config.target_arch)
+                                       self.config.target_arch)
         fwlib.use_pkgconfig = False
         if self.config.target_arch == Architecture.UNIVERSAL:
             fwlib.universal_archs = self.config.universal_archs
@@ -575,7 +606,7 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
 
     def _package_name(self, suffix):
         return '%s-%s-%s-%s%s' % (self.package.name, self.package.version,
-                self.config.target_platform, self.config.target_arch, suffix)
+                                  self.config.target_platform, self.config.target_arch, suffix)
 
     def _create_dmg(self, pkg_path, dmg_file):
         # Create a new folder with the pkg and the user resources
@@ -584,7 +615,7 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         for r in self.package.user_resources:
             r = os.path.join(self.config.prefix, r)
             r_dir = os.path.split(r)[1]
-            shell.copy_dir (r, os.path.join(dmg_dir, r_dir))
+            shell.copy_dir(r, os.path.join(dmg_dir, r_dir))
         shutil.move(pkg_path, dmg_dir)
 
         # Create Disk Image
@@ -593,20 +624,20 @@ class IOSPackage(ProductPackage, FrameworkHeadersMixin):
         shell.call(cmd)
         return dmg_file
 
-class Packager(object):
 
+class Packager(object):
     def __new__(klass, config, package, store):
         if config.target_platform == Platform.IOS:
             if not isinstance(package, MetaPackage):
-                raise FatalError ("iOS platform only support packages",
-                                  "for MetaPackage")
-            return IOSPackage(config, package, store)
+                raise FatalError("iOS platform only support packages",
+                                 "for MetaPackage")
+            return IOSPackager(config, package, store)
         if isinstance(package, Package):
-            return OSXPackage(config, package, store)
+            return OSXPackager(config, package, store)
         elif isinstance(package, MetaPackage):
-            return ProductPackage(config, package, store)
+            return ProductPackager(config, package, store)
         elif isinstance(package, App):
-            return ApplicationPackage(config, package, store)
+            return ApplicationPackager(config, package, store)
 
 
 def register():
