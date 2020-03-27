@@ -38,6 +38,7 @@ class BundlePackagerBase(PackagerBase):
         self.package = Package(package.config, package.store, None)
         self.package.name = pkgname
         self.package.shortdesc = desc
+        self.package.longdesc = desc
         self.package.version = package.version
         self.package.sdk_version = package.sdk_version
         self.package.uuid = uuid
@@ -102,6 +103,7 @@ class FrameworkBundlePackager(BundlePackagerBase):
     def __init__(self, package, filename, pkgname, desc, uuid):
         BundlePackagerBase.__init__(self, package, pkgname, desc, uuid)
         self.name = filename
+        self.package.shortdesc = self.title
 
     def create_bundle(self, target_dir=None):
         '''
@@ -139,7 +141,7 @@ class FrameworkBundlePackager(BundlePackagerBase):
 
         # Create the frameworks Info.plist file
         framework_plist = FrameworkPlist(self.package.name,
-            self.package.org, self.package.version, self.package.shortdesc,
+            self.package.org, self.package.version, self.package.longdesc,
             self.package.config.min_osx_sdk_version)
         framework_plist.save(os.path.join(tmp, rdir, 'Info.plist'))
 

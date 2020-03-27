@@ -195,7 +195,7 @@ class OSXPackager(PackagerBase, FrameworkHeadersMixin):
                 if not os.path.exists(out_dir):
                     os.makedirs(out_dir)
                 shutil.copy(in_path, out_path, follow_symlinks=False)
-            if package_type == PackageType.DEVEL:
+            if package_type == PackageType.DEVEL or not self.split:
                 self._create_framework_headers(self.config.prefix, self.include_dirs, root)
 
             # Copy scripts to the Resources directory
@@ -287,7 +287,7 @@ class ProductPackager(PackagerBase):
                                            'osx-framework',
                                            '%s-osx-framework' % self.package.name,
                                            '%s OSX Framework Bundle Version %s' %
-                                           (self.package.name, self.package.version),
+                                           (self.package.shortdesc, self.package.version),
                                            '3ffe67c2-4565-411f-8287-e8faa892f853')
         return packager
 
