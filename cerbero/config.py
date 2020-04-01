@@ -134,7 +134,7 @@ class Config (object):
                    'msvc_version', 'msvc_toolchain_env', 'mingw_toolchain_env',
                    'meson_cross_properties', 'manifest', 'extra_properties',
                    'qt5_qmake_path', 'qt5_pkgconfigdir', 'for_shell',
-                   'package_tarball_compression', 'extra_mirrors',
+                   'package_tarball_compression', 'cache_urls', 'extra_mirrors',
                    'extra_bootstrap_packages', 'moltenvk_prefix',
                    'binaries_local', 'binaries_remote',
                    'strict_recipe_checksum']
@@ -447,6 +447,7 @@ class Config (object):
         self.set_property('manifest', None)
         self.set_property('extra_properties', {})
         self.set_property('extra_mirrors', [])
+        self.set_property('cache_urls', [])
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('binaries_local', None)
         self.set_property('binaries_remote', None)
