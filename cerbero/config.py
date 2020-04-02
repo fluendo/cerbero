@@ -318,6 +318,14 @@ class Config (object):
         # native path separator and must end in a path separator.
         pythonpath = [str(prefix / pypath) + os.sep,
                       str(self.build_tools_prefix / pypath) + os.sep]
+        # On specific platforms (like Centos7), python packages may be
+        # installed in self.py_prefix/site-packages when they include
+        # native libraries. This path may be different from pypath
+        # (on x64 architectures it may begin with lib64 instead of lib)
+        # and must also be included in PYTHONPATH environment variable.
+        pypath_extra = PurePath(self.py_prefix.strip('\\/')) / 'site-packages'
+        if pypath_extra != pypath:
+            pythonpath.append(str(prefix / pypath_extra) + os.sep)
 
         if self.platform == Platform.WINDOWS:
             # On Windows, pypath doesn't include Python version although some
