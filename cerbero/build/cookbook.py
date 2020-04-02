@@ -203,22 +203,11 @@ class CookBook (object):
 
         status = self._recipe_status(recipe_name)
         installed_files = set(files)
-        previous_files = set(list(filter(lambda x: _file_exists(self._config.install_dir, x), status.installed_files)))
         existing_files = set(filter(lambda x: _file_exists(self._config.install_dir, x), installed_files))
         non_existing_files = list(installed_files - existing_files)
         if non_existing_files:
-            m.warning('There are some installed files for recipe {} that don\'t exist anymore.'
+            m.warning('There are some installed files for recipe {} that don\'t exist anymore. '
                       'Removing them from recipe\'s cache:\n{}'.format(recipe_name, '\n'.join(non_existing_files)))
-        remove_files = list(previous_files - existing_files)
-        remove_files = [os.path.join(self._config.install_dir, f) for f in remove_files]
-        if remove_files:
-            m.message('Removing old files that existed in previous installation but don\'t exist '
-                      'anymore:\n{}'.format('\n'.join(remove_files)))
-            for f in remove_files:
-                if os.path.islink(f) or not os.path.isdir(f):
-                    os.remove(f)
-                else:
-                    shutil.rmtree(f)
         status.installed_files = list(existing_files)
         self._update_status(recipe_name, status)
         return status.installed_files
@@ -296,8 +285,17 @@ class CookBook (object):
             # old files that may not be present in a new installation
             installed_files = self.status[recipe_name].installed_files
             self.clean_recipe_status(recipe_name)
-            self._recipe_status(recipe_name).installed_files = installed_files
+            if installed_files:
+                self._recipe_status(recipe_name).installed_files = installed_files
             self.save()
+
+    def recipe_remove_installed_files(self, recipe_name):
+        installed_files = self.recipe_installed_files(recipe_name)
+        for f in [os.path.join(self._config.install_dir, f) for f in installed_files]:
+            # os.path.exists returns False for broken symbolic links
+            if os.path.exists(f) or os.path.islink(f):
+                os.remove(f)
+        self._config.cookbook.update_installed_files(recipe_name, [])
 
     def recipe_needs_build(self, recipe_name):
         '''

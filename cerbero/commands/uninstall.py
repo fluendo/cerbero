@@ -69,12 +69,7 @@ class Uninstall(Command):
             # As a fallback, in case the uninstall target does not exist,
             # or in case it misses some of the installed files, remove
             # them manually
-            installed_files = cookbook.recipe_installed_files(recipe_name)
-            for f in [os.path.join(config.install_dir, f) for f in installed_files]:
-                # os.path.exists returns False for broken symbolic links
-                if os.path.exists(f) or os.path.islink(f):
-                    os.remove(f)
-
+            cookbook.recipe_remove_installed_files(recipe_name)
             cookbook.clean_recipe_status(recipe_name)
 
             # Lastly, remove the build directory
@@ -82,7 +77,6 @@ class Uninstall(Command):
             if os.path.isdir(build_dir):
                 shutil.rmtree(build_dir)
 
-        shell.remove_empty_dirs(config.install_dir)
         m.message('Recipes uninstalled: {}'.format(' '.join(recipe_names)))
 
 
