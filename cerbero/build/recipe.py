@@ -23,7 +23,7 @@ import tempfile
 import time
 import inspect
 import asyncio
-from functools import reduce
+from functools import reduce, lru_cache
 from pathlib import Path
 import hashlib
 
@@ -93,7 +93,7 @@ def log_step_output(recipe, stepfunc):
 
 
 class MetaRecipe(type):
-    ''' This metaclass modifies the base classes of a Receipt, adding 2 new
+    ''' This metaclass modifies the base classes of a Recipe, adding 2 new
     base classes based on the class attributes 'stype' and 'btype'.
 
     class NewReceipt(Receipt):
@@ -549,7 +549,11 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             return True
 
         sha256 = hashlib.sha256()
+
+        # Due to the MetaRecipe type, the order in which btype and stype classes are returned
+        # by getmro() may differ. Hence, we need to ensure the order used is consistent
         classes = list(filter(lambda c: _class_filter(c, self.config.strict_recipe_checksum), inspect.getmro(self.__class__)))
+        classes = sorted(classes, key=lambda c: c.__module__ + '.' +  c.__name__)
         for c in classes:
             sha256.update(get_class_checksum(c))
         return sha256
@@ -717,6 +721,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             return path
         return os.path.abspath(os.path.join(self.recipe_dir(), path))
 
+    @lru_cache(maxsize=None)
     def get_checksum(self):
         '''
         Returns the current checksum of the recipe file and other files
