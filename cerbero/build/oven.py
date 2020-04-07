@@ -219,7 +219,7 @@ class Oven (object):
         # list of installed files for this recipe
         # WARNING: the method to automatically detect files will only work
         # when installing recipes not concurrently
-        if BuildSteps.INSTALL in recipe.steps or BuildSteps.POST_INSTALL in recipe.steps:
+        if set([BuildSteps.INSTALL, BuildSteps.POST_INSTALL]).intersection(set(recipe.steps)):
             self._update_installed_files(recipe, tmp)
 
         if recipe.library_type == LibraryType.STATIC:

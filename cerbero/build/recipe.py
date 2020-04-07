@@ -127,6 +127,7 @@ class BuildSteps(object):
 
     FETCH = (N_('Fetch'), 'fetch')
     EXTRACT = (N_('Extract'), 'extract')
+    CLEAN_INSTALLED_FILES = (N_('Clean installed files'), 'clean_installed_files')
     CONFIGURE = (N_('Configure'), 'configure')
     COMPILE = (N_('Compile'), 'compile')
     INSTALL = (N_('Install'), 'install')
@@ -140,7 +141,7 @@ class BuildSteps(object):
     DELETE_RPATH = (N_('Delete rpath from binaries'), 'delete_rpath')
 
     def __new__(cls):
-        return [BuildSteps.FETCH, BuildSteps.EXTRACT,
+        return [BuildSteps.FETCH, BuildSteps.EXTRACT, BuildSteps.CLEAN_INSTALLED_FILES,
                 BuildSteps.CONFIGURE, BuildSteps.COMPILE, BuildSteps.INSTALL,
                 BuildSteps.POST_INSTALL]
 
@@ -583,6 +584,12 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             self._write_license_readme(licenses_files, install_dir, 'binaries')
         elif self.licenses_bins is not None:
             raise AssertionError('{}.recipe: unknown licenses_bins type'.format(self.name))
+
+    def clean_installed_files(self):
+        '''
+        Runs the clean_installed_files step
+        '''
+        self.config.cookbook.recipe_remove_installed_files(self.name)
 
     def post_install(self):
         '''
