@@ -67,9 +67,9 @@ class Uninstall(Command):
                           'was installed using fridge: {}'.format(recipe.name, ex))
 
             # As a fallback, in case the uninstall target does not exist,
-            # or in case it misses some of the installed files, remove
-            # them manually
-            cookbook.recipe_remove_installed_files(recipe_name)
+            # or in case it misses some of the installed files, call the
+            # `clean_installed_files` method which will remove them
+            recipe.clean_installed_files()
             cookbook.clean_recipe_status(recipe_name)
 
             # Lastly, remove the build directory
