@@ -55,7 +55,7 @@ class OSXRelocator(object):
     def change_id(self, object_file, id=None):
         id = id or object_file.replace(self.lib_prefix, '@rpath')
         filename = os.path.basename(object_file)
-        if not (filename.endswith('so') or filename.endswith('dylib')):
+        if not self.is_mach_o_file(filename):
             return
         cmd = '%s -id "%s" "%s"' % (INT_CMD, id, object_file)
         shell.call(cmd, fail=False, logfile=self.logfile)
@@ -97,6 +97,10 @@ class OSXRelocator(object):
                 self.change_libs_path(os.path.join(dirpath, f))
             if not self.recursive:
                 break
+
+    def is_mach_o_file(self, filename):
+        return '.dylib' in os.path.splitext(filename)[1] or \
+                shell.check_output('file', '-bh', '\"' + filename + '\"').startswith('Mach-O')
 
     @staticmethod
     def list_shared_libraries(object_file):
