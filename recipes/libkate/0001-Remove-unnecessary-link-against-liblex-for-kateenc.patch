@@ -1,0 +1,25 @@
+From cdeecec7bc7b83a235203aef3b78157e52118eb2 Mon Sep 17 00:00:00 2001
+From: Pablo Marcos Oltra <pablo.marcos.oltra@gmail.com>
+Date: Mon, 20 Apr 2020 19:01:11 +0200
+Subject: [PATCH] Remove unnecessary link against liblex for kateenc
+
+---
+ tools/Makefile.am | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/Makefile.am b/tools/Makefile.am
+index 2be12a3..48076a1 100644
+--- a/tools/Makefile.am
++++ b/tools/Makefile.am
+@@ -20,7 +20,7 @@ kateenc_SOURCES+=kpng.c
+ endif
+ katedec_SOURCES=katedec.c kkate.c ksrt.c klrc.c kutil.c kfuzz.c kstream.c kread.c kstrings.c
+ katalyzer_SOURCES=katalyzer.c kutil.c kstream.c kread.c kstrings.c kstats.c
+-kateenc_LDADD=../lib/liboggkate.la ../lib/libkate.la @OGG_LIBS@ @PNG_LIBS@ @LEXLIB@
++kateenc_LDADD=../lib/liboggkate.la ../lib/libkate.la @OGG_LIBS@ @PNG_LIBS@
+ katedec_LDADD=../lib/liboggkate.la ../lib/libkate.la @OGG_LIBS@
+ katalyzer_LDADD=../lib/liboggkate.la ../lib/libkate.la @OGG_LIBS@
+ kateenc_CFLAGS=@CWARNFLAGS_LIGHT@ @CFLAGS_FORTIFY_SOURCE@ @CFLAGS_DEBUG@ @OGG_CFLAGS@ @PNG_CFLAGS@
+-- 
+2.17.1
+
