@@ -100,7 +100,7 @@ class OSXRelocator(object):
 
     def is_mach_o_file(self, filename):
         return '.dylib' in os.path.splitext(filename)[1] or \
-                shell.check_output('file', '-bh', '\"' + filename + '\"').startswith('Mach-O')
+                shell.check_output(['file', '-bh', '\"' + filename + '\"']).startswith('Mach-O')
 
     @staticmethod
     def list_shared_libraries(object_file):
