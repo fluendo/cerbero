@@ -129,7 +129,11 @@ class WindowsBootstrapper(BootstrapperBase):
         if self.platform == Platform.WINDOWS:
             # Tar does not create correctly the mingw symlink
             sysroot = os.path.join(self.prefix, 'x86_64-w64-mingw32/sysroot')
-            shutil.rmtree(os.path.join(sysroot, 'mingw'))
+            mingw_path = os.path.join(sysroot, 'mingw')
+            if os.path.islink(mingw_path):
+                os.remove(mingw_path)
+            else:
+                shutil.rmtree(mingw_path)
             shell.call('ln -s usr/x86_64-w64-mingw32 mingw', sysroot)
             # Create include folder
             include_folder = os.path.join(self.prefix, 'x86_64-w64-mingw32/include')
