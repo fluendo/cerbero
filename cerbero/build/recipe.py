@@ -450,18 +450,15 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         '''
         relocator = OSXRelocator(self.config.prefix, self.config.prefix, True,
                 logfile=self.logfile)
+
         def get_real_path(fp):
             return os.path.realpath(os.path.join(self.config.prefix, fp))
-
-        def file_is_relocatable(fp):
-            return fp.split('/')[0] in ['lib', 'bin', 'libexec'] and \
-                    os.path.splitext(fp)[1] not in ['.a', '.pc', '.la']
 
         # Only relocate files are that are potentially relocatable and
         # remove duplicates by symbolic links so we relocate libs only
         # once.
-        for f in set([get_real_path(x) for x in self.files_list() \
-                if file_is_relocatable(x)]):
+        for f in [get_real_path(x) for x in self.config.cookbook.recipe_installed_files(self.name) \
+                 if relocator.is_mach_o_file(get_real_path(x))]:
             relocator.relocate_file(f)
 
     def delete_rpath(self):

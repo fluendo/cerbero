@@ -66,13 +66,19 @@ class OSXRelocator(object):
         rpaths = ['.']
         rpaths += ['@loader_path' + p_depth, '@executable_path' + p_depth]
         rpaths += ['@loader_path' + '/../lib', '@executable_path' + '/../lib']
-        if not (object_file.endswith('so') or object_file.endswith('dylib')):
+        if not self.is_mach_o_file(object_file):
             return
         if depth > 1:
             rpaths += ['@loader_path/..', '@executable_path/..']
         for p in rpaths:
+            # ensure the rpath doesn't exist previously
+            try:
+                cmd = '%s -delete_rpath %s "%s" > /dev/null 2>&1' % (INT_CMD, p, object_file)
+                shell.new_call(cmd, logfile=self.logfile)
+            except Exception:
+                pass
             cmd = '%s -add_rpath %s "%s"' % (INT_CMD, p, object_file)
-            shell.call(cmd, fail=False)
+            shell.call(cmd, logfile=self.logfile)
         for lib in self.list_shared_libraries(object_file):
             if self.lib_prefix in lib:
                 new_lib = lib.replace(self.lib_prefix, '@rpath')
@@ -98,10 +104,6 @@ class OSXRelocator(object):
             if not self.recursive:
                 break
 
-    def is_mach_o_file(self, filename):
-        return '.dylib' in os.path.splitext(filename)[1] or \
-                shell.check_output(['file', '-bh', '\"' + filename + '\"']).startswith('Mach-O')
-
     @staticmethod
     def list_shared_libraries(object_file):
         cmd = '%s -L "%s"' % (OTOOL_CMD, object_file)
@@ -113,6 +115,11 @@ class OSXRelocator(object):
         # Remove the version info
         libs = [x.split(' ', 1)[0] for x in libs]
         return libs
+
+    @staticmethod
+    def is_mach_o_file(filename):
+        return '.dylib' in os.path.splitext(filename)[1] or \
+                shell.check_output(['file', '-bh', filename]).startswith('Mach-O')
 
     def _fix_path(self, path):
         if path.endswith('/'):
