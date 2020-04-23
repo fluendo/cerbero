@@ -20,6 +20,7 @@ import os
 import shutil
 import tarfile
 import tempfile
+from functools import lru_cache
 
 import cerbero.utils.messages as m
 from cerbero.utils import shell, _, replace_prefix_in_bytes, is_text_file
@@ -27,7 +28,6 @@ from cerbero.enums import Platform
 from cerbero.errors import FatalError, UsageError, EmptyPackageError
 from cerbero.packages import PackagerBase, PackageType
 from cerbero.tools import strip
-from functools import lru_cache
 
 RESTORE_SUFFIX = '.relocation_restore'
 
@@ -183,11 +183,7 @@ class DistTarball(PackagerBase):
                         fo.write(content)
                         fo.truncate()
                         fo.flush()
-                        tar_files.append(filepath)
-                else:
-                    tar_files.append(filepath)
-            else:
-                tar_files.append(filepath)
+            tar_files.append(filepath)
 
         # This link allows to rpm packager to install the libs
         # in lib64 instead of lib without changing where cerbero
