@@ -191,19 +191,20 @@ class Oven (object):
                 stepfunc = getattr(recipe, step)
                 if not stepfunc:
                     raise FatalError(_('Step %s not found') % step)
+
+                # We need to update the installed files before the relocate_osx_binaries step
+                # because it needs to know the list of files that needs to relocate
+                # WARNING: the method to automatically detect files will only work
+                # when installing recipes not concurrently
+                if step == BuildSteps.RELOCATE_OSX_LIBRARIES[1]:
+                    self._update_installed_files(recipe, tmp)
+
                 if asyncio.iscoroutinefunction(stepfunc):
                     shell.run_until_complete(stepfunc())
                 else:
                     stepfunc()
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
-
-                # In case the recipe has been fully installed now, update the internal
-                # list of installed files for this recipe
-                # WARNING: the method to automatically detect files will only work
-                # when installing recipes not concurrently
-                if step == BuildSteps.POST_INSTALL[1]:
-                    self._update_installed_files(recipe, tmp)
 
             except FatalError as e:
                 exc_traceback = sys.exc_info()[2]
@@ -222,6 +223,13 @@ class Oven (object):
             except Exception:
                 raise BuildStepError(recipe, step, traceback.format_exc())
         self.cookbook.update_build_status(recipe.name, recipe.built_version())
+
+        # In case the recipe has been fully installed now, update the internal
+        # list of installed files for this recipe
+        # WARNING: the method to automatically detect files will only work
+        # when installing recipes not concurrently
+        if set([BuildSteps.INSTALL, BuildSteps.POST_INSTALL]).intersection(set(recipe.steps)):
+            self._update_installed_files(recipe, tmp)
 
         if recipe.library_type == LibraryType.STATIC:
             self._static_libraries_built.append(recipe.name)
