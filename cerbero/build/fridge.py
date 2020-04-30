@@ -237,7 +237,7 @@ class Fridge (object):
                     tarclass = RelocatableTar
                 tar = tarclass.open(os.path.join(self.binaries_local,
                                                  filename), 'r:bz2')
-                tar.extract_and_relocate(self.config.install_dir)
+                tar.extract_and_relocate(self.config.prefix, self.config.toolchain_prefix)
                 tar.close()
 
     def generate_binary(self, recipe):

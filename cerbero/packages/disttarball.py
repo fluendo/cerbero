@@ -178,7 +178,15 @@ class DistTarball(PackagerBase):
                     restore_files.append(filepath)
                     with open(filepath, 'rb+') as fo:
                         content = fo.read()
-                        content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
+                        # Relocate first the longest of the paths
+                        if self.config.toolchain_prefix and self.config.toolchain_prefix in self.config.prefix:
+                            content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
+                            if self.config.toolchain_prefix:
+                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, 'CERBERO_TOOLCHAIN_PREFIX')
+                        else:
+                            if self.config.toolchain_prefix:
+                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, 'CERBERO_TOOLCHAIN_PREFIX')
+                            content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
                         fo.seek(0)
                         fo.write(content)
                         fo.truncate()

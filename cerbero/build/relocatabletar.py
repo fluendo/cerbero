@@ -9,14 +9,17 @@ from cerbero.tools.osxrelocator import OSXRelocator
 
 
 class RelocatableTar(TarFile):
-    """Generic RelocatableTar relocates CERBERO_PREFIX  for common files"""
+    """
+    Generic RelocatableTar relocates CERBERO_PREFIX and CERBERO_TOOLCHAIN_PREFIX
+    for common files
+    """
 
-    def extract_and_relocate(self, extract_to_path):
-        self.extractall(extract_to_path)
+    def extract_and_relocate(self, prefix, toolchain_prefix):
+        self.extractall(prefix)
         for member in self.getmembers():
-            full_member_path = os.path.join(extract_to_path, member.name)
+            full_member_path = os.path.join(prefix, member.name)
             if self._is_relocatable(full_member_path):
-                self._relocate(full_member_path, extract_to_path)
+                self._relocate(full_member_path, prefix, toolchain_prefix)
 
     def _has_relocatable_content(self, file):
         return False
@@ -27,10 +30,18 @@ class RelocatableTar(TarFile):
         else:
             return False
 
-    def _relocate(self, file, subst_path):
+    def _relocate(self, file, prefix, toolchain_prefix):
         with open(file, 'rb+') as fo:
             content = fo.read()
-            content = content.replace('CERBERO_PREFIX'.encode('utf-8'), subst_path.encode('utf-8'))
+            # Relocate first the longest of the paths
+            if toolchain_prefix and toolchain_prefix in prefix:
+                content = content.replace('CERBERO_PREFIX'.encode('utf-8'), prefix.encode('utf-8'))
+                if toolchain_prefix:
+                    content = content.replace('CERBERO_TOOLCHAIN_PREFIX'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
+            else:
+                if toolchain_prefix:
+                    content = content.replace('CERBERO_TOOLCHAIN_PREFIX'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
+                content = content.replace('CERBERO_PREFIX'.encode('utf-8'), prefix.encode('utf-8'))
             fo.seek(0)
             fo.write(content)
             fo.truncate()
@@ -40,15 +51,15 @@ class RelocatableTar(TarFile):
 class RelocatableTarOSX(RelocatableTar):
     """OSX Specialization, also checks specific OSX files and uses OSXRelocator"""
 
-    def extract_and_relocate(self, extract_to_path):
-        self.relocator = OSXRelocator(extract_to_path, extract_to_path, True)
-        super().extract_and_relocate(extract_to_path)
+    def extract_and_relocate(self, prefix, toolchain_prefix):
+        self.relocator = OSXRelocator(prefix, prefix, True)
+        super().extract_and_relocate(prefix, toolchain_prefix)
 
     def _has_relocatable_content(self, file):
         return self.relocator.is_mach_o_file(file) or super()._has_relocatable_content(file)
 
-    def _relocate(self, file, subst_path):
+    def _relocate(self, file, prefix, toolchain_prefix):
         if self.relocator.is_mach_o_file(file):
             self.relocator.change_id(file, file)
         else:
-            super()._relocate(file, subst_path)
+            super()._relocate(file, prefix, toolchain_prefix)
