@@ -168,7 +168,7 @@ class Oven (object):
         # Windows and macOS have a 1 sec while Linux has millisecond. Hence, we
         # sleep enough to make sure the files from previous recipes are not
         # taken
-        if count != 1 and self.config.platform != Platform.LINUX:
+        if self.config.platform != Platform.LINUX:
             time.sleep(1.5)
 
         if use_binaries:
