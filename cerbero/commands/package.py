@@ -71,19 +71,15 @@ class Package(Command):
             ArgparseArgument('--upload-binaries', action='store_true',
                 default=False,
                 help=_('after a recipe is built upload the corresponding binary package')),
-            ArgparseArgument('--build-missing', action='store_true',
-                default=False,
-                help=_('in case a binary package is missing try to build it')),
             ArgparseArgument('--fridge', action='store_true',
                 default=False,
-                help=_('equivalent to \'--build-missing --use-binaries --upload-binaries\''))
+                help=_('equivalent to \'--use-binaries --upload-binaries\''))
             ])
 
     def run(self, config, args):
         if args.fridge:
             args.use_binaries = True
             args.upload_binaries = True
-            args.build_missing = True
 
         self.store = PackagesStore(config, offline=args.offline)
         p = self.store.get_package(args.package[0])
@@ -94,7 +90,7 @@ class Package(Command):
 
         if not args.skip_deps_build:
             self._build_deps(config, p, args.no_devel, args.offline, args.dry_run,
-                             args.use_binaries, args.upload_binaries, args.build_missing)
+                             args.use_binaries, args.upload_binaries)
 
         if args.only_build_deps or args.dry_run:
             return
@@ -127,11 +123,11 @@ class Package(Command):
                  ' '.join([os.path.abspath(x) for x in paths]))
 
     def _build_deps(self, config, package, has_devel, offline, dry_run, use_binaries=False,
-                    upload_binaries=False, build_missing=False):
+                    upload_binaries=False):
         build_command = build.Build()
         build_command.runargs(config, package.recipes_dependencies(has_devel),
             cookbook=self.store.cookbook, dry_run=dry_run, offline=offline,
-            use_binaries=use_binaries, upload_binaries=upload_binaries, build_missing=build_missing)
+            use_binaries=use_binaries, upload_binaries=upload_binaries)
 
 
 register_command(Package)

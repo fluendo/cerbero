@@ -122,7 +122,8 @@ class FtpBinaryRemote (BinaryRemote):
 
                 if not os.path.exists(local_sha256_filename):
                     sha256 = shell.file_sha256(local_filename)
-                    # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
+                    # .sha256 file contains both the sha256 hash and the
+                    # filename, separated by a whitespace
                     with open(local_sha256_filename, 'w') as f:
                         f.write('%s %s' % (sha256.hex(), filename))
 
