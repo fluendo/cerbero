@@ -110,8 +110,7 @@ Apart from that, the following arguments have been added to the `build` and
 ```
 --use-binaries     use binaries from the repo before building
 --upload-binaries  after a recipe is built upload the corresponding binary package
---build-missing    in case a binary package is missing try to build it
---fridge           equivalent to '--build-missing --use-binaries --upload-binaries'
+--fridge           equivalent to '--use-binaries --upload-binaries'
 ```
 
 As a rule of thumb, if you want to use prebuilt binaries and upload any of them

@@ -42,12 +42,9 @@ class Bootstrap(Command):
             ArgparseArgument('--upload-binaries', action='store_true',
                              default=False,
                              help=_('after a recipe is built upload the corresponding binary package')),
-            ArgparseArgument('--build-missing', action='store_true',
-                             default=False,
-                             help=_('in case a binary package is missing try to build it')),
             ArgparseArgument('--fridge', action='store_true',
                              default=False,
-                             help=_('equivalent to \'--build-missing --use-binaries --upload-binaries\'')),
+                             help=_('equivalent to \'--use-binaries --upload-binaries\'')),
             ArgparseArgument('--missing-files', action='store_true',
                             default=False,
                             help=_('prints a list of files installed that are '
@@ -59,10 +56,9 @@ class Bootstrap(Command):
         if args.fridge:
             args.use_binaries = True
             args.upload_binaries = True
-            args.build_missing = True
         bootstrappers = Bootstrapper(config, args.build_tools_only,
                 args.offline, args.assume_yes, args.system_only,
-                args.use_binaries, args.upload_binaries, args.build_missing,
+                args.use_binaries, args.upload_binaries,
                 args.missing_files)
         for bootstrapper in bootstrappers:
             bootstrapper.fetch()

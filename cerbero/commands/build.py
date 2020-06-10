@@ -47,12 +47,9 @@ class Build(Command):
                 ArgparseArgument('--upload-binaries', action='store_true',
                     default=False,
                     help=_('after a recipe is built upload the corresponding binary package')),
-                ArgparseArgument('--build-missing', action='store_true',
-                    default=False,
-                    help=_('in case a binary package is missing try to build it')),
                 ArgparseArgument('--fridge', action='store_true',
                     default=False,
-                    help=_('equivalent to \'--build-missing --use-binaries --upload-binaries\''))
+                    help=_('equivalent to \'--use-binaries --upload-binaries\''))
                 ]
             if force is None:
                 args.append(
@@ -79,24 +76,20 @@ class Build(Command):
         if args.fridge:
             args.use_binaries = True
             args.upload_binaries = True
-            args.build_missing = True
         self.runargs(config, args.recipe, args.missing_files, self.force,
                      self.no_deps, dry_run=args.dry_run, offline=args.offline,
                      deps_only=self.deps_only, use_binaries=args.use_binaries,
-                     upload_binaries=args.upload_binaries,
-                     build_missing=args.build_missing)
-
+                     upload_binaries=args.upload_binaries)
     def runargs(self, config, recipes, missing_files=False, force=False,
                 no_deps=False, cookbook=None, dry_run=False, offline=False,
-                deps_only=False, use_binaries=False, upload_binaries=False,
-                build_missing=False):
+                deps_only=False, use_binaries=False, upload_binaries=False):
         if cookbook is None:
             cookbook = CookBook(config, offline=offline)
 
         oven = Oven(recipes, cookbook, force=self.force,
                     no_deps=self.no_deps, missing_files=missing_files,
                     dry_run=dry_run, deps_only=deps_only)
-        oven.start_cooking(use_binaries, upload_binaries, build_missing)
+        oven.start_cooking(use_binaries, upload_binaries)
 
 
 class BuildOne(Build):

@@ -86,7 +86,7 @@ class Oven (object):
         self.deps_only = deps_only
         shell.DRY_RUN = dry_run
 
-    def start_cooking(self, use_binaries=False, upload_binaries=False, build_missing=True):
+    def start_cooking(self, use_binaries=False, upload_binaries=False):
         '''
         Cooks the recipe and all its dependencies
         '''
