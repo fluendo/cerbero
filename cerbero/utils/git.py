@@ -224,7 +224,7 @@ async def async_get_hash(git_dir, commit, remotes=None):
     return output.rstrip()
 
 def get_hash(git_dir, commit, remotes=None):
-    return shell.run_until_complete(async_get_hash(git_dir, commit, remote))
+    return shell.run_until_complete(async_get_hash(git_dir, commit, remotes))
 
 def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''
