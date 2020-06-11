@@ -156,6 +156,7 @@ class BaseTarball(object):
     tarball_name = None
     tarball_dirname = None
     tarball_checksum = None
+    untrusted_protocols = ['http','ftp']
 
     def __init__(self):
         if not self.tarball_name:
@@ -166,8 +167,8 @@ class BaseTarball(object):
         split[2] = urllib.parse.quote(split[2])
         self.url = urllib.parse.urlunsplit(split)
         o = urllib.parse.urlparse(self.url)
-        if o.scheme in ('http', 'ftp'):
-            raise FatalError('Download URL {!r} must use HTTPS'.format(self.url))
+        if o.scheme in self.untrusted_protocols:
+            raise FatalError('Download URL {!r} must use a trusted protocol'.format(self.url))
 
     def fetch_impl(self, redownload=False):
         if self.offline:
