@@ -185,7 +185,7 @@ def checkout(git_dir, commit, logfile=None):
     '''
     return shell.call('%s reset --hard %s' % (GIT, commit), git_dir, logfile=logfile)
 
-async def async_get_hash(git_dir, commit, remotes=None):
+async def async_get_hash(config, git_dir, commit, remotes=None):
     '''
     Get a commit hash from a valid commit.
     Can be used to check if a commit exists
@@ -197,6 +197,11 @@ async def async_get_hash(git_dir, commit, remotes=None):
     @param remote: the repo's remote
     @type remote: str
     '''
+
+    # Ensure git uses the system's libraries instead of the ones in the home_dir
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = config._pre_environ.get("LD_LIBRARY_PATH", "")
+
     # In case this hash is taken when the repo has not been cloned yet
     # (e.g. changing stype from tarball to git, during fridge), we need
     # to collect the actual commit we would checkout. Otherwise, fridge
@@ -209,7 +214,7 @@ async def async_get_hash(git_dir, commit, remotes=None):
                 remote = remotes[commit_split[0]]
                 commit = commit_split[1]
 
-            remote_commit = await shell.async_call_output('%s ls-remote %s %s' % (GIT, remote, commit))
+            remote_commit = await shell.async_call_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
             # If the commit/tag/branch given doesn't show up using ls-remote, it means
             # it is not the HEAD of any refs. Hence, it must be a previous commit
             # that we can use directly
@@ -220,11 +225,11 @@ async def async_get_hash(git_dir, commit, remotes=None):
         else:
             raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
     output = await shell.async_call_output('%s rev-parse %s' %
-                            (GIT, commit), git_dir)
+                            (GIT, commit), git_dir, env=env)
     return output.rstrip()
 
-def get_hash(git_dir, commit, remotes=None):
-    return shell.run_until_complete(async_get_hash(git_dir, commit, remotes))
+def get_hash(config, git_dir, commit, remotes=None):
+    return shell.run_until_complete(async_get_hash(config, git_dir, commit, remotes))
 
 def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''

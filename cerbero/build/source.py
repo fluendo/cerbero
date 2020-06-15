@@ -339,7 +339,7 @@ class GitCache (Source):
         if not self.cached_built_version:
             git_hash = 'error_getting_hash'
             try:
-                git_hash = await git.async_get_hash(self.repo_dir, self.commit, self.remotes)
+                git_hash = await git.async_get_hash(self.config, self.repo_dir, self.commit, self.remotes)
             finally:
                 self.cached_built_version = '%s+git~%s' % (self.version, git_hash)
         return self.cached_built_version
@@ -414,8 +414,8 @@ class Git (GitCache):
     def extract(self):
         if os.path.exists(self.build_dir):
             try:
-                commit_hash = git.get_hash(self.repo_dir, self.commit)
-                checkout_hash = git.get_hash(self.build_dir, 'HEAD')
+                commit_hash = git.get_hash(self.config, self.repo_dir, self.commit)
+                checkout_hash = git.get_hash(self.config, self.build_dir, 'HEAD')
                 if commit_hash == checkout_hash and not self.patches:
                     return False
             except Exception:

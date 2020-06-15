@@ -209,7 +209,10 @@ Terminating.''', file=sys.stderr)
                         d = (name, version, '');
         if d[0] in ['Ubuntu', 'debian', 'LinuxMint']:
             distro = Distro.DEBIAN
-            distro_version = d[2].split()[0].lower()
+            distro_version = d[2].lower()
+            split_str = d[2].split()
+            if split_str:
+                distro_version = split_str[0].lower()
             if distro_version in ['maverick', 'isadora']:
                 distro_version = DistroVersion.UBUNTU_MAVERICK
             elif distro_version in ['lucid', 'julia']:
