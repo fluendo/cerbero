@@ -13,9 +13,8 @@ class Recipe(recipe.Recipe):
     meson_options = {'tests' : 'disabled',
                      'gupnp' : 'disabled',
                      'gstreamer' : 'enabled',
-                     'crypto-library' : 'gnutls'}
-    deps = ['glib', 'gstreamer-1.0', 'gnutls']
-    patches = []
+                     'crypto-library' : 'openssl'}
+    deps = ['glib', 'gstreamer-1.0']
 
     patches = [
         # https://gitlab.freedesktop.org/libnice/libnice/-/merge_requests/150
