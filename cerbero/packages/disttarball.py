@@ -120,7 +120,7 @@ class DistTarball(PackagerBase):
         # 19+git~origin/master-e65a012bc0001ab7a4e351dbed6af4cc to
         # 19+git~origin@master-e65a012bc0001ab7a4e351dbed6af4cc
         package_version = self.package.version.replace('/', '@')
-        return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name, platform,
+        return "%s%s-%s-%s-%s%s.%s" % (self.package_prefix, self.package.name.replace('-pkg', ''), platform,
                                        self.config.target_arch, package_version, package_type, ext)
 
     def _create_tarball_stripped(self, output_dir, package_type, files, force,

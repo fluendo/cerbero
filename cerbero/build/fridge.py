@@ -272,7 +272,7 @@ class Fridge (object):
         if not recipe.allow_package_creation:
             raise RecipeNotFreezableError(recipe.name)
         if not self.env_checksum:
-            self.env_checksum = self.config.get_checksum()
+            self.env_checksum = self.config.get_checksum()[:8]
             self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
             if not self.binaries_remote:
                 raise FatalError(_('Configuration without binaries remote'))
