@@ -176,7 +176,8 @@ class PackagesStore (object):
             version = recipe.built_version()
         else:
             version = recipe.version
-        p.version = '%s-%s' % (version, recipe.get_checksum())
+        # take only the first 8 characters of the checksum to avoid having way-too-long names
+        p.version = '%s-%s' % (version, recipe.get_checksum()[:8])
         p.files = ['%s' % recipe.name]
         p.load_files()
         return p
