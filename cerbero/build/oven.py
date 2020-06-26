@@ -28,7 +28,7 @@ import time
 from cerbero.enums import Architecture, Platform, LibraryType
 from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
 from cerbero.build.recipe import Recipe, BuildSteps
-from cerbero.utils import _, N_, shell
+from cerbero.utils import _, N_, shell, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.fridge import Fridge
 from cerbero.packages.packagesstore import PackagesStore
@@ -200,7 +200,7 @@ class Oven (object):
                     self._update_installed_files(recipe, tmp)
 
                 if asyncio.iscoroutinefunction(stepfunc):
-                    shell.run_until_complete(stepfunc())
+                    run_until_complete(stepfunc())
                 else:
                     stepfunc()
                 # update status successfully

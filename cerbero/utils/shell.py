@@ -749,38 +749,3 @@ def windows_proof_rename(from_name, to_name):
                 continue
     # Try one last time and throw an error if it fails again
     os.rename(from_name, to_name)
-
-
-def run_until_complete(tasks, max_concurrent=16):
-    '''
-    Runs all tasks, blocking until all of them have finished.
-    @param tasks: A list of Futures to run
-    @type tasks: list
-    @param max_concurrent: Maximum number of concurrent tasks running
-    @type max_concurrent: int
-    @return: the result of the asynchronous task execution or a list of
-             all results in case of multiple tasks
-    @rtype: any type or list of any types in case of multiple tasks
-    '''
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    # On Windows the default SelectorEventLoop is not available:
-    # https://docs.python.org/3.5/library/asyncio-subprocess.html#windows-event-loop
-    if sys.platform == 'win32' and \
-       not isinstance(loop, asyncio.ProactorEventLoop):
-        loop = asyncio.ProactorEventLoop()
-        asyncio.set_event_loop(loop)
-
-    if isinstance(tasks, Iterable):
-        result = []
-        slices = [tasks[i * max_concurrent:i * max_concurrent + max_concurrent]
-                  for i in range(math.ceil(len(tasks) / max_concurrent))]
-        for s in slices:
-            result += loop.run_until_complete(asyncio.gather(*s))
-    else:
-        result = loop.run_until_complete(tasks)
-    return result

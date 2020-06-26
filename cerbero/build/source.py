@@ -24,7 +24,7 @@ from hashlib import sha256
 from functools import lru_cache
 
 from cerbero.config import Platform, DEFAULT_MIRRORS
-from cerbero.utils import git, svn, shell, _
+from cerbero.utils import git, svn, shell, run_until_complete, _
 from cerbero.errors import FatalError, InvalidRecipeError
 import cerbero.utils.messages as m
 
@@ -348,7 +348,7 @@ class GitCache (Source):
 
     def built_version(self):
         if not self.cached_built_version:
-            shell.run_until_complete(self.async_built_version())
+            run_until_complete(self.async_built_version())
         return self.cached_built_version
 
 

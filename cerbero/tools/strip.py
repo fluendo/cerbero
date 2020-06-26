@@ -19,7 +19,7 @@
 
 import os
 from cerbero.config import Platform
-from cerbero.utils import shell, messages as m
+from cerbero.utils import shell, run_until_complete, messages as m
 
 
 class Strip(object):
@@ -54,7 +54,7 @@ class Strip(object):
             m.warning(e)
 
     def strip_file(self, path):
-        shell.run_until_complete(self.async_strip_file(path))
+        run_until_complete(self.async_strip_file(path))
 
     def strip_dir(self, dir_path):
         if not self.strip_cmd:
@@ -65,4 +65,4 @@ class Strip(object):
         for dirpath, dirnames, filenames in os.walk(dir_path):
             for f in filenames:
                 tasks.append(self.async_strip_file(os.path.join(dirpath, f)))
-        shell.run_until_complete(tasks)
+        run_until_complete(tasks)

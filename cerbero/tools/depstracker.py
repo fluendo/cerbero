@@ -19,7 +19,7 @@ import os
 import re
 
 from cerbero.config import Platform
-from cerbero.utils import shell, messages as m
+from cerbero.utils import shell, run_until_complete, messages as m
 
 
 class RecursiveLister():
@@ -102,7 +102,7 @@ class DepsTracker():
         self.lister = self.BACKENDS[platform]()
 
     def list_deps(self, path):
-        deps = shell.run_until_complete(self.lister.async_list_deps(self.prefix, path))
+        deps = run_until_complete(self.lister.async_list_deps(self.prefix, path))
         rdeps = []
         for d in deps:
             if os.path.islink(d):

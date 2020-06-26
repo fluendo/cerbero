@@ -26,7 +26,7 @@ from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
 from cerbero.errors import FatalError
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell
+from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
@@ -43,6 +43,8 @@ class Fetch(Command):
                     default=False, help=_('print all source URLs to stdout')))
         args.append(ArgparseArgument('--full-reset', action='store_true',
                     default=False, help=_('reset to extract step if rebuild is needed')))
+        args.append(ArgparseArgument('--use-binaries', action='store_true',
+                    default=False, help=_('use fridge to download binary packages if available')))
         args.append(ArgparseArgument('--fridge', action='store_true',
                     default=False, help=_('use fridge to download binary packages if available')))
         Command.__init__(self, args)
@@ -80,7 +82,7 @@ class Fetch(Command):
             m.build_step(i + 1, len(fetch_recipes), recipe, 'fetch')
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
-                shell.run_until_complete(stepfunc())
+                run_until_complete(stepfunc())
             else:
                 stepfunc()
             bv = cookbook.recipe_built_version(recipe.name)
@@ -121,7 +123,7 @@ class FetchRecipes(Fetch):
     def run(self, config, args):
         cookbook = CookBook(config)
         return self.fetch(cookbook, args.recipes, args.no_deps,
-                          args.reset_rdeps, args.full_reset, args.print_only, args.fridge)
+                          args.reset_rdeps, args.full_reset, args.print_only, args.fridge or args.use_binaries)
 
 
 class FetchPackage(Fetch):
@@ -142,7 +144,7 @@ class FetchPackage(Fetch):
         package = store.get_package(args.package[0])
         return self.fetch(store.cookbook, package.recipes_dependencies(),
                           args.deps, args.reset_rdeps, args.full_reset,
-                          args.print_only, args.fridge)
+                          args.print_only, args.fridge or args.use_binaries)
 
 class FetchCache(Command):
     doc = N_('Fetch a cached build from GitLab CI based on cerbero git '

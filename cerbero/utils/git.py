@@ -21,7 +21,7 @@ import time
 import shutil
 
 from cerbero.config import Platform
-from cerbero.utils import shell
+from cerbero.utils import shell, run_until_complete
 from cerbero.errors import FatalError
 
 GIT = 'git'
@@ -229,7 +229,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
     return output.rstrip()
 
 def get_hash(config, git_dir, commit, remotes=None):
-    return shell.run_until_complete(async_get_hash(config, git_dir, commit, remotes))
+    return run_until_complete(async_get_hash(config, git_dir, commit, remotes))
 
 def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''

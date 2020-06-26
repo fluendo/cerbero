@@ -35,6 +35,7 @@ import inspect
 import hashlib
 from pathlib import Path
 from functools import lru_cache
+import asyncio
 
 from cerbero.enums import Platform, Architecture, Distro, DistroVersion
 from cerbero.errors import FatalError
@@ -615,3 +616,55 @@ def get_class_checksum(clazz):
     for line in lines:
         sha256.update(line.encode('utf-8'))
     return sha256.digest()
+
+# asyncio.Semaphore classes set their working event loop internally on
+# creation, so we need to ensure the proper loop has already been set by then.
+# This is especially important if we create global semaphores that are
+# initialized at the very beginning, since on Windows, the default
+# SelectorEventLoop is not available.
+def CerberoSemaphore(value=1):
+    get_event_loop() # this ensures the proper event loop is already created
+    return asyncio.Semaphore(value)
+
+def get_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # On Windows the default SelectorEventLoop is not available:
+    # https://docs.python.org/3.5/library/asyncio-subprocess.html#windows-event-loop
+    if sys.platform == 'win32' and \
+       not isinstance(loop, asyncio.ProactorEventLoop):
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+
+    # Avoid spammy BlockingIOError warnings with older python versions
+    if sys.platform != 'win32' and \
+       sys.version_info < (3, 8, 0):
+        asyncio.set_child_watcher(asyncio.FastChildWatcher())
+        asyncio.get_child_watcher().attach_loop(loop)
+
+    return loop
+
+def run_until_complete(tasks):
+    '''
+    Runs one or many tasks, blocking until all of them have finished.
+    @param tasks: A single Future or a list of Futures to run
+    @type tasks: Future or list of Futures
+    @return: the result of the asynchronous task execution (if only
+             one task) or a list of all results in case of multiple
+             tasks. Result is None if operation is cancelled.
+    @rtype: any type or list of any types in case of multiple tasks
+    '''
+    loop = get_event_loop()
+
+    try:
+        if isinstance(tasks, Iterable):
+            result = loop.run_until_complete(asyncio.gather(*tasks))
+        else:
+            result = loop.run_until_complete(tasks)
+        return result
+    except asyncio.CancelledError:
+        return None
