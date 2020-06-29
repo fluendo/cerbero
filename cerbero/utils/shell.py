@@ -34,13 +34,14 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import math
+import collections
 from ftplib import FTP
 from pathlib import Path, PurePath
 from distutils.version import StrictVersion
 from typing import Iterable
 
 from cerbero.enums import Platform
-from cerbero.utils import _, system_info, to_unixpath
+from cerbero.utils import _, system_info, to_unixpath, determine_num_of_cpus, CerberoSemaphore
 from cerbero.utils import messages as m
 from cerbero.errors import FatalError
 
@@ -51,6 +52,8 @@ TARBALL_SUFFIXES = ('tar.gz', 'tgz', 'tar.bz2', 'tbz2', 'tar.xz')
 
 
 PLATFORM = system_info()[0]
+CPU_BOUND_SEMAPHORE = CerberoSemaphore(determine_num_of_cpus())
+NON_CPU_BOUND_SEMAPHORE = CerberoSemaphore(2)
 DRY_RUN = False
 
 CALL_ENV = None
@@ -91,6 +94,16 @@ def _cmd_string_to_array(cmd):
     # Windows and shell syntax such as && and env var setting working on all
     # platforms.
     return ['sh', '-c', cmd]
+
+
+def set_max_cpu_bound_calls(number):
+    global CPU_BOUND_SEMAPHORE
+    CPU_BOUND_SEMAPHORE = CerberoSemaphore(number)
+
+
+def set_max_non_cpu_bound_calls(number):
+    global NON_CPU_BOUND_SEMAPHORE
+    NON_CPU_BOUND_SEMAPHORE = CerberoSemaphore(number)
 
 
 def set_call_env(env):
@@ -211,7 +224,7 @@ def new_call(cmd, cmd_dir=None, logfile=None, env=None):
         raise FatalError('Running command: {!r}\n{}'.format(cmd, str(e)))
 
 
-async def async_call(cmd, cmd_dir='.', logfile=None, env=None):
+async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, cpu_bound=True, env=None):
     '''
     Run a shell command
 
@@ -238,15 +251,20 @@ async def async_call(cmd, cmd_dir='.', logfile=None, env=None):
     # Force python scripts to print their output on newlines instead
     # of on exit. Ensures that we get continuous output in log files.
     env['PYTHONUNBUFFERED'] = '1'
-    proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-                                                stderr=subprocess.STDOUT, stdout=stream,
-                                                env=env)
-    await proc.wait()
-    if proc.returncode != 0:
-        raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
+
+    global CPU_BOUND_SEMAPHORE, NON_CPU_BOUND_SEMAPHORE
+    semaphore = CPU_BOUND_SEMAPHORE if cpu_bound else NON_CPU_BOUND_SEMAPHORE
+
+    async with semaphore:
+        proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
+                                                    stderr=subprocess.STDOUT, stdout=stream,
+                                                    env=env)
+        await proc.wait()
+        if proc.returncode != 0 and fail:
+            raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
 
 
-async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None):
+async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None, cpu_bound=True):
     '''
     Run a shell command and get the output
 
@@ -270,20 +288,24 @@ async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None):
         # used instead.
         tempfile.tempdir = str(PurePath(tempfile.gettempdir()))
 
-    proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-                                                stdout=subprocess.PIPE, stderr=logfile, env=env)
-    (output, unused_err) = await proc.communicate()
+    global CPU_BOUND_SEMAPHORE, NON_CPU_BOUND_SEMAPHORE
+    semaphore = CPU_BOUND_SEMAPHORE if cpu_bound else NON_CPU_BOUND_SEMAPHORE
 
-    if PLATFORM == Platform.WINDOWS:
-        os.path.join = cerbero.hacks.join
+    async with semaphore:
+        proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
+                                                    stdout=subprocess.PIPE, stderr=logfile, env=env)
+        (output, unused_err) = await proc.communicate()
 
-    if sys.stdout.encoding:
-        output = output.decode(sys.stdout.encoding, errors='replace')
+        if PLATFORM == Platform.WINDOWS:
+            os.path.join = cerbero.hacks.join
 
-    if proc.returncode != 0:
-        raise FatalError('Running {!r}, returncode {}:\n{}'.format(cmd, proc.returncode, output))
+        if sys.stdout.encoding:
+            output = output.decode(sys.stdout.encoding, errors='replace')
 
-    return output
+        if proc.returncode != 0:
+            raise FatalError('Running {!r}, returncode {}:\n{}'.format(cmd, proc.returncode, output))
+
+        return output
 
 
 def apply_patch(patch, directory, strip=1, logfile=None):
@@ -301,7 +323,7 @@ def apply_patch(patch, directory, strip=1, logfile=None):
     call('%s -p%s -f -i %s' % (PATCH, strip, patch), directory)
 
 
-def unpack(filepath, output_dir, logfile=None):
+async def unpack(filepath, output_dir, logfile=None):
     '''
     Extracts a tarball
 
@@ -318,7 +340,7 @@ def unpack(filepath, output_dir, logfile=None):
         if PLATFORM != Platform.WINDOWS:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
-            new_call(['tar', '-C', output_dir, '-xf', filepath])
+            await async_call(['tar', '-C', output_dir, '-xf', filepath])
         else:
             cmode = 'bz2' if filepath.endswith('bz2') else filepath[-2:]
             tf = tarfile.open(filepath, mode='r:' + cmode)
@@ -330,7 +352,7 @@ def unpack(filepath, output_dir, logfile=None):
         raise FatalError("Unknown tarball format %s" % filepath)
 
 
-def download_wget(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
+async def download_wget(url, destination=None, check_cert=True, overwrite=False, logfile=None, user=None, password=None):
     '''
     Downloads a file with wget
 
@@ -357,14 +379,14 @@ def download_wget(url, destination=None, check_cert=True, overwrite=False, user=
     cmd += " --progress=dot:giga"
 
     try:
-        call(cmd, path)
+        await async_call(cmd, path, cpu_bound=False, logfile=logfile)
     except FatalError as e:
         if os.path.exists(destination):
             os.remove(destination)
         raise e
 
 
-def download_urllib2(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
+async def download_urllib2(url, destination=None, check_cert=True, overwrite=False, logfile=None, user=None, password=None):
     '''
     Download a file with urllib2, which does not rely on external programs
 
@@ -394,7 +416,7 @@ def download_urllib2(url, destination=None, check_cert=True, overwrite=False, us
         raise e
 
 
-def download_curl(url, destination=None, check_cert=True, overwrite=False, user=None, password=None):
+async def download_curl(url, destination=None, check_cert=True, overwrite=False, logfile=None, user=None, password=None):
     '''
     Downloads a file with cURL
 
@@ -418,14 +440,14 @@ def download_curl(url, destination=None, check_cert=True, overwrite=False, user=
     else:
         cmd += "-O %s " % url
     try:
-        call(cmd, path)
+        await async_call(cmd, path, cpu_bound=False, logfile=logfile)
     except FatalError as e:
         if os.path.exists(destination):
             os.remove(destination)
         raise e
 
 
-def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None, user=None, password=None):
+async def download(url, destination=None, check_cert=True, overwrite=False, logfile=None, mirrors=None, user=None, password=None):
     '''
     Downloads a file
 
@@ -475,7 +497,7 @@ def download(url, destination=None, check_cert=True, overwrite=False, logfile=No
     errors = []
     for murl in urls:
         try:
-            return download_func(murl, destination, check_cert, overwrite, user, password)
+            return await download_func(murl, destination, check_cert, overwrite, logfile)
         except Exception as ex:
             errors.append(ex)
     raise Exception(errors)
@@ -749,3 +771,66 @@ def windows_proof_rename(from_name, to_name):
                 continue
     # Try one last time and throw an error if it fails again
     os.rename(from_name, to_name)
+
+class BuildStatusPrinter:
+    def __init__(self, steps, interactive):
+        self.steps = steps[:]
+        self.step_to_recipe = collections.defaultdict(list)
+        self.recipe_to_step = {}
+        self.total = 0
+        self.count = 0
+        self.interactive = interactive
+        # FIXME: Default MSYS shell doesn't handle ANSI escape sequences correctly
+        if os.environ.get('TERM') == 'cygwin':
+            m.message('Running under MSYS: reverting to basic build status output')
+            self.interactive = False
+
+    def remove_recipe(self, recipe_name):
+        if recipe_name in self.recipe_to_step:
+            self.step_to_recipe[self.recipe_to_step[recipe_name]].remove(recipe_name)
+            del self.recipe_to_step[recipe_name]
+        self.output_status_line()
+
+    def built(self, count, recipe_name):
+        self.count += 1
+        if self.interactive:
+            m.build_recipe_done(self.count, self.total, recipe_name, _("built"))
+        self.remove_recipe(recipe_name)
+
+    def already_built(self, count, recipe_name):
+        self.count += 1
+        if self.interactive:
+            m.build_recipe_done(self.count, self.total, recipe_name, _("already built"))
+        else:
+            m.build_recipe_done(count, self.total, recipe_name, _("already built"))
+        self.output_status_line()
+
+    def _get_completion_percent (self):
+        one_recipe = 100. / float (self.total)
+        one_step = one_recipe / len (self.steps)
+        completed = 100. * float(self.count - 1) / float(self.total)
+        for i, step in enumerate (self.steps):
+            completed += len(self.step_to_recipe[step]) * (i+1) * one_step
+        return int(completed)
+
+    def update_recipe_step(self, count, recipe_name, step):
+        self.remove_recipe(recipe_name)
+        self.step_to_recipe[step].append(recipe_name)
+        self.recipe_to_step[recipe_name] = step
+        self.count = count
+        if not self.interactive:
+            m.build_step(count, self.total, self._get_completion_percent(), recipe_name, step)
+        else:
+            self.output_status_line()
+
+    def generate_status_line(self):
+        s = "[(" + str(self.count) + "/" + str(self.total) + " @ " + str(self._get_completion_percent()) + "%)"
+        for step in self.steps:
+            if self.step_to_recipe[step]:
+                s += " " + str(step).upper() + ": " + ", ".join(self.step_to_recipe[step])
+        s += "]"
+        return s
+
+    def output_status_line(self):
+        if self.interactive:
+            m.output_status(self.generate_status_line())

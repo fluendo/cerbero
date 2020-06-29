@@ -36,6 +36,7 @@ import hashlib
 from pathlib import Path
 from functools import lru_cache
 import asyncio
+from collections.abc import Iterable
 
 from cerbero.enums import Platform, Architecture, Distro, DistroVersion
 from cerbero.errors import FatalError

@@ -29,6 +29,7 @@ from cerbero.enums import Architecture, Platform, LibraryType
 from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
 from cerbero.build.recipe import Recipe, BuildSteps
 from cerbero.utils import _, N_, shell, run_until_complete
+from cerbero.utils.shell import BuildStatusPrinter
 from cerbero.utils import messages as m
 from cerbero.build.fridge import Fridge
 from cerbero.packages.packagesstore import PackagesStore
@@ -114,11 +115,14 @@ class Oven (object):
             fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
                             force=self.force, dry_run=shell.DRY_RUN)
 
-        i = 1
+        steps = [step[1] for step in recipes[0].steps]
+        self._build_status_printer = BuildStatusPrinter(steps, self.interactive)
+        self._build_status_printer.total = length
         self._static_libraries_built = []
+        i = 1
         for recipe in ordered_recipes:
             try:
-                self._cook_recipe(recipe, i, length, fridge, use_binaries, upload_binaries)
+                self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
             except BuildStepError as be:
                 if not self.interactive:
                     raise be
@@ -132,9 +136,9 @@ class Oven (object):
                 elif action == RecoveryActions.RETRY_ALL:
                     shutil.rmtree(recipe.get_for_arch (be.arch, 'build_dir'))
                     self.cookbook.reset_recipe_status(recipe.name)
-                    self._cook_recipe(recipe, i, len(ordered_recipes), fridge, use_binaries, upload_binaries)
+                    self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
                 elif action == RecoveryActions.RETRY_STEP:
-                    self._cook_recipe(recipe, i, len(ordered_recipes), fridge, use_binaries, upload_binaries)
+                    self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
                 elif action == RecoveryActions.SKIP:
                     i += 1
                     continue
@@ -142,7 +146,7 @@ class Oven (object):
                     raise AbortedError()
             i += 1
 
-    def _cook_recipe(self, recipe, count, total, fridge=None, use_binaries=False, upload_binaries=False):
+    def _cook_recipe(self, recipe, count, fridge=None, use_binaries=False, upload_binaries=False):
         # A Recipe depending on a static library that has been rebuilt
         # also needs to be rebuilt to pick up the latest build.
         if recipe.library_type != LibraryType.STATIC:
@@ -150,11 +154,9 @@ class Oven (object):
                 self.cookbook.reset_recipe_status(recipe.name)
         if not self.cookbook.recipe_needs_build(recipe.name) and \
                 not self.force:
-            m.build_step(count, total, recipe.name, _("already built"))
-
             if upload_binaries:
                 try:
-                    fridge.freeze_recipe(recipe, count, total)
+                    fridge.freeze_recipe(recipe, self._build_status_printer, count)
                 except RecipeNotFreezableError:
                     m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                     pass
@@ -173,15 +175,15 @@ class Oven (object):
 
         if use_binaries:
             try:
-                fridge.unfreeze_recipe(recipe, count, total)
+                fridge.unfreeze_recipe(recipe, self._build_status_printer, count)
                 self._update_installed_files(recipe, tmp)
                 return
             except Exception:
-                return self._cook_recipe(recipe, count, total, fridge, False, upload_binaries)
+                return self._cook_recipe(recipe, count, fridge, False, upload_binaries)
 
         recipe.force = self.force
         for desc, step in recipe.steps:
-            m.build_step(count, total, recipe.name, step)
+            self._build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action(_("Step done"))
@@ -239,7 +241,7 @@ class Oven (object):
 
         if upload_binaries:
             try:
-                fridge.freeze_recipe(recipe, count, total)
+                fridge.freeze_recipe(recipe, self._build_status_printer, count)
             except RecipeNotFreezableError:
                 m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                 pass

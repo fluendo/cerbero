@@ -119,7 +119,7 @@ def delete_tag(git_dir, tagname, fail=True, logfile=None):
     return shell.call('%s tag -d %s' % (GIT, tagname), git_dir, fail=fail, logfile=logfile)
 
 
-def fetch(git_dir, fail=True, logfile=None):
+async def fetch(git_dir, fail=True, logfile=None):
     '''
     Fetch all refs from all the remotes
 
@@ -132,13 +132,16 @@ def fetch(git_dir, fail=True, logfile=None):
     # same time when using --tags: https://stackoverflow.com/a/20608181.
     # centOS 7 ships with git 1.8.3.1, hence for old git versions, we need to
     # run two separate commands.
-    ret = shell.call('%s fetch --all' % GIT, git_dir, fail=fail, logfile=logfile)
+    cmd = [GIT, 'fetch', '--all']
+    ret = await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile, cpu_bound=False)
     if ret != 0:
         return ret
-    ret = shell.call('%s fetch --all --tags' % GIT, git_dir, fail=fail, logfile=logfile)
-    return ret
+    cmd.append('--tags')
+    # To avoid "would clobber existing tag" error
+    cmd.append('-f')
+    return await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile, cpu_bound=False)
 
-def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
+async def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
     '''
     Update somdules from local directory
 
@@ -163,18 +166,18 @@ def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=N
                            git_dir, logfile=logfile)
     shell.call("%s submodule init" % GIT, git_dir, logfile=logfile)
     if src_dir or not offline:
-        shell.call("%s submodule sync" % GIT, git_dir, logfile=logfile)
-        shell.call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile, cpu_bound=False)
+        await shell.async_call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile, cpu_bound=False)
     else:
-        shell.call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile)
+        await shell.async_call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile, cpu_bound=False)
     if src_dir:
         for c in config_array:
             if c[0].startswith('submodule.') and c[0].endswith('.url'):
                 shell.call("%s config --file=.gitmodules %s  %s" %
                            (GIT, c[0], c[1]), git_dir, logfile=logfile)
-        shell.call("%s submodule sync" % GIT, git_dir, logfile=logfile)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile, cpu_bound=False)
 
-def checkout(git_dir, commit, logfile=None):
+async def checkout(git_dir, commit, logfile=None):
     '''
     Reset a git repository to a given commit
 
@@ -183,7 +186,8 @@ def checkout(git_dir, commit, logfile=None):
     @param commit: the commit to checkout
     @type commit: str
     '''
-    return shell.call('%s reset --hard %s' % (GIT, commit), git_dir, logfile=logfile)
+    cmd = [GIT, 'reset', '--hard', commit]
+    return await shell.async_call(cmd, git_dir, logfile=logfile, cpu_bound=False)
 
 async def async_get_hash(config, git_dir, commit, remotes=None):
     '''
@@ -231,7 +235,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
 def get_hash(config, git_dir, commit, remotes=None):
     return run_until_complete(async_get_hash(config, git_dir, commit, remotes))
 
-def local_checkout(git_dir, local_git_dir, commit, logfile=None):
+async def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''
     Clone a repository for a given commit in a different location
 
@@ -247,12 +251,12 @@ def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     branch_name = 'cerbero_build'
     shell.call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
     shell.call('%s branch %s' % (GIT, branch_name), local_git_dir, fail=False, logfile=logfile)
-    shell.call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile)
-    shell.call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
-    shell.call('%s clone %s -s -b %s .' % (GIT, local_git_dir, branch_name),
-               git_dir, logfile=logfile)
+    await shell.async_call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile, cpu_bound=False)
+    await shell.async_call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile, cpu_bound=False)
+    await shell.async_call('%s clone %s -s -b %s .' % (GIT, local_git_dir, branch_name),
+               git_dir, logfile=logfile, cpu_bound=False)
     ensure_user_is_set(git_dir, logfile=logfile)
-    submodules_update(git_dir, local_git_dir, logfile=logfile)
+    await submodules_update(git_dir, local_git_dir, logfile=logfile)
 
 def add_remote(git_dir, name, url, logfile=None):
     '''

@@ -171,7 +171,7 @@ class Fridge (object):
         if not self.config.binaries_local:
             raise FatalError(_('Configuration without binaries local dir'))
 
-    def unfreeze_recipe(self, recipe, count, total):
+    def unfreeze_recipe(self, recipe, build_status_printer, count):
         '''
         Unfreeze the recipe, downloading the package and installing it
 
@@ -184,9 +184,9 @@ class Fridge (object):
         '''
         self._ensure_ready(recipe)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
-        self._apply_steps(recipe, steps, count, total)
+        self._apply_steps(recipe, steps, build_status_printer, count)
 
-    def freeze_recipe(self, recipe, count, total):
+    def freeze_recipe(self, recipe, build_status_printer, count):
         '''
         Freeze the recipe, creating a package and uploading it
 
@@ -199,9 +199,9 @@ class Fridge (object):
         '''
         self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
-        self._apply_steps(recipe, steps, count, total)
+        self._apply_steps(recipe, steps, build_status_printer, count)
 
-    def fetch_recipe(self, recipe, count, total):
+    def fetch_recipe(self, recipe, build_status_printer, count):
         '''
         Fetch the recipe
 
@@ -213,7 +213,7 @@ class Fridge (object):
         @type total: int
         '''
         self._ensure_ready(recipe)
-        self._apply_steps(recipe, [self.FETCH_BINARY], count, total)
+        self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
         self.cookbook.update_needs_build(recipe.name, True)
 
     def fetch_binary(self, recipe):
@@ -291,10 +291,10 @@ class Fridge (object):
         ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
         return ret
 
-    def _apply_steps(self, recipe, steps, count, total):
+    def _apply_steps(self, recipe, steps, build_status_printer, count):
         self._ensure_ready(recipe)
         for desc, step in steps:
-            m.build_step(count, total, recipe.name, step)
+            build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action("Step done")

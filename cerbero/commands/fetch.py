@@ -26,12 +26,15 @@ from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
 from cerbero.errors import FatalError
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, run_until_complete
+from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, determine_num_of_cpus, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
 from cerbero.build.fridge import Fridge
+from cerbero.utils.shell import BuildStatusPrinter
 
+NUMBER_OF_JOBS_IF_UNUSED = 2
+NUMBER_OF_JOBS_IF_USED = 2 * determine_num_of_cpus()
 
 class Fetch(Command):
 
@@ -45,12 +48,12 @@ class Fetch(Command):
                     default=False, help=_('reset to extract step if rebuild is needed')))
         args.append(ArgparseArgument('--use-binaries', action='store_true',
                     default=False, help=_('use fridge to download binary packages if available')))
-        args.append(ArgparseArgument('--fridge', action='store_true',
-                    default=False, help=_('use fridge to download binary packages if available')))
+        args.append(ArgparseArgument('--jobs', '-j', action='store', nargs='?', type=int,
+                    const=NUMBER_OF_JOBS_IF_USED, default=NUMBER_OF_JOBS_IF_UNUSED, help=_('number of async jobs')))
         Command.__init__(self, args)
 
     @staticmethod
-    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, use_binaries=False):
+    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, jobs, use_binaries=False):
         fetch_recipes = []
         if not recipes:
             fetch_recipes = cookbook.get_recipes_list()
@@ -60,9 +63,20 @@ class Fetch(Command):
             for recipe in recipes:
                 fetch_recipes += cookbook.list_recipe_deps(recipe)
             fetch_recipes = remove_list_duplicates (fetch_recipes)
-        m.message(_("Fetching the following recipes: %s") %
-                  ' '.join([x.name for x in fetch_recipes]))
+        m.message(_("Fetching the following recipes using %s async job(s): %s") %
+                  (jobs, ' '.join([x.name for x in fetch_recipes])))
+        shell.set_max_non_cpu_bound_calls(jobs)
         to_rebuild = []
+        tasks = []
+        printer = BuildStatusPrinter (('fetch',), cookbook.get_config().interactive)
+        printer.total = len(fetch_recipes)
+
+        async def fetch_print_wrapper(recipe_name, stepfunc):
+            printer.update_recipe_step(printer.count, recipe_name, 'fetch')
+            await stepfunc()
+            printer.count += 1
+            printer.remove_recipe(recipe_name)
+
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
@@ -75,16 +89,25 @@ class Fetch(Command):
                 continue
             if fridge:
                 try:
-                    fridge.fetch_recipe(recipe, i + 1, len(fetch_recipes))
+                    fridge.fetch_recipe(recipe, printer, i + 1)
                     continue
                 except Exception:
                     pass
-            m.build_step(i + 1, len(fetch_recipes), recipe, 'fetch')
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
-                run_until_complete(stepfunc())
+                tasks.append(fetch_print_wrapper(recipe.name, stepfunc))
             else:
+                printer.update_recipe_step(printer.count, recipe.name, 'fetch')
                 stepfunc()
+                printer.count += 1
+                printer.remove_recipe(recipe.name)
+
+        run_until_complete(tasks)
+        m.message("All async fetch jobs finished")
+
+        # Checking the current built version against the fetched one
+        # needs to be done *after* actually fetching
+        for recipe in fetch_recipes:
             bv = cookbook.recipe_built_version(recipe.name)
             cv = recipe.built_version()
             if bv != cv:
@@ -123,7 +146,8 @@ class FetchRecipes(Fetch):
     def run(self, config, args):
         cookbook = CookBook(config)
         return self.fetch(cookbook, args.recipes, args.no_deps,
-                          args.reset_rdeps, args.full_reset, args.print_only, args.fridge or args.use_binaries)
+                          args.reset_rdeps, args.full_reset, args.print_only, args.jobs,
+                          args.use_binaries)
 
 
 class FetchPackage(Fetch):
@@ -144,7 +168,7 @@ class FetchPackage(Fetch):
         package = store.get_package(args.package[0])
         return self.fetch(store.cookbook, package.recipes_dependencies(),
                           args.deps, args.reset_rdeps, args.full_reset,
-                          args.print_only, args.fridge or args.use_binaries)
+                          args.print_only, args.jobs, args.use_binaries)
 
 class FetchCache(Command):
     doc = N_('Fetch a cached build from GitLab CI based on cerbero git '
