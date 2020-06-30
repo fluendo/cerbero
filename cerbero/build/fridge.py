@@ -23,11 +23,15 @@ import tempfile
 from ftplib import FTP
 import urllib.parse
 import asyncio
+import aioftp
+import logging
+import urllib.parse
 
 from cerbero.build.relocatabletar import *
 from cerbero.config import Platform
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError, EmptyPackageError, PackageNotFoundError
 from cerbero.utils import N_, _, shell, run_until_complete
+from cerbero.utils.shell import Ftp
 from cerbero.utils import messages as m
 from cerbero.packages.disttarball import DistTarball
 from cerbero.enums import ArchiveType
@@ -65,55 +69,54 @@ class BinaryRemote (object):
 
 
 class FtpBinaryRemote (BinaryRemote):
-    """FtpBinaryRemote is a simple and unsecure implementation"""
+    """FtpBinaryRemote is a simple and unsafe implementation"""
 
     def __init__(self, remote, username='', password=''):
         self.remote = 'ftp://' + remote
-        self.username = username
+        self.username = username if username else 'anonymous'
         self.password = password
 
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
     async def fetch_binary(self, package_names, local_dir, remote_dir):
-        ftp = None
-        for filename in package_names:
-            if not ftp:
-                ftp, _ = shell.ftp_init(self.remote, ftp_connection=None,
-                                        user=self.username, password=self.password)
-            if filename:
-                local_filename = os.path.join(local_dir, filename)
-                download_needed = True
-                if os.path.isfile(local_filename):
-                    local_sha256 = shell.file_sha256(local_filename).hex()
-                    remote_sha256_filename = os.path.join(self.remote, remote_dir, filename) + '.sha256'
-                    try:
-                        shell.ftp_download(remote_sha256_filename, local_filename + '.sha256', ftp_connection=ftp)
-                        # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
-                        with open(local_filename + '.sha256', 'r') as file:
-                            remote_sha256 = file.read().split(' ')[0]
-                        if local_sha256 == remote_sha256:
-                            download_needed = False
-                    except Exception:
-                        pass
+        remote = urllib.parse.urlparse(self.remote)
+        port = 21 if not remote.port else remote.port
+        logging.getLogger('aioftp.client').setLevel(logging.CRITICAL)
+        async with aioftp.ClientSession(remote.hostname, port, self.username, self.password, socket_timeout=15) as ftp:
+            for filename in package_names:
+                if filename:
+                    local_filename = os.path.join(local_dir, filename)
+                    download_needed = True
+                    if os.path.isfile(local_filename):
+                        local_sha256 = shell.file_sha256(local_filename).hex()
+                        remote_sha256_filename = os.path.join(remote.path, remote_dir, filename) + '.sha256'
+                        try:
+                            await ftp.download(remote_sha256_filename, local_filename + '.sha256', write_into=True)
+                            # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
+                            with open(local_filename + '.sha256', 'r') as file:
+                                remote_sha256 = file.read().split(' ')[0]
+                            if local_sha256 == remote_sha256:
+                                download_needed = False
+                        except Exception:
+                            pass
 
-                if download_needed:
-                    try:
-                        shell.ftp_download(os.path.join(self.remote, remote_dir, filename),
-                                           local_filename,
-                                           ftp_connection=ftp)
-                    except Exception:
-                        raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
-        if ftp:
-            ftp.quit()
+                    if download_needed:
+                        try:
+                            remote_file = os.path.join(remote.path, remote_dir, filename)
+                            if await ftp.exists(remote_file):
+                                await ftp.download(remote_file, local_filename, write_into=True)
+                            else:
+                                raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
+                        except Exception:
+                            raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
 
     def upload_binary(self, package_names, local_dir, remote_dir, env_file):
-        ftp, _ = shell.ftp_init(self.remote, ftp_connection=None,
-                                user=self.username, password=self.password)
+        ftp = Ftp(self.remote, user=self.username, password=self.password)
         remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
-        if not shell.ftp_file_exists(remote_env_file, ftp_connection=ftp):
+        if not ftp.file_exists(remote_env_file):
             m.message('Uploading environment file to %s' % remote_env_file)
-            shell.ftp_upload(env_file, remote_env_file, ftp_connection=ftp)
+            ftp.upload(env_file, remote_env_file)
         for filename in package_names:
             if filename:
                 remote_filename = os.path.join(self.remote, remote_dir, filename)
@@ -131,9 +134,8 @@ class FtpBinaryRemote (BinaryRemote):
                 try:
                     tmp_sha256 = tempfile.NamedTemporaryFile()
                     tmp_sha256_filename = tmp_sha256.name
-                    shell.ftp_download(remote_filename + '.sha256',
-                                       tmp_sha256_filename,
-                                       ftp_connection=ftp)
+                    ftp.download(remote_filename + '.sha256',
+                                 tmp_sha256_filename)
                     with open(local_sha256_filename, 'r') as file:
                         local_sha256 = file.read().split()[0]
                     with open(tmp_sha256_filename, 'r') as file:
@@ -144,12 +146,11 @@ class FtpBinaryRemote (BinaryRemote):
                     pass
 
                 if upload_needed:
-                    shell.ftp_upload(local_sha256_filename, remote_filename + '.sha256', ftp_connection=ftp)
-                    shell.ftp_upload(local_filename, remote_filename, ftp_connection=ftp)
+                    ftp.upload(local_sha256_filename, remote_filename + '.sha256')
+                    ftp.upload(local_filename, remote_filename)
                 else:
                     m.action('No need to upload since local and remote SHA256 are the same')
-        if ftp:
-            ftp.quit()
+        ftp.close()
 
 
 class Fridge (object):
@@ -214,7 +215,12 @@ class Fridge (object):
         @type total: int
         '''
         self._ensure_ready(recipe)
-        await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
+        try:
+            await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
+        except Exception:
+            build_status_printer.update_recipe_step(count, recipe.name, 'fetch')
+            await recipe.fetch()
+            self.cookbook.update_step_status(recipe.name, 'fetch')
         self.cookbook.update_needs_build(recipe.name, True)
 
     async def fetch_binary(self, recipe):

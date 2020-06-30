@@ -33,7 +33,6 @@ import hashlib
 import urllib.request
 import urllib.error
 import urllib.parse
-import math
 import collections
 from ftplib import FTP
 from pathlib import Path, PurePath
@@ -502,54 +501,39 @@ async def download(url, destination=None, check_cert=True, overwrite=False, logf
             errors.append(ex)
     raise Exception(errors)
 
+class Ftp:
+    def __init__(self, remote_url, user=None, password=None):
+        self.remote = urllib.parse.urlparse(remote_url)
+        self.ftp = FTP()
+        self.ftp.connect(self.remote.hostname, self.remote.port or 0)
+        self.ftp.login(user, password)
 
-def ftp_init(remote_url, ftp_connection=None, user=None, password=None):
-    remote = urllib.parse.urlparse(remote_url)
-    if ftp_connection:
-        ftp = ftp_connection
-    else:
-        ftp = FTP()
-        ftp.connect(remote.hostname, remote.port or 0)
-        ftp.login(user, password)
-    return ftp, remote
+    def close(self):
+        self.ftp.quit()
 
+    def file_exists(self, remote_url):
+        try:
+            self.ftp.cwd(os.path.dirname(self.remote.path))
+            files = self.ftp.nlst()
+            exists = os.path.basename(self.remote.path) in files
+            return exists
+        except Exception:
+            return False
 
-def ftp_end(ftp, ftp_connection=None):
-    if not ftp_connection:
-        ftp.quit()
+    def download(self, remote_url, local_filename):
+        self.ftp.cwd(os.path.dirname(remote.path))
+        with open(local_filename, 'wb') as f:
+            self.ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
 
-
-def ftp_file_exists(remote_url, ftp_connection=None, user=None, password=None):
-    try:
-        ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
-        ftp.cwd(os.path.dirname(remote.path))
-        files = ftp.nlst()
-        exists = os.path.basename(remote.path) in files
-        ftp_end(ftp, ftp_connection)
-        return exists
-    except Exception:
-        return False
-
-
-def ftp_download(remote_url, local_filename, ftp_connection=None, user=None, password=None):
-    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
-    ftp.cwd(os.path.dirname(remote.path))
-    with open(local_filename, 'wb') as f:
-        ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
-    ftp_end(ftp, ftp_connection)
-
-
-def ftp_upload(local_filename, remote_url, ftp_connection=None, user=None, password=None):
-    ftp, remote = ftp_init(remote_url, ftp_connection, user, password)
-    try:
-        ftp.mkd(os.path.dirname(remote.path))
-    except Exception:
-        pass
-    ftp.cwd(os.path.dirname(remote.path))
-    with open(local_filename, 'rb') as f:
-        ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
-    ftp_end(ftp, ftp_connection)
-
+    def upload(self, local_filename, remote_url):
+        remote = urllib.parse.urlparse(remote_url)
+        try:
+            self.ftp.mkd(os.path.dirname(remote.path))
+        except Exception:
+            pass
+        self.ftp.cwd(os.path.dirname(remote.path))
+        with open(local_filename, 'rb') as f:
+            self.ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
 
 def _splitter(string, base_url):
     lines = string.split('\n')

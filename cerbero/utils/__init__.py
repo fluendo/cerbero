@@ -37,6 +37,7 @@ from pathlib import Path
 from functools import lru_cache
 import asyncio
 from collections.abc import Iterable
+import math
 
 from cerbero.enums import Platform, Architecture, Distro, DistroVersion
 from cerbero.errors import FatalError
@@ -649,7 +650,7 @@ def get_event_loop():
 
     return loop
 
-def run_until_complete(tasks):
+def run_until_complete(tasks, max_concurrent=None):
     '''
     Runs one or many tasks, blocking until all of them have finished.
     @param tasks: A single Future or a list of Futures to run
@@ -663,7 +664,14 @@ def run_until_complete(tasks):
 
     try:
         if isinstance(tasks, Iterable):
-            result = loop.run_until_complete(asyncio.gather(*tasks))
+            if not max_concurrent:
+                result = loop.run_until_complete(asyncio.gather(*tasks))
+            else:
+                result = []
+                slices = [tasks[i * max_concurrent:i * max_concurrent + max_concurrent]
+                        for i in range(math.ceil(len(tasks) / max_concurrent))]
+                for s in slices:
+                    result += loop.run_until_complete(asyncio.gather(*s))
         else:
             result = loop.run_until_complete(tasks)
         return result

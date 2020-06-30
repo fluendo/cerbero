@@ -108,7 +108,7 @@ class Fetch(Command):
                 printer.count += 1
                 printer.remove_recipe(recipe.name)
 
-        run_until_complete(tasks)
+        run_until_complete(tasks, max_concurrent=jobs)
         m.message("All async fetch jobs finished")
 
         # Checking the current built version against the fetched one

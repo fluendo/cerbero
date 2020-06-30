@@ -180,8 +180,6 @@ class BaseTarball(object):
             return
         if not os.path.exists(self.download_dir):
             os.makedirs(self.download_dir)
-        m.action(_('Fetching tarball %s to %s') %
-                 (self.url, self.download_path))
         # Enable certificate checking only on Linux for now
         # FIXME: Add more platforms here after testing
         cc = self.config.platform == Platform.LINUX
