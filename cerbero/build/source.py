@@ -348,7 +348,13 @@ class GitCache (Source):
 
     def built_version(self):
         if not self.cached_built_version:
-            run_until_complete(self.async_built_version())
+            git_hash = 'error_getting_hash'
+            try:
+                git_hash = git.get_hash(self.config, self.repo_dir, self.commit, self.remotes)
+                # take only the first 8 characters to avoid having way-too-long names
+                git_hash = git_hash[:8]
+            finally:
+                self.cached_built_version = '%s+git~%s' % (self.version, git_hash)
         return self.cached_built_version
 
 

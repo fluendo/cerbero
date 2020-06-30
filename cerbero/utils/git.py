@@ -233,7 +233,47 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
     return output.rstrip()
 
 def get_hash(config, git_dir, commit, remotes=None):
-    return run_until_complete(async_get_hash(config, git_dir, commit, remotes))
+    '''
+    Get a commit hash from a valid commit.
+    Can be used to check if a commit exists
+
+    @param git_dir: path of the git repository
+    @type git_dir: str
+    @param commit: the commit to log
+    @type commit: str
+    @param remote: the repo's remote
+    @type remote: str
+    '''
+
+    # Ensure git uses the system's libraries instead of the ones in the home_dir
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = config._pre_environ.get("LD_LIBRARY_PATH", "")
+
+    # In case this hash is taken when the repo has not been cloned yet
+    # (e.g. changing stype from tarball to git, during fridge), we need
+    # to collect the actual commit we would checkout. Otherwise, fridge
+    # wouldn't be able to reuse the same package.
+    if not os.path.isdir(os.path.join(git_dir, '.git')):
+        if remotes:
+            remote = remotes['origin']
+            commit_split = commit.split('/')
+            if len(commit_split) > 1:
+                remote = remotes[commit_split[0]]
+                commit = commit_split[1]
+
+            remote_commit = shell.check_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
+            # If the commit/tag/branch given doesn't show up using ls-remote, it means
+            # it is not the HEAD of any refs. Hence, it must be a previous commit
+            # that we can use directly
+            if remote_commit:
+                return remote_commit.split()[0]
+            else:
+                return commit
+        else:
+            raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
+    output = shell.check_output('%s rev-parse %s' %
+                            (GIT, commit), git_dir, env=env)
+    return output.rstrip()
 
 async def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''

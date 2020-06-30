@@ -116,7 +116,9 @@ class Oven (object):
                             force=self.force, dry_run=shell.DRY_RUN)
 
         steps = [step[1] for step in recipes[0].steps]
-        self._build_status_printer = BuildStatusPrinter(steps, self.interactive)
+        if upload_binaries:
+            steps += [Fridge.GEN_BINARY, Fridge.UPLOAD_BINARY]
+        self._build_status_printer = BuildStatusPrinter(steps, False) #self.interactive)
         self._build_status_printer.total = length
         self._static_libraries_built = []
         i = 1

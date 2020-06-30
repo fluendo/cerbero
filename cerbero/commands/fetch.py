@@ -68,8 +68,6 @@ class Fetch(Command):
         shell.set_max_non_cpu_bound_calls(jobs)
         to_rebuild = []
         tasks = []
-        printer = BuildStatusPrinter (('fetch',), cookbook.get_config().interactive)
-        printer.total = len(fetch_recipes)
 
         async def fetch_print_wrapper(recipe_name, stepfunc):
             printer.update_recipe_step(printer.count, recipe_name, 'fetch')
@@ -80,6 +78,11 @@ class Fetch(Command):
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
+            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY], False) #cookbook.get_config().interactive)
+        else:
+            printer = BuildStatusPrinter (('fetch',), False) #cookbook.get_config().interactive)
+        printer.total = len(fetch_recipes)
+
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
             if print_only:
@@ -89,7 +92,10 @@ class Fetch(Command):
                 continue
             if fridge:
                 try:
-                    fridge.fetch_recipe(recipe, printer, i + 1)
+                    if recipe.allow_package_creation:
+                        tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
+                    else:
+                        tasks.append(recipe.fetch())
                     continue
                 except Exception:
                     pass

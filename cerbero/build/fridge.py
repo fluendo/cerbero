@@ -22,11 +22,12 @@ import traceback
 import tempfile
 from ftplib import FTP
 import urllib.parse
+import asyncio
 
 from cerbero.build.relocatabletar import *
 from cerbero.config import Platform
 from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError, EmptyPackageError, PackageNotFoundError
-from cerbero.utils import N_, _, shell
+from cerbero.utils import N_, _, shell, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.packages.disttarball import DistTarball
 from cerbero.enums import ArchiveType
@@ -74,7 +75,7 @@ class FtpBinaryRemote (BinaryRemote):
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
-    def fetch_binary(self, package_names, local_dir, remote_dir):
+    async def fetch_binary(self, package_names, local_dir, remote_dir):
         ftp = None
         for filename in package_names:
             if not ftp:
@@ -184,7 +185,7 @@ class Fridge (object):
         '''
         self._ensure_ready(recipe)
         steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
-        self._apply_steps(recipe, steps, build_status_printer, count)
+        run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
 
     def freeze_recipe(self, recipe, build_status_printer, count):
         '''
@@ -199,9 +200,9 @@ class Fridge (object):
         '''
         self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
-        self._apply_steps(recipe, steps, build_status_printer, count)
+        run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
 
-    def fetch_recipe(self, recipe, build_status_printer, count):
+    async def fetch_recipe(self, recipe, build_status_printer, count):
         '''
         Fetch the recipe
 
@@ -213,12 +214,12 @@ class Fridge (object):
         @type total: int
         '''
         self._ensure_ready(recipe)
-        self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
+        await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
         self.cookbook.update_needs_build(recipe.name, True)
 
-    def fetch_binary(self, recipe):
+    async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
-        self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
+        await self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
                                           self.binaries_local, self.env_checksum)
 
     def extract_binary(self, recipe):
@@ -291,13 +292,12 @@ class Fridge (object):
         ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
         return ret
 
-    def _apply_steps(self, recipe, steps, build_status_printer, count):
+    async def _apply_steps(self, recipe, steps, build_status_printer, count):
         self._ensure_ready(recipe)
         for desc, step in steps:
             build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
-                m.action("Step done")
                 continue
 
             # check if the recipe was installed from a frozen one,
@@ -315,7 +315,10 @@ class Fridge (object):
             if not stepfunc:
                 raise FatalError(_('Step %s not found for recipe %s') % (step, recipe.name))
             try:
-                stepfunc(recipe)
+                if asyncio.iscoroutinefunction(stepfunc):
+                    await stepfunc(recipe)
+                else:
+                    stepfunc(recipe)
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
             except Exception as e:
