@@ -21,8 +21,8 @@ from cerbero.commands import Command, register_command
 from cerbero.utils import N_, _, ArgparseArgument, determine_num_of_cpus, run_until_complete
 from cerbero.bootstrap.bootstrapper import Bootstrapper
 
-NUMBER_OF_JOBS_IF_UNUSED = 2
 NUMBER_OF_JOBS_IF_USED = 2 * determine_num_of_cpus()
+NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
 
 class Bootstrap(Command):
     doc = N_('Bootstrap the build system installing all the dependencies')

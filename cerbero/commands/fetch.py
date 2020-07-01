@@ -33,8 +33,8 @@ from cerbero.config import Distro
 from cerbero.build.fridge import Fridge
 from cerbero.utils.shell import BuildStatusPrinter
 
-NUMBER_OF_JOBS_IF_UNUSED = 2
 NUMBER_OF_JOBS_IF_USED = 2 * determine_num_of_cpus()
+NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
 
 class Fetch(Command):
 
@@ -89,15 +89,17 @@ class Fetch(Command):
                 if isinstance(recipe, Tarball):
                     m.message("TARBALL: {} {}".format(recipe.url, recipe.tarball_name))
                 continue
-            if fridge:
-                try:
-                    if recipe.allow_package_creation:
-                        tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
-                    else:
-                        tasks.append(recipe.fetch())
-                    continue
-                except Exception:
-                    pass
+            try:
+                if recipe.allow_package_creation and fridge:
+                    tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
+                else:
+                    async def _fetch(cookbook, recipe):
+                        await recipe.fetch()
+                        cookbook.update_step_status(recipe.name, 'fetch')
+                    tasks.append(_fetch(cookbook, recipe))
+                continue
+            except Exception:
+                pass
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
                 tasks.append(fetch_print_wrapper(recipe.name, stepfunc))

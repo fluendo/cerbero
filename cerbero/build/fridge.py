@@ -220,8 +220,11 @@ class Fridge (object):
         except Exception:
             # Fallback to fetch the source instead
             build_status_printer.update_recipe_step(count, recipe.name, 'fetch')
-            await recipe.fetch()
-            self.cookbook.update_step_status(recipe.name, 'fetch')
+            if not self.cookbook.step_done(recipe.name, 'fetch'):
+                await recipe.fetch()
+                self.cookbook.update_step_status(recipe.name, 'fetch')
+            else:
+                m.action('Step done')
         self.cookbook.update_needs_build(recipe.name, True)
 
     async def fetch_binary(self, recipe):
