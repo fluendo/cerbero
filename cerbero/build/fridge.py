@@ -218,6 +218,7 @@ class Fridge (object):
         try:
             await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
         except Exception:
+            # Fallback to fetch the source instead
             build_status_printer.update_recipe_step(count, recipe.name, 'fetch')
             await recipe.fetch()
             self.cookbook.update_step_status(recipe.name, 'fetch')
@@ -304,6 +305,7 @@ class Fridge (object):
             build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
+                m.action("Step done")
                 continue
 
             # check if the recipe was installed from a frozen one,

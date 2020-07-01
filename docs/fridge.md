@@ -20,7 +20,7 @@ packages will live.
 Apart from the environment hash, a hash is generated per recipe to allow having
 different versions. The recipe hash is taken from a checksum of all the files
 involving it (the recipe itself + patches) and the version that it's using. For
-recipes using a git repo as a source that means the commit it's based upon.
+recipes using a git repo as its source, that means the commit it's based upon.
 
 # What is packaged
 
@@ -56,7 +56,7 @@ Additionally, every environment directory includes an `ENVIRONMENT` file
 containing the list of all the variables considered to generate the hash:
 
 ```
-9beba1f21a679d67ce08ce2a745d0492
+9beba1f2
 
 ACLOCAL=aclocal
 ACLOCAL_FLAGS=-I{PREFIX}/share/aclocal
@@ -91,12 +91,12 @@ The following directory contains the packages of yasm and zlib recipes for macOS
 64bit, along with their sha256:
 
 ```
-└── ffdfa03d41ab86a88f559ab46546c7ac
+└── ffdfa03d
     ├── ENVIRONMENT
-    ├── yasm-pkg-darwin-x86_64-1.3.0-aa98cab175d302577087dcaa225f4df3-devel.tar.bz2
-    ├── yasm-pkg-darwin-x86_64-1.3.0-aa98cab175d302577087dcaa225f4df3-devel.tar.bz2.sha256
-    ├── zlib-pkg-darwin-x86_64-1.2.11-dffcadaf533a8451920690663494d892-devel.tar.bz2
-    ├── zlib-pkg-darwin-x86_64-1.2.11-dffcadaf533a8451920690663494d892-devel.tar.bz2.sha256
+    ├── yasm-pkg-darwin-x86_64-1.3.0-aa98cab1-devel.tar.bz2
+    ├── yasm-pkg-darwin-x86_64-1.3.0-aa98cab1-devel.tar.bz2.sha256
+    ├── zlib-pkg-darwin-x86_64-1.2.11-dffcadaf-devel.tar.bz2
+    ├── zlib-pkg-darwin-x86_64-1.2.11-dffcadaf-devel.tar.bz2.sha256
 ```
 
 ## How to use the fridge functionality

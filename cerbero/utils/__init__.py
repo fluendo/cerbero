@@ -619,15 +619,6 @@ def get_class_checksum(clazz):
         sha256.update(line.encode('utf-8'))
     return sha256.digest()
 
-# asyncio.Semaphore classes set their working event loop internally on
-# creation, so we need to ensure the proper loop has already been set by then.
-# This is especially important if we create global semaphores that are
-# initialized at the very beginning, since on Windows, the default
-# SelectorEventLoop is not available.
-def CerberoSemaphore(value=1):
-    get_event_loop() # this ensures the proper event loop is already created
-    return asyncio.Semaphore(value)
-
 def get_event_loop():
     try:
         loop = asyncio.get_event_loop()
@@ -650,7 +641,7 @@ def get_event_loop():
 
     return loop
 
-def run_until_complete(tasks, max_concurrent=None):
+def run_until_complete(tasks, max_concurrent=determine_num_of_cpus()):
     '''
     Runs one or many tasks, blocking until all of them have finished.
     @param tasks: A single Future or a list of Futures to run
@@ -667,11 +658,13 @@ def run_until_complete(tasks, max_concurrent=None):
             if not max_concurrent:
                 result = loop.run_until_complete(asyncio.gather(*tasks))
             else:
-                result = []
-                slices = [tasks[i * max_concurrent:i * max_concurrent + max_concurrent]
-                        for i in range(math.ceil(len(tasks) / max_concurrent))]
-                for s in slices:
-                    result += loop.run_until_complete(asyncio.gather(*s))
+                async def _worker(semaphore, task):
+                    async with semaphore:
+                        await task
+
+                semaphore = asyncio.Semaphore(max_concurrent)
+                worker_tasks = [_worker(semaphore, task) for task in tasks]
+                result = loop.run_until_complete(asyncio.gather(*worker_tasks))
         else:
             result = loop.run_until_complete(tasks)
         return result

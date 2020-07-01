@@ -133,13 +133,13 @@ async def fetch(git_dir, fail=True, logfile=None):
     # centOS 7 ships with git 1.8.3.1, hence for old git versions, we need to
     # run two separate commands.
     cmd = [GIT, 'fetch', '--all']
-    ret = await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile, cpu_bound=False)
+    ret = await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile)
     if ret != 0:
         return ret
     cmd.append('--tags')
     # To avoid "would clobber existing tag" error
     cmd.append('-f')
-    return await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile, cpu_bound=False)
+    return await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile)
 
 async def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
     '''
@@ -166,16 +166,16 @@ async def submodules_update(git_dir, src_dir=None, fail=True, offline=False, log
                            git_dir, logfile=logfile)
     shell.call("%s submodule init" % GIT, git_dir, logfile=logfile)
     if src_dir or not offline:
-        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile, cpu_bound=False)
-        await shell.async_call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile, cpu_bound=False)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile)
+        await shell.async_call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile)
     else:
-        await shell.async_call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile, cpu_bound=False)
+        await shell.async_call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile)
     if src_dir:
         for c in config_array:
             if c[0].startswith('submodule.') and c[0].endswith('.url'):
                 shell.call("%s config --file=.gitmodules %s  %s" %
                            (GIT, c[0], c[1]), git_dir, logfile=logfile)
-        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile, cpu_bound=False)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile)
 
 async def checkout(git_dir, commit, logfile=None):
     '''
@@ -187,7 +187,7 @@ async def checkout(git_dir, commit, logfile=None):
     @type commit: str
     '''
     cmd = [GIT, 'reset', '--hard', commit]
-    return await shell.async_call(cmd, git_dir, logfile=logfile, cpu_bound=False)
+    return await shell.async_call(cmd, git_dir, logfile=logfile)
 
 async def async_get_hash(config, git_dir, commit, remotes=None):
     '''
@@ -291,10 +291,10 @@ async def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     branch_name = 'cerbero_build'
     shell.call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
     shell.call('%s branch %s' % (GIT, branch_name), local_git_dir, fail=False, logfile=logfile)
-    await shell.async_call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile, cpu_bound=False)
-    await shell.async_call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile, cpu_bound=False)
+    await shell.async_call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile)
+    await shell.async_call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
     await shell.async_call('%s clone %s -s -b %s .' % (GIT, local_git_dir, branch_name),
-               git_dir, logfile=logfile, cpu_bound=False)
+                           git_dir, logfile=logfile)
     ensure_user_is_set(git_dir, logfile=logfile)
     await submodules_update(git_dir, local_git_dir, logfile=logfile)
 

@@ -40,7 +40,7 @@ from distutils.version import StrictVersion
 from typing import Iterable
 
 from cerbero.enums import Platform
-from cerbero.utils import _, system_info, to_unixpath, determine_num_of_cpus, CerberoSemaphore
+from cerbero.utils import _, system_info, to_unixpath
 from cerbero.utils import messages as m
 from cerbero.errors import FatalError
 
@@ -51,8 +51,6 @@ TARBALL_SUFFIXES = ('tar.gz', 'tgz', 'tar.bz2', 'tbz2', 'tar.xz')
 
 
 PLATFORM = system_info()[0]
-CPU_BOUND_SEMAPHORE = CerberoSemaphore(determine_num_of_cpus())
-NON_CPU_BOUND_SEMAPHORE = CerberoSemaphore(2)
 DRY_RUN = False
 
 CALL_ENV = None
@@ -93,16 +91,6 @@ def _cmd_string_to_array(cmd):
     # Windows and shell syntax such as && and env var setting working on all
     # platforms.
     return ['sh', '-c', cmd]
-
-
-def set_max_cpu_bound_calls(number):
-    global CPU_BOUND_SEMAPHORE
-    CPU_BOUND_SEMAPHORE = CerberoSemaphore(number)
-
-
-def set_max_non_cpu_bound_calls(number):
-    global NON_CPU_BOUND_SEMAPHORE
-    NON_CPU_BOUND_SEMAPHORE = CerberoSemaphore(number)
 
 
 def set_call_env(env):
@@ -223,7 +211,7 @@ def new_call(cmd, cmd_dir=None, logfile=None, env=None):
         raise FatalError('Running command: {!r}\n{}'.format(cmd, str(e)))
 
 
-async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, cpu_bound=True, env=None):
+async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, env=None):
     '''
     Run a shell command
 
@@ -251,19 +239,15 @@ async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, cpu_bound=True, 
     # of on exit. Ensures that we get continuous output in log files.
     env['PYTHONUNBUFFERED'] = '1'
 
-    global CPU_BOUND_SEMAPHORE, NON_CPU_BOUND_SEMAPHORE
-    semaphore = CPU_BOUND_SEMAPHORE if cpu_bound else NON_CPU_BOUND_SEMAPHORE
-
-    async with semaphore:
-        proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-                                                    stderr=subprocess.STDOUT, stdout=stream,
-                                                    env=env)
-        await proc.wait()
-        if proc.returncode != 0 and fail:
-            raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
+    proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
+                                                stderr=subprocess.STDOUT, stdout=stream,
+                                                env=env)
+    await proc.wait()
+    if proc.returncode != 0 and fail:
+        raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
 
 
-async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None, cpu_bound=True):
+async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None):
     '''
     Run a shell command and get the output
 
@@ -287,24 +271,20 @@ async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None, cpu_bound
         # used instead.
         tempfile.tempdir = str(PurePath(tempfile.gettempdir()))
 
-    global CPU_BOUND_SEMAPHORE, NON_CPU_BOUND_SEMAPHORE
-    semaphore = CPU_BOUND_SEMAPHORE if cpu_bound else NON_CPU_BOUND_SEMAPHORE
+    proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
+                                                stdout=subprocess.PIPE, stderr=logfile, env=env)
+    (output, unused_err) = await proc.communicate()
 
-    async with semaphore:
-        proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
-                                                    stdout=subprocess.PIPE, stderr=logfile, env=env)
-        (output, unused_err) = await proc.communicate()
+    if PLATFORM == Platform.WINDOWS:
+        os.path.join = cerbero.hacks.join
 
-        if PLATFORM == Platform.WINDOWS:
-            os.path.join = cerbero.hacks.join
+    if sys.stdout.encoding:
+        output = output.decode(sys.stdout.encoding, errors='replace')
 
-        if sys.stdout.encoding:
-            output = output.decode(sys.stdout.encoding, errors='replace')
+    if proc.returncode != 0:
+        raise FatalError('Running {!r}, returncode {}:\n{}'.format(cmd, proc.returncode, output))
 
-        if proc.returncode != 0:
-            raise FatalError('Running {!r}, returncode {}:\n{}'.format(cmd, proc.returncode, output))
-
-        return output
+    return output
 
 
 def apply_patch(patch, directory, strip=1, logfile=None):
@@ -378,7 +358,7 @@ async def download_wget(url, destination=None, check_cert=True, overwrite=False,
     cmd += " --progress=dot:giga"
 
     try:
-        await async_call(cmd, path, cpu_bound=False, logfile=logfile)
+        await async_call(cmd, path,logfile=logfile)
     except FatalError as e:
         if os.path.exists(destination):
             os.remove(destination)
@@ -439,7 +419,7 @@ async def download_curl(url, destination=None, check_cert=True, overwrite=False,
     else:
         cmd += "-O %s " % url
     try:
-        await async_call(cmd, path, cpu_bound=False, logfile=logfile)
+        await async_call(cmd, path, logfile=logfile)
     except FatalError as e:
         if os.path.exists(destination):
             os.remove(destination)

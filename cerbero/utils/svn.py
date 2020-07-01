@@ -28,7 +28,7 @@ async def checkout(url, dest):
     @param dest: path where to do the checkout
     @type url: string
     '''
-    await shell.async_call('svn co --non-interactive --trust-server-cert %s %s' % (url, dest), cpu_bound=False)
+    await shell.async_call('svn co --non-interactive --trust-server-cert %s %s' % (url, dest))
 
 
 async def update(repo, revision='HEAD'):
@@ -40,7 +40,7 @@ async def update(repo, revision='HEAD'):
     @param revision: the revision to checkout
     @type revision: str
     '''
-    await shell.async_call('svn up --non-interactive --trust-server-cert -r %s' % revision, repo, cpu_bound=False)
+    await shell.async_call('svn up --non-interactive --trust-server-cert -r %s' % revision, repo)
 
 
 def checkout_file(url, out_path):
