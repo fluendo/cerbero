@@ -33,7 +33,7 @@ from cerbero.config import Distro
 from cerbero.build.fridge import Fridge
 from cerbero.utils.shell import BuildStatusPrinter
 
-NUMBER_OF_JOBS_IF_USED = 2 * determine_num_of_cpus()
+NUMBER_OF_JOBS_IF_USED = 8
 NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
 
 class Fetch(Command):
