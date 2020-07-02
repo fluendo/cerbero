@@ -250,8 +250,8 @@ class FetchCache(Command):
     def fetch_dep(self, config, dep, namespace):
         try:
             artifacts_path = "%s/cerbero-deps.tar.gz" % config.home_dir
-            shell.download(dep['url'], artifacts_path, check_cert=True, overwrite=True)
-            shell.unpack(artifacts_path, config.home_dir)
+            run_until_complete(shell.download(dep['url'], artifacts_path, check_cert=True, overwrite=True))
+            run_until_complete(shell.unpack(artifacts_path, config.home_dir))
             os.remove(artifacts_path)
             origin = self.build_dir % namespace
             m.message("Relocating from %s to %s" % (origin, config.home_dir))
