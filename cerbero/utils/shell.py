@@ -247,7 +247,7 @@ async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, env=None):
         raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
 
 
-async def async_call_output(cmd, cmd_dir=None, logfile=None, env=None):
+async def async_check_output(cmd, cmd_dir=None, logfile=None, env=None):
     '''
     Run a shell command and get the output
 

@@ -218,7 +218,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
                 remote = remotes[commit_split[0]]
                 commit = commit_split[1]
 
-            remote_commit = await shell.async_call_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
+            remote_commit = await shell.async_check_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
             # If the commit/tag/branch given doesn't show up using ls-remote, it means
             # it is not the HEAD of any refs. Hence, it must be a previous commit
             # that we can use directly
@@ -228,7 +228,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
                 return commit
         else:
             raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
-    output = await shell.async_call_output('%s rev-parse %s' %
+    output = await shell.async_check_output('%s rev-parse %s' %
                             (GIT, commit), git_dir, env=env)
     return output.rstrip()
 

@@ -500,7 +500,7 @@ class Autotools (MakefilesBase):
             cfs['ltmain.sh'] = os.path.join(self.config.build_tools_prefix, 'share/libtool/build-aux')
         for cf, srcdir in cfs.items():
             find_cmd = 'find {} -type f -name {}'.format(self.config_src_dir, cf)
-            files = await shell.async_call_output(find_cmd, logfile=self.logfile, env=self.env)
+            files = await shell.async_check_output(find_cmd, logfile=self.logfile, env=self.env)
             files = files.split('\n')
             files.remove('')
             for f in files:
