@@ -11,6 +11,11 @@ class Recipe(recipe.Recipe):
 
     patches = ['bison/0001-Fix-build-invalid-instruction-on-macOS-10.3.patch']
 
+    # Seems bison is storing in the binary references to where to find the .m4
+    # Fridge only relocates text-like files, not binaries. Don't allow freezing
+    # this recipe for now until we figure out how to sort it out.
+    allow_package_creation = False
+
     files_bins = ['bison', 'yacc']
     files_share = [
         'share/aclocal/bison-i18n.m4',
