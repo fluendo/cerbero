@@ -3,18 +3,12 @@ import shutil
 
 class Recipe(recipe.Recipe):
     name = 'bison'
-    version = '3.0.4'
+    version = '3.6.4'
     licenses = [License.GPLv2Plus]
     stype = SourceType.TARBALL
     url = 'gnu://'
-    tarball_checksum = 'a72428c7917bdf9fa93cb8181c971b6e22834125848cf1d03ce10b1bb0716fe1'
-
-    patches = ['bison/0001-Fix-build-invalid-instruction-on-macOS-10.3.patch']
-
-    # Seems bison is storing in the binary references to where to find the .m4
-    # Fridge only relocates text-like files, not binaries. Don't allow freezing
-    # this recipe for now until we figure out how to sort it out.
-    allow_package_creation = False
+    tarball_checksum = '8b13473b31ca7fcf65e5e8a74224368ffd5df19275602a9c9567ba393f18577d'
+    configure_options = ' --enable-relocatable'
 
     files_bins = ['bison', 'yacc']
     files_share = [
@@ -43,6 +37,12 @@ class Recipe(recipe.Recipe):
         'share/bison/xslt/xml2xhtml.xsl',
         'share/bison/yacc.c',
     ]
+
+    def prepare(self):
+        # Set M4 to just m4 so it does not use a full absolute path.
+        # This allows bison to be fully relocatable.
+        self.set_env('M4', 'm4')
+
     def extract(self):
         if os.path.exists(self.build_dir):
             shutil.rmtree(self.build_dir)
