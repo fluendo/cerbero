@@ -261,6 +261,7 @@ class Tarball(BaseTarball, Source):
     def extract(self):
         m.action(_('Extracting tarball to %s') % self.build_dir)
         if os.path.exists(self.build_dir):
+            print("RMMMMMMMMMMMMMMMM.............::", self.build_dir)
             shutil.rmtree(self.build_dir)
         self.extract_tarball(self.config.sources)
         if self.tarball_dirname is not None:

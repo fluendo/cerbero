@@ -23,6 +23,12 @@ class Recipe(recipe.Recipe):
             prefix = str(PurePath(self.config.prefix))
         else:
             prefix = self.config.prefix
+
+        print("prefix:", self.config.prefix)
+        print("logfile:", self.logfile)
+        print("env:", self.env)
+        print("array", [self.config.python_exe, 'setup.py', 'install', '--prefix', prefix])
+
         shell.new_call([self.config.python_exe, 'setup.py', 'install', '--prefix', prefix],
                        cmd_dir=self.build_dir, env=self.env, logfile=self.logfile)
         if self.config.platform == Platform.WINDOWS:
