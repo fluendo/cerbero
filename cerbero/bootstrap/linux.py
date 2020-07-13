@@ -147,11 +147,7 @@ class RedHatBootstrapper (UnixBootstrapper):
         if self.config.target_platform == Platform.LINUX:
             self.packages.append('chrpath')
             self.packages.append('fuse-devel')
-        # Use sudo to gain root access on everything except RHEL
-        if self.config.distro_version == DistroVersion.REDHAT_6:
-            self.tool = 'su -c "' + self.tool + '"'
-        else:
-            self.tool = 'sudo ' + self.tool
+        self.tool = 'sudo ' + self.tool
 
 class OpenSuseBootstrapper (UnixBootstrapper):
 
