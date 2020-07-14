@@ -49,22 +49,22 @@ class BootstrapperBase (object):
     def start(self):
         raise NotImplemented("'start' must be implemented by subclasses")
 
-    def fetch(self):
+    async def fetch(self):
         'Fetch bootstrap binaries'
         for (url, checksum) in self.fetch_urls:
             source = BootstrapTarball(self.config, self.offline, url, checksum,
                                       self.config.local_sources)
             self.sources[url] = source
-            source.fetch()
+            await source.fetch()
 
-    def fetch_recipes(self):
+    def fetch_recipes(self, jobs):
         'Fetch build-tools recipes; only called by fetch-bootstrap'
         pass
 
-    def extract(self):
+    async def extract(self):
         for (url, unpack, unpack_dir) in self.extract_steps:
             if unpack:
-                self.sources[url].extract_tarball(unpack_dir)
+                await self.sources[url].extract_tarball(unpack_dir)
             else:
                 # Just copy the file as-is
                 fname = os.path.basename(url)

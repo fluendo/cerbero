@@ -115,7 +115,7 @@ class BuildTools (BootstrapperBase, Fetch):
         oven.start_cooking(self.use_binaries, self.upload_binaries)
         self.config.do_setup_env()
 
-    def fetch_recipes(self):
+    def fetch_recipes(self, jobs):
         self._setup_env()
-        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, use_binaries=self.use_binaries)
+        Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, jobs, use_binaries=self.use_binaries)
         self.config.do_setup_env()

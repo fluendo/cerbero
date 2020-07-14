@@ -21,7 +21,7 @@ import time
 import shutil
 
 from cerbero.config import Platform
-from cerbero.utils import shell
+from cerbero.utils import shell, run_until_complete
 from cerbero.errors import FatalError
 
 GIT = 'git'
@@ -119,7 +119,7 @@ def delete_tag(git_dir, tagname, fail=True, logfile=None):
     return shell.call('%s tag -d %s' % (GIT, tagname), git_dir, fail=fail, logfile=logfile)
 
 
-def fetch(git_dir, fail=True, logfile=None):
+async def fetch(git_dir, fail=True, logfile=None):
     '''
     Fetch all refs from all the remotes
 
@@ -132,13 +132,16 @@ def fetch(git_dir, fail=True, logfile=None):
     # same time when using --tags: https://stackoverflow.com/a/20608181.
     # centOS 7 ships with git 1.8.3.1, hence for old git versions, we need to
     # run two separate commands.
-    ret = shell.call('%s fetch --all' % GIT, git_dir, fail=fail, logfile=logfile)
+    cmd = [GIT, 'fetch', '--all']
+    ret = await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile)
     if ret != 0:
         return ret
-    ret = shell.call('%s fetch --all --tags' % GIT, git_dir, fail=fail, logfile=logfile)
-    return ret
+    cmd.append('--tags')
+    # To avoid "would clobber existing tag" error
+    cmd.append('-f')
+    return await shell.async_call(cmd, cmd_dir=git_dir, fail=fail, logfile=logfile)
 
-def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
+async def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=None):
     '''
     Update somdules from local directory
 
@@ -163,18 +166,18 @@ def submodules_update(git_dir, src_dir=None, fail=True, offline=False, logfile=N
                            git_dir, logfile=logfile)
     shell.call("%s submodule init" % GIT, git_dir, logfile=logfile)
     if src_dir or not offline:
-        shell.call("%s submodule sync" % GIT, git_dir, logfile=logfile)
-        shell.call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile)
+        await shell.async_call("%s submodule update" % GIT, git_dir, fail=fail, logfile=logfile)
     else:
-        shell.call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile)
+        await shell.async_call("%s submodule update --no-fetch" % GIT, git_dir, fail=fail, logfile=logfile)
     if src_dir:
         for c in config_array:
             if c[0].startswith('submodule.') and c[0].endswith('.url'):
                 shell.call("%s config --file=.gitmodules %s  %s" %
                            (GIT, c[0], c[1]), git_dir, logfile=logfile)
-        shell.call("%s submodule sync" % GIT, git_dir, logfile=logfile)
+        await shell.async_call("%s submodule sync" % GIT, git_dir, logfile=logfile)
 
-def checkout(git_dir, commit, logfile=None):
+async def checkout(git_dir, commit, logfile=None):
     '''
     Reset a git repository to a given commit
 
@@ -183,7 +186,8 @@ def checkout(git_dir, commit, logfile=None):
     @param commit: the commit to checkout
     @type commit: str
     '''
-    return shell.call('%s reset --hard %s' % (GIT, commit), git_dir, logfile=logfile)
+    cmd = [GIT, 'reset', '--hard', commit]
+    return await shell.async_call(cmd, git_dir, logfile=logfile)
 
 async def async_get_hash(config, git_dir, commit, remotes=None):
     '''
@@ -214,7 +218,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
                 remote = remotes[commit_split[0]]
                 commit = commit_split[1]
 
-            remote_commit = await shell.async_call_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
+            remote_commit = await shell.async_check_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
             # If the commit/tag/branch given doesn't show up using ls-remote, it means
             # it is not the HEAD of any refs. Hence, it must be a previous commit
             # that we can use directly
@@ -224,14 +228,54 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
                 return commit
         else:
             raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
-    output = await shell.async_call_output('%s rev-parse %s' %
+    output = await shell.async_check_output('%s rev-parse %s' %
                             (GIT, commit), git_dir, env=env)
     return output.rstrip()
 
 def get_hash(config, git_dir, commit, remotes=None):
-    return shell.run_until_complete(async_get_hash(config, git_dir, commit, remotes))
+    '''
+    Get a commit hash from a valid commit.
+    Can be used to check if a commit exists
 
-def local_checkout(git_dir, local_git_dir, commit, logfile=None):
+    @param git_dir: path of the git repository
+    @type git_dir: str
+    @param commit: the commit to log
+    @type commit: str
+    @param remote: the repo's remote
+    @type remote: str
+    '''
+
+    # Ensure git uses the system's libraries instead of the ones in the home_dir
+    env = os.environ.copy()
+    env["LD_LIBRARY_PATH"] = config._pre_environ.get("LD_LIBRARY_PATH", "")
+
+    # In case this hash is taken when the repo has not been cloned yet
+    # (e.g. changing stype from tarball to git, during fridge), we need
+    # to collect the actual commit we would checkout. Otherwise, fridge
+    # wouldn't be able to reuse the same package.
+    if not os.path.isdir(os.path.join(git_dir, '.git')):
+        if remotes:
+            remote = remotes['origin']
+            commit_split = commit.split('/')
+            if len(commit_split) > 1:
+                remote = remotes[commit_split[0]]
+                commit = commit_split[1]
+
+            remote_commit = shell.check_output('%s ls-remote %s %s' % (GIT, remote, commit), env=env)
+            # If the commit/tag/branch given doesn't show up using ls-remote, it means
+            # it is not the HEAD of any refs. Hence, it must be a previous commit
+            # that we can use directly
+            if remote_commit:
+                return remote_commit.split()[0]
+            else:
+                return commit
+        else:
+            raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
+    output = shell.check_output('%s rev-parse %s' %
+                            (GIT, commit), git_dir, env=env)
+    return output.rstrip()
+
+async def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     '''
     Clone a repository for a given commit in a different location
 
@@ -247,12 +291,12 @@ def local_checkout(git_dir, local_git_dir, commit, logfile=None):
     branch_name = 'cerbero_build'
     shell.call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
     shell.call('%s branch %s' % (GIT, branch_name), local_git_dir, fail=False, logfile=logfile)
-    shell.call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile)
-    shell.call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
-    shell.call('%s clone %s -s -b %s .' % (GIT, local_git_dir, branch_name),
-               git_dir, logfile=logfile)
+    await shell.async_call('%s checkout %s' % (GIT, branch_name), local_git_dir, logfile=logfile)
+    await shell.async_call('%s reset --hard %s' % (GIT, commit), local_git_dir, logfile=logfile)
+    await shell.async_call('%s clone %s -s -b %s .' % (GIT, local_git_dir, branch_name),
+                           git_dir, logfile=logfile)
     ensure_user_is_set(git_dir, logfile=logfile)
-    submodules_update(git_dir, local_git_dir, logfile=logfile)
+    await submodules_update(git_dir, local_git_dir, logfile=logfile)
 
 def add_remote(git_dir, name, url, logfile=None):
     '''

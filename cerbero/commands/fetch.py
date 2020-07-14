@@ -26,12 +26,15 @@ from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
 from cerbero.errors import FatalError
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell
+from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, determine_num_of_cpus, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
 from cerbero.build.fridge import Fridge
+from cerbero.utils.shell import BuildStatusPrinter
 
+NUMBER_OF_JOBS_IF_USED = 8
+NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
 
 class Fetch(Command):
 
@@ -43,12 +46,14 @@ class Fetch(Command):
                     default=False, help=_('print all source URLs to stdout')))
         args.append(ArgparseArgument('--full-reset', action='store_true',
                     default=False, help=_('reset to extract step if rebuild is needed')))
-        args.append(ArgparseArgument('--fridge', action='store_true',
+        args.append(ArgparseArgument('--use-binaries', action='store_true',
                     default=False, help=_('use fridge to download binary packages if available')))
+        args.append(ArgparseArgument('--jobs', '-j', action='store', nargs='?', type=int,
+                    const=NUMBER_OF_JOBS_IF_USED, default=NUMBER_OF_JOBS_IF_UNUSED, help=_('number of async jobs')))
         Command.__init__(self, args)
 
     @staticmethod
-    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, use_binaries=False):
+    def fetch(cookbook, recipes, no_deps, reset_rdeps, full_reset, print_only, jobs, use_binaries=False):
         fetch_recipes = []
         if not recipes:
             fetch_recipes = cookbook.get_recipes_list()
@@ -58,12 +63,25 @@ class Fetch(Command):
             for recipe in recipes:
                 fetch_recipes += cookbook.list_recipe_deps(recipe)
             fetch_recipes = remove_list_duplicates (fetch_recipes)
-        m.message(_("Fetching the following recipes: %s") %
-                  ' '.join([x.name for x in fetch_recipes]))
+        m.message(_("Fetching the following recipes using %s async job(s): %s") %
+                  (jobs, ' '.join([x.name for x in fetch_recipes])))
         to_rebuild = []
+        tasks = []
+
+        async def fetch_print_wrapper(recipe_name, stepfunc):
+            printer.update_recipe_step(printer.count, recipe_name, 'fetch')
+            await stepfunc()
+            printer.count += 1
+            printer.remove_recipe(recipe_name)
+
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
+            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY], False) #cookbook.get_config().interactive)
+        else:
+            printer = BuildStatusPrinter (('fetch',), False) #cookbook.get_config().interactive)
+        printer.total = len(fetch_recipes)
+
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
             if print_only:
@@ -71,18 +89,32 @@ class Fetch(Command):
                 if isinstance(recipe, Tarball):
                     m.message("TARBALL: {} {}".format(recipe.url, recipe.tarball_name))
                 continue
-            if fridge:
-                try:
-                    fridge.fetch_recipe(recipe, i + 1, len(fetch_recipes))
-                    continue
-                except Exception:
-                    pass
-            m.build_step(i + 1, len(fetch_recipes), recipe, 'fetch')
+            try:
+                if recipe.allow_package_creation and fridge:
+                    tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
+                else:
+                    async def _fetch(cookbook, recipe):
+                        await recipe.fetch()
+                        cookbook.update_step_status(recipe.name, 'fetch')
+                    tasks.append(_fetch(cookbook, recipe))
+                continue
+            except Exception:
+                pass
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
-                shell.run_until_complete(stepfunc())
+                tasks.append(fetch_print_wrapper(recipe.name, stepfunc))
             else:
+                printer.update_recipe_step(printer.count, recipe.name, 'fetch')
                 stepfunc()
+                printer.count += 1
+                printer.remove_recipe(recipe.name)
+
+        run_until_complete(tasks, max_concurrent=jobs)
+        m.message("All async fetch jobs finished")
+
+        # Checking the current built version against the fetched one
+        # needs to be done *after* actually fetching
+        for recipe in fetch_recipes:
             bv = cookbook.recipe_built_version(recipe.name)
             cv = recipe.built_version()
             if bv != cv:
@@ -121,7 +153,8 @@ class FetchRecipes(Fetch):
     def run(self, config, args):
         cookbook = CookBook(config)
         return self.fetch(cookbook, args.recipes, args.no_deps,
-                          args.reset_rdeps, args.full_reset, args.print_only, args.fridge)
+                          args.reset_rdeps, args.full_reset, args.print_only, args.jobs,
+                          args.use_binaries)
 
 
 class FetchPackage(Fetch):
@@ -142,7 +175,7 @@ class FetchPackage(Fetch):
         package = store.get_package(args.package[0])
         return self.fetch(store.cookbook, package.recipes_dependencies(),
                           args.deps, args.reset_rdeps, args.full_reset,
-                          args.print_only, args.fridge)
+                          args.print_only, args.jobs, args.use_binaries)
 
 class FetchCache(Command):
     doc = N_('Fetch a cached build from GitLab CI based on cerbero git '
@@ -217,8 +250,8 @@ class FetchCache(Command):
     def fetch_dep(self, config, dep, namespace):
         try:
             artifacts_path = "%s/cerbero-deps.tar.gz" % config.home_dir
-            shell.download(dep['url'], artifacts_path, check_cert=True, overwrite=True)
-            shell.unpack(artifacts_path, config.home_dir)
+            run_until_complete(shell.download(dep['url'], artifacts_path, check_cert=True, overwrite=True))
+            run_until_complete(shell.unpack(artifacts_path, config.home_dir))
             os.remove(artifacts_path)
             origin = self.build_dir % namespace
             m.message("Relocating from %s to %s" % (origin, config.home_dir))

@@ -35,6 +35,9 @@ import inspect
 import hashlib
 from pathlib import Path
 from functools import lru_cache
+import asyncio
+from collections.abc import Iterable
+import threading
 
 from cerbero.enums import Platform, Architecture, Distro, DistroVersion
 from cerbero.errors import FatalError
@@ -615,3 +618,69 @@ def get_class_checksum(clazz):
     for line in lines:
         sha256.update(line.encode('utf-8'))
     return sha256.digest()
+
+def get_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # On Windows the default SelectorEventLoop is not available:
+    # https://docs.python.org/3.5/library/asyncio-subprocess.html#windows-event-loop
+    if sys.platform == 'win32' and \
+       not isinstance(loop, asyncio.ProactorEventLoop):
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+
+    # Avoid spammy BlockingIOError warnings with older python versions
+    if sys.platform != 'win32' and \
+       sys.version_info < (3, 8, 0):
+        asyncio.set_child_watcher(asyncio.FastChildWatcher())
+        asyncio.get_child_watcher().attach_loop(loop)
+
+    return loop
+
+def run_until_complete(tasks, max_concurrent=determine_num_of_cpus()):
+    '''
+    Runs one or many tasks, blocking until all of them have finished.
+    @param tasks: A single Future or a list of Futures to run
+    @type tasks: Future or list of Futures
+    @param max_concurrent: Number of concurrent tasks to execute
+    @type max_concurrent: int
+    @return: the result of the asynchronous task execution (if only
+             one task) or a list of all results in case of multiple
+             tasks. Result is None if operation is cancelled.
+    @rtype: any type or list of any types in case of multiple tasks
+    '''
+    if not tasks:
+        return
+
+    loop = get_event_loop()
+
+    # To prevent event loops within event loops, we need to create a new thread
+    # which will allow us to have a separate event-loop that runs whatever is
+    # needed in a different context, virtually allowing us runing and event loop
+    # from another event loop
+    if loop.is_running():
+        thread = threading.Thread(target=run_until_complete, args=(tasks, max_concurrent))
+        thread.start()
+        return thread.join()
+
+    try:
+        if isinstance(tasks, Iterable):
+            if not max_concurrent:
+                result = loop.run_until_complete(asyncio.gather(*tasks))
+            else:
+                async def _worker(semaphore, task):
+                    async with semaphore:
+                        await task
+
+                semaphore = asyncio.Semaphore(max_concurrent)
+                worker_tasks = [_worker(semaphore, task) for task in tasks]
+                result = loop.run_until_complete(asyncio.gather(*worker_tasks))
+        else:
+            result = loop.run_until_complete(tasks)
+        return result
+    except asyncio.CancelledError:
+        return None

@@ -19,7 +19,7 @@ import os
 import re
 
 from cerbero.config import Platform
-from cerbero.utils import shell, messages as m
+from cerbero.utils import shell, run_until_complete, messages as m
 
 
 class RecursiveLister():
@@ -47,7 +47,7 @@ class ObjdumpLister(RecursiveLister):
 
     async def async_list_file_deps(self, prefix, path):
         try:
-            files = await shell.async_call_output(['objdump', '-xw', path])
+            files = await shell.async_check_output(['objdump', '-xw', path])
         except Exception as e:
             m.warning(e)
             return []
@@ -64,7 +64,7 @@ class OtoolLister(RecursiveLister):
 
     async def async_list_file_deps(self, prefix, path):
         try:
-            files = await shell.async_call_output(['otool', '-L', path])
+            files = await shell.async_check_output(['otool', '-L', path])
         except Exception as e:
             m.warning(e)
             return []
@@ -78,7 +78,7 @@ class LddLister():
 
     async def async_list_deps(self, prefix,  path):
         try:
-            files = await shell.async_call_output(['ldd', path])
+            files = await shell.async_check_output(['ldd', path])
         except Exception as e:
             m.warning(e)
             return []
@@ -102,7 +102,7 @@ class DepsTracker():
         self.lister = self.BACKENDS[platform]()
 
     def list_deps(self, path):
-        deps = shell.run_until_complete(self.lister.async_list_deps(self.prefix, path))
+        deps = run_until_complete(self.lister.async_list_deps(self.prefix, path))
         rdeps = []
         for d in deps:
             if os.path.islink(d):

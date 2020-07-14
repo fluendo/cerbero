@@ -18,9 +18,11 @@
 
 
 from cerbero.commands import Command, register_command
-from cerbero.utils import N_, _, ArgparseArgument
+from cerbero.utils import N_, _, ArgparseArgument, determine_num_of_cpus, run_until_complete
 from cerbero.bootstrap.bootstrapper import Bootstrapper
 
+NUMBER_OF_JOBS_IF_USED = 8
+NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
 
 class Bootstrap(Command):
     doc = N_('Bootstrap the build system installing all the dependencies')
@@ -60,9 +62,15 @@ class Bootstrap(Command):
                 args.offline, args.assume_yes, args.system_only,
                 args.use_binaries, args.upload_binaries,
                 args.missing_files)
+        tasks = []
+        async def bootstrap_fetch_extract(bs):
+            await bs.fetch()
+            await bs.extract()
         for bootstrapper in bootstrappers:
-            bootstrapper.fetch()
-            bootstrapper.extract()
+            tasks.append(bootstrap_fetch_extract(bootstrapper))
+        run_until_complete(tasks)
+
+        for bootstrapper in bootstrappers:
             bootstrapper.start()
 
 
@@ -74,16 +82,20 @@ class FetchBootstrap(Command):
         args = [
             ArgparseArgument('--build-tools-only', action='store_true',
                 default=False, help=_('only fetch the build tools')),
-            ArgparseArgument('--fridge', action='store_true',
-                default=False, help=_('use fridge to download binary packages if available'))]
+            ArgparseArgument('--use-binaries', action='store_true',
+                default=False, help=_('use binaries from the repo before building')),
+            ArgparseArgument('--jobs', '-j', action='store', nargs='?', type=int,
+                    const=NUMBER_OF_JOBS_IF_USED, default=NUMBER_OF_JOBS_IF_UNUSED, help=_('number of async jobs'))]
         Command.__init__(self, args)
 
     def run(self, config, args):
         bootstrappers = Bootstrapper(config, args.build_tools_only,
-                offline=False, assume_yes=False, system_only=False, use_binaries=args.fridge)
+                offline=False, assume_yes=False, system_only=False, use_binaries=args.use_binaries)
+        tasks = []
         for bootstrapper in bootstrappers:
-            bootstrapper.fetch_recipes()
-            bootstrapper.fetch()
+            bootstrapper.fetch_recipes(args.jobs)
+            tasks.append(bootstrapper.fetch())
+        run_until_complete(tasks)
 
 register_command(Bootstrap)
 register_command(FetchBootstrap)

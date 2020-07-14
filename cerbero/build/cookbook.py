@@ -29,7 +29,7 @@ from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
 from cerbero.build.build import BuildType
 from cerbero.build.source import SourceType
 from cerbero.errors import FatalError, RecipeNotFoundError, InvalidRecipeError
-from cerbero.utils import _, shell, parse_file
+from cerbero.utils import _, shell, parse_file, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.utils.manifest import Manifest
 from cerbero.build import recipe as crecipe
@@ -480,7 +480,7 @@ class CookBook (object):
             if not self._recipe_is_reset(recipe.name):
                 recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
 
-        shell.run_until_complete(async_tasks)
+        run_until_complete(async_tasks)
 
     def _load_recipes_from_dir(self, repo):
         recipes = {}

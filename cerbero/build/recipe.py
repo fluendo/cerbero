@@ -36,7 +36,7 @@ from cerbero.ide.vs.genlib import GenLib, GenGnuLib
 from cerbero.tools.osxuniversalgenerator import OSXUniversalGenerator
 from cerbero.tools.osxrelocator import OSXRelocator
 from cerbero.utils import N_, _
-from cerbero.utils import shell, add_system_libs, get_class_checksum
+from cerbero.utils import shell, add_system_libs, get_class_checksum, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.tools.libtool import LibtoolLibrary
 
@@ -868,13 +868,13 @@ class UniversalRecipe(BaseUniversalRecipe, UniversalFilesProvider):
     def _do_step(self, step):
         if step in BuildSteps.FETCH:
             arch, recipe = list(self._recipes.items())[0]
-            shell.run_until_complete(self._async_run_step(recipe, step, arch))
+            run_until_complete(self._async_run_step(recipe, step, arch))
             return
 
         for arch, recipe in self._recipes.items():
             stepfunc = getattr(recipe, step)
             if asyncio.iscoroutinefunction(stepfunc):
-                shell.run_until_complete(self._async_run_step(recipe, step, arch))
+                run_until_complete(self._async_run_step(recipe, step, arch))
             else:
                 self._run_step(recipe, step, arch)
 
@@ -927,7 +927,7 @@ class UniversalFlatRecipe(BaseUniversalRecipe, UniversalFlatFilesProvider):
         if step in BuildSteps.FETCH:
             arch, recipe = list(self._recipes.items())[0]
             # No, really, let's not download a million times...
-            shell.run_until_complete(self._async_run_step(recipe, step, arch))
+            run_until_complete(self._async_run_step(recipe, step, arch))
             return
 
         # For the universal build we need to configure both architectures with
@@ -953,7 +953,7 @@ class UniversalFlatRecipe(BaseUniversalRecipe, UniversalFlatFilesProvider):
             # Call the step function
             stepfunc = getattr(recipe, step)
             if asyncio.iscoroutinefunction(stepfunc):
-                shell.run_until_complete(self._async_run_step(recipe, step, arch))
+                run_until_complete(self._async_run_step(recipe, step, arch))
             else:
                 self._run_step(recipe, step, arch)
 

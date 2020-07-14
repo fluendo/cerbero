@@ -20,6 +20,6 @@ class Recipe(recipe.Recipe):
         self.tarball_checksum = checksum
         self.download_path = os.path.join(self.download_dir, name)
 
-    def extract(self):
-        self.extract_tarball(self.config.toolchain_prefix)
-        self.extract_tarball(self.config.prefix)
+    async def extract(self):
+        await self.extract_tarball(self.config.toolchain_prefix)
+        await self.extract_tarball(self.config.prefix)
