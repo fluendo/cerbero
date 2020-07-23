@@ -441,8 +441,10 @@ class CookBook (object):
         st = self.status[recipe.name]
         # Need to check the version too, because the version can be
         # inherited from a different file, f.ex. recipes/custom.py
+        # This only needs to be done when the checksum does not depend
+        # on the parents, hence when strict_recipe_checksum is not used
         bv = recipe.built_version()
-        if bv != st.built_version:
+        if bv != st.built_version and not self._config.strict_recipe_checksum:
             self._reset_recipe_status(recipe, 'built_version', st.built_version, bv)
         else:
             # Use getattr as file_hash we added later
@@ -455,7 +457,7 @@ class CookBook (object):
         self.recipes = {}
         recipes = defaultdict(dict)
         recipes_repos = self._config.get_recipes_repos()
-        for reponame, (repodir, priority) in recipes_repos.items():
+        for _, (repodir, priority) in recipes_repos.items():
             recipes[int(priority)].update(self._load_recipes_from_dir(repodir))
         # Add recipes by asceding pripority
         for key in sorted(recipes.keys()):
@@ -478,7 +480,13 @@ class CookBook (object):
             if recipe.__file__ != st.filepath:
                 st.filepath = recipe.__file__
             if not self._recipe_is_reset(recipe.name):
-                recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
+                # We only need to collect the built version in case we don't use the strict recipe
+                # checksum, because it'll be used to make sure that no parent has changed the
+                # version
+                if self._config.strict_recipe_checksum:
+                    self._reset_recipe_if_needed(recipe)
+                else:
+                    recipe.run_func_depending_on_built_version(async_tasks, self._reset_recipe_if_needed, recipe)
 
         run_until_complete(async_tasks)
 
