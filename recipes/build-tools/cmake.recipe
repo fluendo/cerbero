@@ -1,5 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 
+import os
 
 class Recipe(recipe.Recipe):
     name = 'cmake'
@@ -27,6 +28,13 @@ class Recipe(recipe.Recipe):
                 # Setting SYSTEM_NAME sets CMAKE_CROSSCOMPILING and the
                 # binutils such as ar and ranlib are prefixed correctly
                 self.configure_tpl += ' -- -DCMAKE_SYSTEM_NAME="Windows"'
+        elif self.config.distro_version == DistroVersion.REDHAT_6:
+            if not os.path.isdir('/opt/rh/devtoolset-7/root/usr/bin'):
+                raise FatalError('Pakage "devtoolset-7" not found in Centos6')
+
+            self.set_env('PATH', '/opt/rh/devtoolset-7/root/usr/bin:%s' % os.environ['PATH'])
+            self.set_env('LD_LIBRARY_PATH', '/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:%s' %
+                        os.environ['LD_LIBRARY_PATH'])
 
     async def configure(self):
         if self.config.target_platform == Platform.WINDOWS:
