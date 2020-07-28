@@ -5,6 +5,10 @@ recipes by freezing them once they are built and uploading their content to some
 FTP server that acts as a fridge for the recipes. This way, we avoid the
 configure and compile steps, which are arguably the most time-consuming ones.
 
+## Diagram
+
+![Fridge diagram](fridge.svg)
+
 ## How recipes are reused
 
 A hash is generated for the current environment used in the configuration. This
