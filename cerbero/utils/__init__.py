@@ -658,10 +658,11 @@ def run_until_complete(tasks, max_concurrent=determine_num_of_cpus()):
 
     loop = get_event_loop()
 
-    # To prevent event loops within event loops, we need to create a new thread
-    # which will allow us to have a separate event-loop that runs whatever is
-    # needed in a different context, virtually allowing us runing and event loop
-    # from another event loop
+    # We need to take into account that run_until_complete may be called from within
+    # an async task. Since an event loop cannot be run within another one, we need
+    # to create a new thread which will create a different loop. We wait until all those
+    # tasks scheduled for the other thread finish. Only then we let the rest of the tasks
+    # to continue their execution.
     if loop.is_running():
         thread = threading.Thread(target=run_until_complete, args=(tasks, max_concurrent))
         thread.start()
