@@ -93,6 +93,7 @@ class PackageBase(object):
     shortdesc = 'default'
     longdesc = 'default'
     version = '1.0'
+    version_suffix = '-1'
     org = 'default'
     uuid = None
     license = License.LGPLv2_1Plus
