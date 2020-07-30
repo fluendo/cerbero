@@ -32,7 +32,7 @@ from cerbero.utils import shell, _
 from cerbero.utils import messages as m
 
 CHANGELOG_TPL = \
-'''%(p_prefix)s%(name)s (%(version)s-1) unstable; urgency=low
+'''%(p_prefix)s%(name)s (%(version)s%(version_suffix)s) unstable; urgency=low
 
   * Release %(version)s
   %(changelog_url)s
@@ -346,6 +346,7 @@ class DebianPackager(LinuxPackager):
         args['p_prefix'] = self.package_prefix
         args['packager'] = self.packager
         args['version'] = self.package.version
+        args['version_suffix'] = self.package.version_suffix
         args['datetime'] = self.datetime
         args['changelog_url'] = CHANGELOG_URL_TPL % self.package.url \
                 if self.package.url != 'default' else ''
