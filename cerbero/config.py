@@ -137,7 +137,7 @@ class Config (object):
                    'package_tarball_compression', 'extra_mirrors',
                    'extra_bootstrap_packages', 'moltenvk_prefix',
                    'binaries_local', 'binaries_remote',
-                   'strict_recipe_checksum']
+                   'strict_recipe_checksum', 'libname_suffix']
 
     cookbook = None
 
@@ -433,6 +433,7 @@ class Config (object):
         # Ensure that the path uses / as path separator and not \
         self.set_property('py_prefix', PurePath(stdlibpath).as_posix())
         self.set_property('lib_suffix', '')
+        self.set_property('libname_suffix', '')
         self.set_property('data_dir', self._find_data_dir())
         self.set_property('environ_dir', self._relative_path('config'))
         self.set_property('recipes_dir', self._relative_path('recipes'))
