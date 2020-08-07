@@ -11,9 +11,7 @@ class Recipe(recipe.Recipe):
     stype = SourceType.CUSTOM
     btype = BuildType.CUSTOM
     runtime_dep = True
-
-    files_stl = [
-            'lib/libc++_shared.so']
+    files_stl = None
     files_devel= [
             'lib/pkgconfig/gnustl.pc',
             'lib/libgnustl.la',
@@ -21,6 +19,9 @@ class Recipe(recipe.Recipe):
             ]
 
     def prepare(self):
+        self.files_stl = [
+            'lib/libc++_shared' + self.config.libname_suffix + '.so']
+
         if self.config.target_platform != Platform.ANDROID:
             raise InvalidRecipeError(self, "Invalid platform")
         v = DistroVersion.get_android_api_version(self.config.target_distro_version)
@@ -57,9 +58,14 @@ class Recipe(recipe.Recipe):
         if not os.path.exists(libdir):
             os.makedirs(libdir)
 
+        override_libname = 'libc++_shared%s.so' % self.config.libname_suffix
+        output_libpath = os.path.join(libdir, override_libname)
         # Copies libraries to the prefix
         shutil.copy(os.path.join(stl_libdir, 'libc++_shared.so'),
-                    os.path.join(libdir, 'libc++_shared.so'))
+                    output_libpath)
+        # If suffix presents, we also need to change the SONAME section of the library
+        if len(self.config.libname_suffix) > 0:
+            shell.call('patchelf --set-soname %s %s' % (override_libname, output_libpath))
         v = DistroVersion.get_android_api_version(self.config.target_distro_version)
         if v < 21:
             shutil.copy(os.path.join(stl_libdir, 'libandroid_support.a'),
@@ -72,10 +78,10 @@ class Recipe(recipe.Recipe):
         # Create a libtool library for gnustl (libgnustl.la)
         lib = LibtoolLibrary('gnustl', None, None, None, libdir,
                 self.config.target_platform)
-        lib.change_value('dlname', 'libc++_shared.so')
-        lib.change_value('library_names', 'libc++_shared.so libc++_shared.so libc++_shared.so')
+        lib.change_value('dlname', override_libname)
+        lib.change_value('library_names', override_libname + ' ' + override_libname + ' ' + override_libname)
         lib.change_value('old_library', '')
-        lib.change_value('dependency_libs', '-lc++_shared' +
+        lib.change_value('dependency_libs', '-lc++_shared%s' % self.config.libname_suffix +
                                 (' %s/libandroid_support.a' % (libdir) if v < 21 else '') +
                                 (' %s/libunwind.a' % (libdir) if self.config.target_arch == Architecture.ARMv7 else ''))
         lib.save()
@@ -85,7 +91,7 @@ class Recipe(recipe.Recipe):
         if not os.path.exists(pkgdir):
             os.makedirs(pkgdir)
         stl_pc = PkgConfigWritter('gnustl', 'gnustl', '2.0',
-                '', '-L${libdir} ${libdir}/libc++_shared.so' +
+                '', '-L${libdir} ${libdir}/%s' % override_libname +
                 (' ${libdir}/libandroid_support.a ' if v < 21 else '') +
                 (' ${libdir}/libunwind.a ' if self.config.target_arch == Architecture.ARMv7 else '') +
                 '',
