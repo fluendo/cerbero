@@ -535,24 +535,25 @@ class FilesProvider(object):
 
             pattern = ''
             if self.library_type != LibraryType.NONE:
-                pattern += 'lib/%(f)s.la '
+                pattern += '%(libdir)s/%(f)s.la '
 
             if self.library_type in (LibraryType.BOTH, LibraryType.STATIC):
-                pattern += 'lib/%(f)s.a '
+                pattern += '%(libdir)s/%(f)s.a '
 
             if self.library_type in (LibraryType.BOTH, LibraryType.SHARED):
                 if self.platform == Platform.LINUX:
-                    pattern += 'lib/%(f)s.so '
+                    pattern += '%(libdir)s/%(f)s.so '
                 elif self.platform == Platform.WINDOWS:
-                    pattern += 'lib/%(f)s.dll.a '
-                    pattern += 'lib/%(f)s.def '
-                    pattern += 'lib/%(fnolib)s.lib '
+                    pattern += '%(libdir)s/%(f)s.dll.a '
+                    pattern += '%(libdir)s/%(f)s.def '
+                    pattern += '%(libdir)s/%(fnolib)s.lib '
                 elif self.platform in [Platform.DARWIN, Platform.IOS]:
-                    pattern += 'lib/%(f)s.dylib '
+                    pattern += '%(libdir)s/%(f)s.dylib '
 
             libsmatch = []
             for x in self._get_category_files_list(category):
-                libsmatch.append(pattern % {'f': x, 'fnolib': x[3:]})
+                libsmatch.append(pattern % {'libdir': 'lib%s' % self.config.lib_suffix,
+                                            'f': x, 'fnolib': x[3:]})
                 # PDB names are derived from DLL library names (which are
                 # arbitrary), so we must use the same search function for them.
                 if self.platform != Platform.WINDOWS or not self.using_msvc():
