@@ -19,7 +19,6 @@
 from collections import defaultdict
 import os
 import pickle
-import time
 import imp
 import traceback
 import shutil
@@ -414,7 +413,7 @@ class CookBook (object):
             return True
 
         st = self.status[recipe_name]
-        return not st.built_version and st.needs_build
+        return not st.steps
 
     def _reset_recipe_status(self, recipe, change_name, previous, now):
         if self._recipe_is_reset(recipe.name):
