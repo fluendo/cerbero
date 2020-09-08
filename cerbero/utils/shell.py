@@ -234,7 +234,12 @@ async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, env=None):
         m.error("cd %s && %s && cd %s" % (cmd_dir, cmd, os.getcwd()))
         return
 
-    env = os.environ.copy() if env is None else env.copy()
+    global CALL_ENV
+    if CALL_ENV is not None:
+        env = CALL_ENV.copy()
+    elif env is None:
+        env = os.environ.copy()
+
     # Force python scripts to print their output on newlines instead
     # of on exit. Ensures that we get continuous output in log files.
     env['PYTHONUNBUFFERED'] = '1'
@@ -270,6 +275,12 @@ async def async_check_output(cmd, cmd_dir=None, logfile=None, env=None):
         # separator, which fails for the same reason as above. Ensure that \ is
         # used instead.
         tempfile.tempdir = str(PurePath(tempfile.gettempdir()))
+
+    global CALL_ENV
+    if CALL_ENV is not None:
+        env = CALL_ENV.copy()
+    elif env is None:
+        env = os.environ.copy()
 
     proc = await asyncio.create_subprocess_exec(*cmd, cwd=cmd_dir,
                                                 stdout=subprocess.PIPE, stderr=logfile, env=env)
