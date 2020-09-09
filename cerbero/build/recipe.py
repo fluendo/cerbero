@@ -473,7 +473,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
 
         for fp in [os.path.join(self.config.prefix, x) for x in self.files_list()]:
             if is_elf(fp):
-                shell.call('chrpath --delete %s' % fp)
+                shell.call('patchelf --remove-rpath %s' % fp)
 
     def _install_srcdir_license(self, lfiles, install_dir):
         '''
