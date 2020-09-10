@@ -23,8 +23,14 @@ class Recipe(recipe.Recipe):
             prefix = str(PurePath(self.config.prefix))
         else:
             prefix = self.config.prefix
-        shell.new_call([self.config.python_exe, 'setup.py', 'install', '--prefix', prefix],
-                       cmd_dir=self.build_dir, env=self.env, logfile=self.logfile)
+
+        cmd = [self.config.python_exe, 'setup.py', 'install',
+               '--prefix', prefix]
+        if self.config.platform != Platform.DARWIN:
+            cmd += ['--single-version-externally-managed', '--root', '/']
+
+        shell.new_call(cmd, cmd_dir=self.build_dir, env=self.env,
+                       logfile=self.logfile)
         if self.config.platform == Platform.WINDOWS:
             prefix = Path(self.config.prefix)
             for f in ('meson.exe', 'meson-script.py'):
