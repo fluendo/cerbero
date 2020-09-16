@@ -685,3 +685,13 @@ def run_until_complete(tasks, max_concurrent=determine_num_of_cpus()):
         return result
     except asyncio.CancelledError:
         return None
+
+
+def use_devtoolset7_in_redhat(distro_version, recipe):
+    if distro_version in [DistroVersion.REDHAT_6, DistroVersion.REDHAT_7]:
+        if not os.path.isdir('/opt/rh/devtoolset-7/root/usr'):
+            raise FatalError('Pakage "devtoolset-7" not found')
+
+        recipe.set_env('PATH', '/opt/rh/devtoolset-7/root/usr/bin:%s' % os.environ['PATH'])
+        recipe.set_env('LD_LIBRARY_PATH', ('/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:%s' %
+                                           os.environ['LD_LIBRARY_PATH']))
