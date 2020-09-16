@@ -1,6 +1,6 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 
-import os
+from cerbero.utils import use_devtoolset7_in_redhat
 
 class Recipe(recipe.Recipe):
     name = 'patchelf'
@@ -16,10 +16,4 @@ class Recipe(recipe.Recipe):
     files_share = ['share/doc/patchelf', 'share/man/man1/patchelf.1']
 
     def prepare(self):
-        if self.config.distro_version == DistroVersion.REDHAT_6:
-            if not os.path.isdir('/opt/rh/devtoolset-7/root/usr/bin'):
-                raise FatalError('Pakage "devtoolset-7" not found in Centos6')
-
-            self.set_env('PATH', '/opt/rh/devtoolset-7/root/usr/bin:%s' % os.environ['PATH'])
-            self.set_env('LD_LIBRARY_PATH', '/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:%s' %
-                        os.environ['LD_LIBRARY_PATH'])
+        use_devtoolset7_in_redhat(self.config.distro_version, self)
