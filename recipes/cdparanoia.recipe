@@ -20,7 +20,9 @@ class Recipe(recipe.Recipe):
     licenses = [License.LGPLv2_1Plus]
     allow_parallel_build = False
     config_sh = 'CFLAGS="$CFLAGS -fPIC" ./configure'
-    patches = ['cdparanoia/0001-configure.in-Always-use-AC_PROG_CC.patch']
+    patches = ['cdparanoia/0001-configure.in-Always-use-AC_PROG_CC.patch',
+               'cdparanoia/0001-Ensure-LDFLAGS-are-used-to-link-shared-libs.patch'
+              ]
 
     files_libs = ['libcdda_paranoia', 'libcdda_interface']
     files_devel = ['include/cdda_interface.h', 'include/cdda_paranoia.h', 'include/utils.h']
