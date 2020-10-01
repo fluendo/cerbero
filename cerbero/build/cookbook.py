@@ -442,15 +442,17 @@ class CookBook (object):
         # inherited from a different file, f.ex. recipes/custom.py
         # This only needs to be done when the checksum does not depend
         # on the parents, hence when strict_recipe_checksum is not used
-        bv = recipe.built_version()
-        if bv != st.built_version and not self._config.strict_recipe_checksum:
-            self._reset_recipe_status(recipe, 'built_version', st.built_version, bv)
-        else:
-            # Use getattr as file_hash we added later
-            saved_hash = getattr(st, 'file_hash', '')
-            current_hash = recipe.get_checksum()
-            if saved_hash != current_hash:
-                self._reset_recipe_status(recipe, 'file_hash', saved_hash, current_hash)
+        if not self._config.strict_recipe_checksum:
+            bv = recipe.built_version()
+            if bv != st.built_version:
+                self._reset_recipe_status(recipe, 'built_version', st.built_version, bv)
+                return
+
+        # Use getattr as file_hash we added later
+        saved_hash = getattr(st, 'file_hash', '')
+        current_hash = recipe.get_checksum()
+        if saved_hash != current_hash:
+            self._reset_recipe_status(recipe, 'file_hash', saved_hash, current_hash)
 
     def _load_recipes(self):
         self.recipes = {}
