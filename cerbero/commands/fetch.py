@@ -46,7 +46,7 @@ class Fetch(Command):
                     default=False, help=_('print all source URLs to stdout')))
         args.append(ArgparseArgument('--full-reset', action='store_true',
                     default=False, help=_('reset to extract step if rebuild is needed')))
-        args.append(ArgparseArgument('--use-binaries', action='store_true',
+        args.append(ArgparseArgument('--use-binaries', '--fridge', action='store_true',
                     default=False, help=_('use fridge to download binary packages if available')))
         args.append(ArgparseArgument('--jobs', '-j', action='store', nargs='?', type=int,
                     const=NUMBER_OF_JOBS_IF_USED, default=NUMBER_OF_JOBS_IF_UNUSED, help=_('number of async jobs')))

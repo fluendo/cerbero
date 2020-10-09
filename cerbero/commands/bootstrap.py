@@ -82,7 +82,7 @@ class FetchBootstrap(Command):
         args = [
             ArgparseArgument('--build-tools-only', action='store_true',
                 default=False, help=_('only fetch the build tools')),
-            ArgparseArgument('--use-binaries', action='store_true',
+            ArgparseArgument('--use-binaries', '--fridge', action='store_true',
                 default=False, help=_('use binaries from the repo before building')),
             ArgparseArgument('--jobs', '-j', action='store', nargs='?', type=int,
                     const=NUMBER_OF_JOBS_IF_USED, default=NUMBER_OF_JOBS_IF_UNUSED, help=_('number of async jobs'))]
