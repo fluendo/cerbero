@@ -72,12 +72,16 @@ class Uninstall(Command):
             recipe.clean_installed_files()
             cookbook.clean_recipe_status(recipe_name)
 
-            # Lastly, remove the build directory
-            build_dir = os.path.join(config.sources, recipe.package_name)
-            if os.path.isdir(build_dir):
-                shutil.rmtree(build_dir)
+            # Lastly, remove the build and local sources directory
+            self._remove_sources_dir(os.path.join(config.sources, recipe.package_name))
+            self._remove_sources_dir(os.path.join(config.local_sources, recipe.package_name))
 
         m.message('Recipes uninstalled: {}'.format(' '.join(recipe_names)))
+
+    def _remove_sources_dir(self, dir):
+        if os.path.isdir(dir):
+            m.message('Removing sources directory {}'.format(dir))
+            shutil.rmtree(dir)
 
 
 register_command(Uninstall)
