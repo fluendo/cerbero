@@ -556,6 +556,19 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             sha256.update(get_class_checksum(c))
         return sha256
 
+    def _get_deps_checksum(self, sha256):
+        '''
+        Add to the given SHA256 the checksum of its dependencies in case
+        they are static
+        '''
+        if not self.config.strict_recipe_checksum:
+            return sha256
+        deps = self.list_deps()
+        for dep in deps:
+            recipe = self.config.cookbook.get_recipe(dep)
+            sha256.update(recipe.get_checksum().encode('utf-8'))
+        return sha256
+
     def install_licenses(self):
         '''
         NOTE: This list of licenses is only indicative and is not guaranteed to
@@ -737,6 +750,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         @rtype: str
         '''
         sha256 = self._get_parents_checksum()
+        sha256 = self._get_deps_checksum(sha256)
         for f in self._get_files_dependencies():
             sha256.update(open(f, 'rb').read())
         return sha256.hexdigest()
