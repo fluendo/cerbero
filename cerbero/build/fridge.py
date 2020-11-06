@@ -229,7 +229,9 @@ class Fridge (object):
 
     async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
-        await self.binaries_remote.fetch_binary(self._get_package_names(recipe).values(),
+        package_names = self._get_package_names(recipe).values()
+        m.action('Downloading fridge package {}/{}'.format(self.env_checksum, list(package_names)[0]))
+        await self.binaries_remote.fetch_binary(package_names,
                                           self.binaries_local, self.env_checksum)
 
     def extract_binary(self, recipe):
@@ -304,7 +306,7 @@ class Fridge (object):
 
     async def _apply_steps(self, recipe, steps, build_status_printer, count):
         self._ensure_ready(recipe)
-        for desc, step in steps:
+        for _, step in steps:
             build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
