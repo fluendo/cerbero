@@ -12,6 +12,7 @@ class Recipe(recipe.Recipe):
     licenses = [{License.MIT: ['COPYING']}]
     deps = [ 'zlib' ]
     autoreconf = True
+    configure_options = '--with-python=no'
     patches = ['libxml2/0003-configure-fix-python-dir-prefix.patch']
 
     files_libs = ['libxml2']
@@ -20,15 +21,9 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
-            self.configure_options = '--with-python=no'
             self.configure_options += ' --without-threads'
         elif self.config.target_platform == Platform.ANDROID:
-            self.configure_options = '--with-python=no'
             v = DistroVersion.get_android_api_version(self.config.target_distro_version)
             if v < 21:
                 self.append_env('CFLAGS', '-D_FILE_OFFSET_BITS=32')
                 self.append_env('CPPFLAGS', '-D_FILE_OFFSET_BITS=32')
-        elif self.config.target_platform == Platform.IOS:
-            self.configure_options = '--with-python=no'
-        elif self.config.target_platform == Platform.LINUX:
-            self.configure_options = '--with-python=no'
