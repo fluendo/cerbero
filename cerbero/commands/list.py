@@ -16,20 +16,20 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-from cerbero.config import Variants
 from cerbero.commands import Command, register_command
 from cerbero.build.cookbook import CookBook
 from cerbero.utils import _, N_
 from cerbero.utils import messages as m
 from cerbero.packages.packagesstore import PackagesStore
-
+from cerbero.utils import ArgparseArgument
 
 class List(Command):
     doc = N_('List all the available recipes')
     name = 'list'
 
     def __init__(self):
-        Command.__init__(self, [])
+        Command.__init__(self, [ArgparseArgument('-v', '--verbose', action='store_true', default=False,
+                                help=_('be verbose, showing the filepaths'))])
 
     def run(self, config, args):
         cookbook = CookBook(config)
@@ -42,7 +42,8 @@ class List(Command):
             except:
                 current = "Not checked out"
 
-            m.message("%s - %s (current checkout: %s)" % (recipe.name, recipe.version, current))
+            filepath_str = "- " + recipe.__file__  if args.verbose else ""
+            m.message("%s - %s (current checkout: %s) %s" % (recipe.name, recipe.version, current, filepath_str))
 
 
 class ListPackages(Command):
@@ -50,15 +51,16 @@ class ListPackages(Command):
     name = 'list-packages'
 
     def __init__(self):
-        Command.__init__(self, [])
-
+        Command.__init__(self, [ArgparseArgument('-v', '--verbose', action='store_true', default=False,
+                                help=_('be verbose, showing the filepaths'))])
     def run(self, config, args):
         store = PackagesStore(config)
         packages = store.get_packages_list()
         if len(packages) == 0:
             m.message(_("No packages found"))
         for p in packages:
-            m.message("%s - %s" % (p.name, p.version))
+            filepath_str = "- " + p.__file__  if args.verbose else ""
+            m.message("%s - %s %s" % (p.name, p.version, filepath_str))
 
 class ShowConfig(Command):
     doc = N_('Show configuration settings')
