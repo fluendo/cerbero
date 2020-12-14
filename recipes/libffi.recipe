@@ -4,7 +4,7 @@ from cerbero.tools.libtool import LibtoolLibrary
 class Recipe(recipe.Recipe):
     name = 'libffi'
     version = '3.2.9999'
-    remotes = {'origin': 'git@github.com/{0}/{0}.git'.format(name)}
+    remotes = {'origin': 'ssh://git@github.com/{0}/{0}.git'.format(name)}
     commit = '369ef49f71186fc9d6ab15614488ad466fac3fc1'
     licenses = [{License.BSD_like: ['LICENSE']}]
     btype = BuildType.MESON
