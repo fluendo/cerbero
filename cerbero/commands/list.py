@@ -27,10 +27,6 @@ class List(Command):
     doc = N_('List all the available recipes')
     name = 'list'
 
-    def __init__(self):
-        Command.__init__(self, [ArgparseArgument('-v', '--verbose', action='store_true', default=False,
-                                help=_('be verbose, showing the filepaths'))])
-
     def run(self, config, args):
         cookbook = CookBook(config)
         recipes = cookbook.get_recipes_list()
@@ -42,25 +38,20 @@ class List(Command):
             except:
                 current = "Not checked out"
 
-            filepath_str = "- " + recipe.__file__  if args.verbose else ""
-            m.message("%s - %s (current checkout: %s) %s" % (recipe.name, recipe.version, current, filepath_str))
+            m.message("%s - %s (current checkout: %s) - %s" % (recipe.name, recipe.version, current, recipe.__file__))
 
 
 class ListPackages(Command):
     doc = N_('List all the available packages')
     name = 'list-packages'
 
-    def __init__(self):
-        Command.__init__(self, [ArgparseArgument('-v', '--verbose', action='store_true', default=False,
-                                help=_('be verbose, showing the filepaths'))])
     def run(self, config, args):
         store = PackagesStore(config)
         packages = store.get_packages_list()
         if len(packages) == 0:
             m.message(_("No packages found"))
         for p in packages:
-            filepath_str = "- " + p.__file__  if args.verbose else ""
-            m.message("%s - %s %s" % (p.name, p.version, filepath_str))
+            m.message("%s - %s - %s" % (p.name, p.version, p.__file__))
 
 class ShowConfig(Command):
     doc = N_('Show configuration settings')
