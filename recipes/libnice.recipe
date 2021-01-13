@@ -1,23 +1,33 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 from cerbero.tools.libtool import LibtoolLibrary
 
+
 class Recipe(recipe.Recipe):
     name = 'libnice'
-    version = '0.1.15'
+    version = '0.1.17'
     stype = SourceType.TARBALL
     btype = BuildType.MESON
     url = 'https://nice.freedesktop.org/releases/%(name)s-%(version)s.tar.gz'
-    tarball_checksum = 'f7280f3f58f594409c719a03009aa819c599078b410796f408251277807587da'
+    tarball_checksum = '1952a0dec58b5c9ccc3f25193df4e2d1244cb382cac611b71e25afcd7b069526'
     # Either LGPL-2.1+ or MPL-1.1
     licenses = [License.LGPLv2_1Plus, License.MPLv1_1]
-    meson_options = {'tests' : 'disabled',
-                     'gupnp' : 'disabled',
-                     'gstreamer' : 'enabled',
-                     'crypto-library' : 'gnutls'}
-    deps = ['glib', 'gstreamer-1.0', 'gnutls']
+    meson_options = {'tests': 'disabled',
+                     'gupnp': 'disabled',
+                     'gstreamer': 'enabled',
+                     'crypto-library': 'openssl'}
+    deps = ['glib', 'gstreamer-1.0']
+
     patches = [
-        "libnice/0001-nicesrc-spin-the-agent-mainloop-in-a-separate-thread.patch",
-        "libnice/0001-meson-install-.pc-file-for-static-gstreamer-plugin.patch",
+        # https://gitlab.freedesktop.org/libnice/libnice/-/merge_requests/150
+        'libnice/0001-stund-Use-lowercase-winsock2.h.patch',
+        # https://gitlab.freedesktop.org/libnice/libnice/-/merge_requests/151
+        'libnice/0001-rand-Use-crypto-libs-instead-of-CryptGenRandom.patch',
+        'libnice/0002-meson-Fix-typos-in-crypto-library-detection.patch',
+        # https://gitlab.freedesktop.org/libnice/libnice/-/merge_requests/154
+        'libnice/0001-interfaces-Add-debug-logging-to-sockaddr_to_string.patch',
+        'libnice/0002-interfaces-Port-to-GetBestInterfaceEx-for-UWP-compat.patch',
+        'libnice/0003-interfaces-Remove-unused-win32-code.patch',
+        'libnice/0004-interfaces-Fix-fetching-of-interfaces-on-Win32.patch',
     ]
 
     files_bins = ['stunbdc', 'stund']
@@ -33,12 +43,19 @@ class Recipe(recipe.Recipe):
     ]
     # FIXME - if_arp.h? (iOS)
 
-    def post_install (self):
+    def prepare(self):
+        if self.config.target_platform != Platform.LINUX or self.config.cross_compiling():
+            self.deps.append('openssl')
+        else:
+            # openssl on Linux
+            self.use_system_libs = True
+
+    def post_install(self):
         nice_deps = ['gio-2.0', 'gthread-2.0', 'gnutls']
         lib = LibtoolLibrary('nice', None, None, None, self.config.libdir,
-                self.config.target_platform, deps=nice_deps)
+                             self.config.target_platform, deps=nice_deps)
         lib.save()
         lib = LibtoolLibrary('gstnice', None, None, None, os.path.join(self.config.libdir, 'gstreamer-1.0'),
-                self.config.target_platform, deps=(nice_deps + ['nice', 'gstbase-1.0']))
+                             self.config.target_platform, deps=(nice_deps + ['nice', 'gstbase-1.0']))
         lib.save()
         super().post_install()
