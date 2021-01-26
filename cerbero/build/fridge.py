@@ -34,7 +34,6 @@ from cerbero.utils import N_, _, shell, run_until_complete
 from cerbero.utils.shell import Ftp
 from cerbero.utils import messages as m
 from cerbero.packages.disttarball import DistTarball
-from cerbero.enums import ArchiveType
 from cerbero.packages import PackageType
 
 
