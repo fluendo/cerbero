@@ -494,24 +494,25 @@ async def download(url, destination=None, check_cert=True, overwrite=False, logf
 
 class Ftp:
     def __init__(self, remote_url, user=None, password=None):
-        self.remote = urllib.parse.urlparse(remote_url)
+        remote = urllib.parse.urlparse(remote_url)
         self.ftp = FTP()
-        self.ftp.connect(self.remote.hostname, self.remote.port or 0)
+        self.ftp.connect(remote.hostname, remote.port or 0)
         self.ftp.login(user, password)
 
     def close(self):
         self.ftp.quit()
 
     def file_exists(self, remote_url):
+        remote = urllib.parse.urlparse(remote_url)
         try:
-            self.ftp.cwd(os.path.dirname(self.remote.path))
+            self.ftp.cwd(os.path.dirname(remote.path))
             files = self.ftp.nlst()
-            exists = os.path.basename(self.remote.path) in files
-            return exists
+            return os.path.basename(remote.path) in files
         except Exception:
             return False
 
     def download(self, remote_url, local_filename):
+        remote = urllib.parse.urlparse(remote_url)
         self.ftp.cwd(os.path.dirname(remote.path))
         with open(local_filename, 'wb') as f:
             self.ftp.retrbinary('RETR ' + os.path.basename(remote.path), f.write)
