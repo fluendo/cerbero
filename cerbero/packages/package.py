@@ -17,12 +17,14 @@
 # Boston, MA 02111-1307, USA.
 
 import os
+from functools import lru_cache
+import hashlib
+import inspect
 
 from cerbero.build.filesprovider import FilesProvider
 from cerbero.enums import License, Platform
 from cerbero.packages import PackageType
-from cerbero.utils import remove_list_duplicates, messages as m
-
+from cerbero.utils import remove_list_duplicates, get_class_checksum, messages as m
 
 class PackageBase(object):
     '''
@@ -267,11 +269,11 @@ class PackageBase(object):
 
 class Package(PackageBase):
     '''
-    Describes a set of files to produce disctribution packages for the
+    Describes a set of files to produce distribution packages for the
     different target platforms. It provides the first level of packaging
     allowing to create modular installers by aggregating several of them.
 
-    On Windows it will create a Merge Module (.msm) that can be easilly
+    On Windows it will create a Merge Module (.msm) that can be easily
     integrated in an installer (.msi).
 
     On OS X, it will produce a Package (.pkg) that can be integrated
@@ -322,6 +324,33 @@ class Package(PackageBase):
             p = self.store.get_package(name)
             deps += p.recipes_dependencies(use_devel)
         return remove_list_duplicates(deps)
+
+    @lru_cache(maxsize=None)
+    def get_checksum(self):
+        sha256 = hashlib.sha256()
+
+        # Take into account the parent's classes content
+        def _class_filter(clazz, strict):
+            if clazz.__module__ in [None, 'builtins'] or not strict:
+                return False
+            return True
+
+        classes = list(filter(lambda c: _class_filter(c, self.config.strict_recipe_checksum), inspect.getmro(self.__class__)))
+        classes = sorted(classes, key=lambda c: c.__module__ + '.' +  c.__name__)
+        for c in classes:
+            sha256.update(get_class_checksum(c))
+
+        # Consider recipes dependencies and their built_version (commit hash)
+        for dep in self.recipes_dependencies():
+            recipe = self.cookbook.get_recipe(dep)
+            sha256.update(recipe.built_version().encode('utf-8'))
+            sha256.update(recipe.get_checksum().encode('utf-8'))
+
+        # Lastly, the package file content
+        if hasattr(self, '__file__'):
+            sha256.update(open(self.__file__, 'rb').read())
+
+        return sha256.hexdigest()
 
     def recipes_licenses(self):
         return self._list_licenses(self._recipes_files)
