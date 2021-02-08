@@ -215,6 +215,12 @@ class Fridge (object):
         '''
         self._ensure_ready(recipe)
         try:
+            # Ensure the built_version is collected asynchronously before
+            # calling _get_package_names, because that is done in a sync way and
+            # would call otherwise the sync built_version, which takes time.
+            # Since the built_version is cached, we can gather it here and will be
+            # reused by both the sync and async flavors of built_version
+            await recipe.async_built_version()
             await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
         except Exception:
             # Fallback to fetch the source instead
