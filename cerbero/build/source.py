@@ -21,7 +21,6 @@ import shutil
 import tarfile
 import urllib.request, urllib.parse, urllib.error
 from hashlib import sha256
-from functools import lru_cache
 
 from cerbero.config import Platform, DEFAULT_MIRRORS
 from cerbero.utils import git, svn, shell, run_until_complete, _
