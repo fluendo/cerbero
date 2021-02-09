@@ -1,4 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+import shutil
 
 class Recipe(custom.GStreamer):
     name = 'gst-rtsp-server-1.0'
@@ -9,11 +10,20 @@ class Recipe(custom.GStreamer):
     files_devel = ['include/gstreamer-1.0/gst/rtsp-server', 'lib/pkgconfig/gstreamer-rtsp-server-1.0.pc']
     files_libs = ['libgstrtspserver-1.0']
     files_typelibs = ['GstRtspServer-1.0']
+    files_bin = ['bin/gst-rtsp-server-1.0']
     files_plugins_net = [ 'lib/gstreamer-1.0/libgstrtspclientsink%(mext)s' ]
     files_plugins_net_devel = [
         'lib/gstreamer-1.0/libgstrtspclientsink.a', 'lib/gstreamer-1.0/libgstrtspclientsink.la',
     ]
 
+    meson_options = {'examples': 'enabled'}
+
     def prepare(self):
         if self.config.target_platform == Platform.WINDOWS:
             self.append_env('CFLAGS', '-D__USE_MINGW_ANSI_STDIO=1')
+
+    def post_install(self):
+        source = os.path.join(self.meson_dir, 'examples', 'test-launch')
+        target = os.path.join(self.config.prefix, 'bin', 'gst-rtsp-server-1.0')
+        shutil.copy(source, target)
+        super().post_install()
