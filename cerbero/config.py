@@ -459,7 +459,7 @@ class Config (object):
         self.set_property('extra_bootstrap_packages', {})
         self.set_property('binaries_local', None)
         self.set_property('binaries_remote', None)
-        self.set_property('strict_recipe_checksum', False)
+        self.set_property('strict_recipe_checksum', True)
         # Increase open-files limits
         set_nofile_ulimit()
 
