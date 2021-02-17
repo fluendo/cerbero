@@ -181,6 +181,14 @@ class Oven (object):
                 self._update_installed_files(recipe, tmp)
                 return
             except Exception:
+                # In case of any error unfreezing the recipe, ensure we clean
+                # whatever files might have been extracted. Also, reset the status
+                # so that the fallback build is done from the beginning since the
+                # current status is inconsistent
+                self._update_installed_files(recipe, tmp)
+                self.cookbook.recipe_remove_installed_files(recipe.name)
+                self.cookbook.reset_recipe_status(recipe.name)
+                m.warning('Error unfreezing recipe \'{}\'. Falling back to build it from scratch'.format(recipe.name))
                 return self._cook_recipe(recipe, count, fridge, False, upload_binaries)
 
         recipe.force = self.force
@@ -252,7 +260,7 @@ class Oven (object):
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
                                                           tmp.name, include_link=False)))
         if not installed_files:
-            m.warning('No installed files found for recipe %s' % recipe.name)
+            m.warning('No installed files found for recipe \'%s\'' % recipe.name)
         self.cookbook.update_installed_files(recipe.name, installed_files)
 
     def _handle_build_step_error(self, recipe, step, trace, arch):
