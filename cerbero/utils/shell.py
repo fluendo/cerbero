@@ -369,7 +369,7 @@ async def download_wget(url, destination=None, check_cert=True, overwrite=False,
     cmd += " --progress=dot:giga"
 
     try:
-        await async_call(cmd, path,logfile=logfile)
+        await async_call(cmd, path, logfile=logfile)
     except FatalError as e:
         if os.path.exists(destination):
             os.remove(destination)
@@ -492,6 +492,7 @@ async def download(url, destination=None, check_cert=True, overwrite=False, logf
             errors.append(ex)
     raise Exception(errors)
 
+
 class Ftp:
     def __init__(self, remote_url, user=None, password=None):
         remote = urllib.parse.urlparse(remote_url)
@@ -526,6 +527,7 @@ class Ftp:
         self.ftp.cwd(os.path.dirname(remote.path))
         with open(local_filename, 'rb') as f:
             self.ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
+
 
 def _splitter(string, base_url):
     lines = string.split('\n')
@@ -605,11 +607,11 @@ def prompt_multiple(message, options):
     return options[int(res)]
 
 
-def copy_dir(src, dest, exclude_dirs = []):
+def copy_dir(src, dest, exclude_dirs=[]):
     if not os.path.exists(src):
         return
     for path in os.listdir(src):
-        if path in exclude_dirs :
+        if path in exclude_dirs:
             continue
         s = os.path.join(src, path)
         d = os.path.join(dest, path)
@@ -697,6 +699,26 @@ def which(pgm, path=None):
                     return pext
 
 
+def check_tool_version(tool_name, needed, env):
+    found = False
+    newer = False
+    if env is None:
+        env = os.environ.copy()
+    tool = which(tool_name, env['PATH'])
+    if not tool:
+        return None, False, False
+    try:
+        out = check_output([tool, '--version'], env=env)
+    except FatalError:
+        return None, False, False
+    m = re.search('([0-9]+\.[0-9]+(\.[0-9]+)?)', out)
+    if m:
+        found = m.groups()[0]
+        newer = StrictVersion(found) >= StrictVersion(needed)
+
+    return tool, found, newer
+
+
 def check_perl_version(needed, env):
     perl = which('perl', env['PATH'])
     try:
@@ -748,6 +770,7 @@ def windows_proof_rename(from_name, to_name):
     # Try one last time and throw an error if it fails again
     os.rename(from_name, to_name)
 
+
 class BuildStatusPrinter:
     def __init__(self, steps, interactive):
         self.steps = steps[:]
@@ -781,11 +804,11 @@ class BuildStatusPrinter:
             m.build_recipe_done(count, self.total, recipe_name, _("already built"))
         self.output_status_line()
 
-    def _get_completion_percent (self):
-        one_recipe = 100. / float (self.total)
-        one_step = one_recipe / len (self.steps)
+    def _get_completion_percent(self):
+        one_recipe = 100. / float(self.total)
+        one_step = one_recipe / len(self.steps)
         completed = 100. * float(self.count - 1) / float(self.total)
-        for i, step in enumerate (self.steps):
+        for i, step in enumerate(self.steps):
             completed += len(self.step_to_recipe[step]) * (i+1) * one_step
         return int(completed)
 
