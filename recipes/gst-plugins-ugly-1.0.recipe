@@ -1,5 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-
+from recipes import custom
 
 class Recipe(custom.GStreamer):
     name = 'gst-plugins-ugly-1.0'
