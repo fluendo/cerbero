@@ -1,6 +1,7 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 from cerbero.utils import shell
 from cerbero.tools.libtool import LibtoolLibrary
+from recipes import custom
 
 class Recipe(custom.GStreamer):
     name = 'gst-validate'

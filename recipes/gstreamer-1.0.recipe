@@ -1,5 +1,5 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
-import shutil
+from recipes import custom
 
 class Recipe(custom.GStreamer):
     name = 'gstreamer-1.0'
