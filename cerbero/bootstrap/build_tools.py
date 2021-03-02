@@ -23,7 +23,7 @@ from cerbero.bootstrap import BootstrapperBase
 from cerbero.build.oven import Oven
 from cerbero.build.cookbook import CookBook
 from cerbero.commands.fetch import Fetch
-from cerbero.utils import _
+from cerbero.utils import _, shell
 from cerbero.errors import FatalError, ConfigurationError
 
 
@@ -54,16 +54,12 @@ class BuildTools (BootstrapperBase, Fetch):
             self.BUILD_TOOLS.append('gperf')
         if self.config.platform == Platform.DARWIN:
             self.BUILD_TOOLS.append('gperf')
-            self.BUILD_TOOLS.append('cmake')
         if self.config.platform == Platform.LINUX:
             if self.config.distro_version == DistroVersion.UBUNTU_LUCID or \
                 self.config.distro_version == DistroVersion.DEBIAN_SQUEEZE or \
                 self.config.distro_version == DistroVersion.DEBIAN_WHEEZY:
                 # x264 requires yasm >= 1.2
                 self.BUILD_TOOLS.append('yasm')
-            if self.config.distro_version in [DistroVersion.REDHAT_6,
-                                              DistroVersion.AMAZON_LINUX]:
-                self.BUILD_TOOLS.append('cmake')
         if self.config.target_platform == Platform.IOS:
             self.BUILD_TOOLS.append('gas-preprocessor')
         if self.config.distro_version in [DistroVersion.UBUNTU_LUCID,
@@ -74,6 +70,20 @@ class BuildTools (BootstrapperBase, Fetch):
             # For glib-mkenums and glib-genmarshal
             self.BUILD_TOOLS.append('glib-tools')
         self.BUILD_TOOLS += self.config.extra_build_tools
+
+    def check_build_tools(self):
+        '''
+        Check whether the build tools we have are new enough, and if not, build
+        them ourselves. On Windows, we always build nasm ourselves, and we tell
+        the user to install CMake using the installer.
+        '''
+        ret = []
+        if self.config.platform in (Platform.LINUX, Platform.DARWIN):
+            # need cmake > 3.10.2 for out-of-source-tree builds.
+            tool, found, newer = shell.check_tool_version('cmake' ,'3.10.2', env=None)
+            if not newer:
+                ret.append('cmake')
+        return ret
 
     def _setup_env(self):
         # Start with the original env that cerbero was called with
@@ -117,5 +127,8 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def fetch_recipes(self, jobs):
         self._setup_env()
+        # Check and these at the last minute because we may have installed them
+        # in system bootstrap
+        self.recipes += self.check_build_tools()
         Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, jobs, use_binaries=self.use_binaries)
         self.config.do_setup_env()
