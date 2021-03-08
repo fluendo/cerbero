@@ -177,9 +177,13 @@ class Oven (object):
 
         if use_binaries:
             try:
+                needs_update = not self.cookbook.step_done(recipe.name, Fridge.EXTRACT_BINARY[1])
                 fridge.unfreeze_recipe(recipe, self._build_status_printer, count)
-                self._update_installed_files(recipe, tmp)
+                if needs_update:
+                    self._update_installed_files(recipe, tmp)
                 return
+            except RecipeNotFreezableError:
+                m.message('Recipe {} does not allow being unfrozen (allow_package_creation = False)'.format(recipe.name))
             except Exception:
                 # In case of any error unfreezing the recipe, ensure we clean
                 # whatever files might have been extracted. Also, reset the status
@@ -192,6 +196,7 @@ class Oven (object):
                 return self._cook_recipe(recipe, count, fridge, False, upload_binaries)
 
         recipe.force = self.force
+        steps_run = []
         for desc, step in recipe.steps:
             self._build_status_printer.update_recipe_step(count, recipe.name, step)
             # check if the current step needs to be done
@@ -217,6 +222,7 @@ class Oven (object):
                     stepfunc()
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
+                steps_run.append(step)
 
             except FatalError as e:
                 exc_traceback = sys.exc_info()[2]
@@ -240,7 +246,7 @@ class Oven (object):
         # list of installed files for this recipe
         # WARNING: the method to automatically detect files will only work
         # when installing recipes not concurrently
-        if set([BuildSteps.INSTALL, BuildSteps.POST_INSTALL]).intersection(set(recipe.steps)):
+        if set([BuildSteps.INSTALL[1], BuildSteps.POST_INSTALL[1]]).intersection(set(steps_run)):
             self._update_installed_files(recipe, tmp)
 
         if recipe.library_type == LibraryType.STATIC:
@@ -254,7 +260,6 @@ class Oven (object):
                 fridge.freeze_recipe(recipe, self._build_status_printer, count)
             except RecipeNotFreezableError:
                 m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
-                pass
 
     def _update_installed_files(self, recipe, tmp):
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,
