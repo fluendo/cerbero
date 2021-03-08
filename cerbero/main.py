@@ -77,6 +77,15 @@ class Main(object):
         m.error('%s' % msg)
         if print_usage:
             self.parser.print_usage()
+
+        # On Windows, it seems working with async subprocesses and using PIPEs to communicate
+        # with them has some side-effect when the process returns error. It seems the pipe of the
+        # main process is not properly closed and the main process hangs.
+        # We have two options: either we sleep for an unknown time to make sure everything
+        # is closed and we are ready to finish the process, or we ask the OS to kill us.
+        # This fixes issue OPE-1434
+        if sys.platform == 'win32':
+            os._exit(1)
         sys.exit(1)
 
     def init_logging(self):
