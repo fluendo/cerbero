@@ -121,14 +121,14 @@ class BuildTools (BootstrapperBase, Fetch):
 
     def start(self):
         self._setup_env()
+        # Check and these at the last minute because we may have installed them
+        # in system bootstrap
+        self.recipes += self.check_build_tools()
         oven = Oven(self.recipes, self.cookbook, missing_files=self.missing_files)
         oven.start_cooking(self.use_binaries, self.upload_binaries)
         self.config.do_setup_env()
 
     def fetch_recipes(self, jobs):
         self._setup_env()
-        # Check and these at the last minute because we may have installed them
-        # in system bootstrap
-        self.recipes += self.check_build_tools()
         Fetch.fetch(self.cookbook, self.recipes, False, False, False, False, jobs, use_binaries=self.use_binaries)
         self.config.do_setup_env()
