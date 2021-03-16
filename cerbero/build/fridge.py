@@ -86,29 +86,44 @@ class FtpBinaryRemote (BinaryRemote):
             for filename in package_names:
                 if filename:
                     local_filename = os.path.join(local_dir, filename)
+                    local_sha256_filename = local_filename + '.sha256'
                     download_needed = True
-                    if os.path.isfile(local_filename):
-                        local_sha256 = shell.file_sha256(local_filename).hex()
-                        remote_sha256_filename = os.path.join(remote.path, remote_dir, filename) + '.sha256'
-                        try:
-                            await ftp.download(remote_sha256_filename, local_filename + '.sha256', write_into=True)
-                            # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
-                            with open(local_filename + '.sha256', 'r') as file:
-                                remote_sha256 = file.read().split(' ')[0]
+                    remote_sha256_filename = os.path.join(remote.path, remote_dir, filename) + '.sha256'
+                    local_sha256 = 'local_sha256'
+                    remote_sha256 = 'remote_sha256'
+
+                    await ftp.download(remote_sha256_filename, local_sha256_filename, write_into=True)
+                    # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
+                    with open(local_sha256_filename, 'r') as file:
+                        remote_sha256 = file.read().split(' ')[0]
+
+                    try:
+                        if os.path.isfile(local_filename):
+                            local_sha256 = shell.file_sha256(local_filename).hex()
                             if local_sha256 == remote_sha256:
                                 download_needed = False
-                        except Exception:
-                            pass
+                    except Exception:
+                        pass
 
                     if download_needed:
                         try:
                             remote_file = os.path.join(remote.path, remote_dir, filename)
                             if await ftp.exists(remote_file):
                                 await ftp.download(remote_file, local_filename, write_into=True)
+                                local_sha256 = shell.file_sha256(local_filename).hex()
                             else:
-                                raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
+                                raise Exception
                         except Exception:
+                            # Ensure there are no file leftovers
+                            if os.path.exists(local_filename):
+                                os.remove(local_filename)
+                            if os.path.exists(local_sha256_filename):
+                                os.remove(local_sha256_filename)
                             raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
+
+                        if remote_sha256 != local_sha256:
+                            raise Exception('Local file \'{}\' hash \'{}\' is different than expected remote hash \'{}\''
+                                            .format(remote_file, local_sha256, remote_sha256))
 
     def upload_binary(self, package_names, local_dir, remote_dir, env_file):
         ftp = Ftp(self.remote, user=self.username, password=self.password)
@@ -119,21 +134,21 @@ class FtpBinaryRemote (BinaryRemote):
         for filename in package_names:
             if filename:
                 remote_filename = os.path.join(self.remote, remote_dir, filename)
+                remote_sha256_filename = remote_filename + '.sha256'
                 local_filename = os.path.join(local_dir, filename)
                 local_sha256_filename = local_filename + '.sha256'
                 upload_needed = True
 
-                if not os.path.exists(local_sha256_filename):
-                    sha256 = shell.file_sha256(local_filename)
-                    # .sha256 file contains both the sha256 hash and the
-                    # filename, separated by a whitespace
-                    with open(local_sha256_filename, 'w') as f:
-                        f.write('%s %s' % (sha256.hex(), filename))
+                sha256 = shell.file_sha256(local_filename)
+                # .sha256 file contains both the sha256 hash and the
+                # filename, separated by a whitespace
+                with open(local_sha256_filename, 'w') as f:
+                    f.write('%s %s' % (sha256.hex(), filename))
 
                 try:
                     tmp_sha256 = tempfile.NamedTemporaryFile()
                     tmp_sha256_filename = tmp_sha256.name
-                    ftp.download(remote_filename + '.sha256',
+                    ftp.download(remote_sha256_filename,
                                  tmp_sha256_filename)
                     with open(local_sha256_filename, 'r') as file:
                         local_sha256 = file.read().split()[0]
@@ -145,10 +160,10 @@ class FtpBinaryRemote (BinaryRemote):
                     pass
 
                 if upload_needed:
-                    ftp.upload(local_sha256_filename, remote_filename + '.sha256')
+                    ftp.upload(local_sha256_filename, remote_sha256_filename)
                     ftp.upload(local_filename, remote_filename)
                 else:
-                    m.action('No need to upload since local and remote SHA256 are the same')
+                    m.action('No need to upload since local and remote SHA256 are the same for filename: {}'.format(local_filename))
         ftp.close()
 
 
