@@ -16,6 +16,7 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
+import asyncio
 import os
 import shutil
 import tarfile
@@ -408,13 +409,80 @@ class Git (GitCache):
     Source handler for git repositories
     '''
 
+    # Maps recipes with common sources share to the same fetch_done condition.
+    _fetch_done_cond_map = {}
+
     def __init__(self):
         GitCache.__init__(self)
         if self.commit is None:
             # Used by recipes in recipes/toolchain/
             self.commit = 'origin/sdk-%s' % self.version
+
+        self._fetching = False
         # For forced commits in the config
         self.commit = self.config.recipe_commit(self.name) or self.commit
+
+    def _get_source_id(self):
+        return (self.repo_dir, tuple(self.remotes.items()))
+
+    def _update_fetch_done_cond(self):
+        source_id = self._get_source_id()
+        if source_id in Git._fetch_done_cond_map:
+            return
+        lock = asyncio.Lock()
+        Git._fetch_done_cond_map[source_id] = asyncio.Condition(lock)
+
+    def _get_git_recipes(self):
+        recipes = self.config.cookbook.get_recipes_list()
+        return [r for r in recipes if issubclass(r.stype, SourceType.GIT)]
+
+    def _already_fetched(self, common_source_recipes):
+        for recipe in common_source_recipes:
+            if self.config.cookbook.step_done(recipe.name, 'fetch'):
+                return True
+        return False
+
+    def _other_fetching(self, common_source_recipes):
+        for recipe in common_source_recipes:
+            if recipe == self:
+                continue
+            if recipe._fetching:
+                return True
+        return False
+
+    async def fetch(self, **kwargs):
+        self._fetching = True
+
+        git_recipes = [r for r in self.config.cookbook.get_recipes_list()
+                           if issubclass(r.stype, SourceType.GIT)]
+        common_source_recipes = [r for r in git_recipes
+                                     if self._get_source_id() == r._get_source_id()]
+        already_fetched = self._already_fetched(common_source_recipes)
+        other_fetching = self._other_fetching(common_source_recipes)
+
+        self._update_fetch_done_cond()
+        fetch_done = Git._fetch_done_cond_map[self._get_source_id()]
+
+        if already_fetched:
+            m.log(_("Ignoring recipe %s: was already fetch.") % self, get_logfile(self))
+            self._fetching = False
+            return
+
+        if other_fetching:
+            m.log(_("Ignoring recipe %s: other similar is already fetching.") % self, get_logfile(self))
+
+            async with fetch_done:
+                await fetch_done.wait()
+            self._fetching = False
+            return
+
+        try:
+            await super().fetch(**kwargs)
+        finally:
+            self._fetching = False
+
+        async with fetch_done:
+            fetch_done.notify_all()
 
     async def extract(self):
         if os.path.exists(self.build_dir):
