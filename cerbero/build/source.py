@@ -438,7 +438,6 @@ class Git (GitCache):
 
     def _already_fetched(self, common_source_recipes):
         for recipe in common_source_recipes:
-            print(f'checking if step done for recipe {recipe.name}')
             # Only query for the status of those recipes that already exists.
             # If we used cookbook.step_done, we'd be creating a new status
             # for those recipes that don't exist yet, introducing overhead.
