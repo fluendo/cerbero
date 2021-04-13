@@ -68,12 +68,6 @@ class Fetch(Command):
         to_rebuild = []
         tasks = []
 
-        async def fetch_print_wrapper(recipe_name, stepfunc):
-            printer.update_recipe_step(printer.count, recipe_name, 'fetch')
-            await stepfunc()
-            printer.count += 1
-            printer.remove_recipe(recipe_name)
-
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
@@ -81,6 +75,10 @@ class Fetch(Command):
         else:
             printer = BuildStatusPrinter (('fetch',), False) #cookbook.get_config().interactive)
         printer.total = len(fetch_recipes)
+
+        async def _fetch(cookbook, recipe):
+            await recipe.fetch()
+            cookbook.update_step_status(recipe.name, 'fetch')
 
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
@@ -92,17 +90,15 @@ class Fetch(Command):
             try:
                 if recipe.allow_package_creation and fridge:
                     tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
-                else:
-                    async def _fetch(cookbook, recipe):
-                        await recipe.fetch()
-                        cookbook.update_step_status(recipe.name, 'fetch')
-                    tasks.append(_fetch(cookbook, recipe))
-                continue
+                    continue
             except Exception:
                 pass
+
+            if cookbook.step_done(recipe.name, 'fetch'):
+                continue
             stepfunc = getattr(recipe, 'fetch')
             if asyncio.iscoroutinefunction(stepfunc):
-                tasks.append(fetch_print_wrapper(recipe.name, stepfunc))
+                tasks.append(_fetch(cookbook, recipe))
             else:
                 printer.update_recipe_step(printer.count, recipe.name, 'fetch')
                 stepfunc()
