@@ -23,8 +23,20 @@ packages will live.
 
 Apart from the environment hash, a hash is generated per recipe to allow having
 different versions. The recipe hash is taken from a checksum of all the files
-involving it (the recipe itself + patches) and the version that it's using. For
-recipes using a git repo as its source, that means the commit it's based upon.
+involving it (the recipe itself + patches), the version that it's using and in
+case `strict_recipe_checksum` is set to True, also all its parent classes and
+dependencies checksums. For recipes using a git repo as its source, their
+version includes the commit it's based upon.
+
+This is a comprehensive list that shows the changes that affect the package
+name:
+
+* The recipe content
+* Any of the patches' content, or a new one is added
+* The commit hash a recipe is pointing to
+* If `strict_recipe_checksum=True`
+  * Any of the non-builtin parent's classes of the recipe
+  * Any of the recipe dependencies
 
 # What is packaged
 
