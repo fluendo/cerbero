@@ -533,36 +533,30 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             licenses_files.append(lfiles)
         return licenses_files
 
-    def _get_parents_checksum(self):
+    def _add_parents_checksum(self, sha256):
         '''
         Rather than calculating the SHA256 from the source lines of each
         class that a class inherits from, generate the SHA256 from the hashes of
         each of those classes
         '''
-        def _class_filter(clazz, strict):
+        def _class_filter(clazz):
             if clazz.__module__ in [None, 'builtins']:
-                return False
-            if not strict and clazz.__module__.startswith('cerbero.build'):
                 return False
             return True
 
-        sha256 = hashlib.sha256()
-
         # Due to the MetaRecipe type, the order in which btype and stype classes are returned
         # by getmro() may differ. Hence, we need to ensure the order used is consistent
-        classes = list(filter(lambda c: _class_filter(c, self.config.strict_recipe_checksum), inspect.getmro(self.__class__)))
+        classes = list(filter(lambda c: _class_filter(c), inspect.getmro(self.__class__)))
         classes = sorted(classes, key=lambda c: c.__module__ + '.' +  c.__name__)
         for c in classes:
             sha256.update(get_class_checksum(c))
         return sha256
 
-    def _get_deps_checksum(self, sha256):
+    def _add_deps_checksum(self, sha256):
         '''
         Add to the given SHA256 the checksum of its dependencies in case
         they are static
         '''
-        if not self.config.strict_recipe_checksum:
-            return sha256
         deps = self.list_deps()
         for dep in deps:
             recipe = self.config.cookbook.get_recipe(dep)
@@ -749,8 +743,10 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         @return: a checksum of the recipe file and its dependencies
         @rtype: str
         '''
-        sha256 = self._get_parents_checksum()
-        sha256 = self._get_deps_checksum(sha256)
+        sha256 = hashlib.sha256()
+        if self.config.strict_recipe_checksum:
+            sha256 = self._add_parents_checksum(sha256)
+            sha256 = self._add_deps_checksum(sha256)
         for f in self._get_files_dependencies():
             sha256.update(open(f, 'rb').read())
         return sha256.hexdigest()
