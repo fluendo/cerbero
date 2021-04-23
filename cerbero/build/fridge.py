@@ -39,7 +39,17 @@ from cerbero.packages import PackageType
 class BinaryRemote (object):
     """Interface for binary remotes"""
 
-    def fetch_binary(self, package_names, local_dir, remote_dir):
+    def package_exists(self, package_name, remote_dir):
+        '''
+        Method to check if remote file exists
+        @param package_name: Packages name to check
+        @type package_name: str
+        @param remote_dir: Remote directory to fetch from where packages exist
+        @type remote_dir: str
+        '''
+        raise NotImplementedError
+
+    def fetch_binary(self, package_name, local_dir, remote_dir):
         '''
         Method to be overriden that fetches a binary
 
@@ -77,7 +87,13 @@ class FtpBinaryRemote (BinaryRemote):
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
-    async def fetch_binary(self, package_names, local_dir, remote_dir):
+    def package_exists(self, package_name, remote_dir):
+        ftp = Ftp(self.remote, user=self.username, password=self.password)
+        exists = ftp.file_exists(os.path.join(remote_dir, package_name))
+        ftp.close()
+        return exists
+
+    async def fetch_binary(self, package_name, local_dir, remote_dir):
         remote = urllib.parse.urlparse(self.remote)
         port = 21 if not remote.port else remote.port
         logging.getLogger('aioftp.client').setLevel(logging.CRITICAL)
@@ -213,6 +229,29 @@ class Fridge (object):
         self._ensure_ready(recipe)
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
+
+    async def check_remote_package_exists(self, recipe):
+        self._ensure_ready(recipe)
+
+        try:
+            # Ensure the built_version is collected asynchronously before
+            # calling _get_package_name, because that is done in a sync way and
+            # would call otherwise the sync built_version, which takes time.
+            # Since the built_version is cached, we can gather it here and will be
+            # reused by both the sync and async flavors of built_version
+            if hasattr(recipe, 'async_built_version'):
+                await recipe.async_built_version()
+            package_name = self._get_package_name(recipe)
+            m.action('Checking if fridge package exists {}/{}'.format(self.env_checksum, package_name))
+            if self.binaries_remote.package_exists(package_name, self.env_checksum):
+                m.message('Package exists in remote')
+            else:
+                raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
+        except PackageNotFoundError:
+            raise
+        except Exception as e:
+            m.warning('Error checking if recipe %s exists in remote: %s' % (recipe.name, e))
+            raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
 
     async def fetch_recipe(self, recipe, build_status_printer, count):
         '''
