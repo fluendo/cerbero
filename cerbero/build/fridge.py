@@ -88,9 +88,9 @@ class FtpBinaryRemote (BinaryRemote):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
     def package_exists(self, package_name, remote_dir):
-        ftp = Ftp(self.remote, user=self.username, password=self.password)
-        exists = ftp.file_exists(os.path.join(remote_dir, package_name))
-        ftp.close()
+        exists = False
+        with Ftp(self.remote, user=self.username, password=self.password) as ftp:
+            exists = ftp.file_exists(os.path.join(remote_dir, package_name))
         return exists
 
     async def fetch_binary(self, package_name, local_dir, remote_dir):
@@ -140,44 +140,43 @@ class FtpBinaryRemote (BinaryRemote):
                                         .format(remote_file, local_sha256, remote_sha256))
 
     def upload_binary(self, package_name, local_dir, remote_dir, env_file):
-        ftp = Ftp(self.remote, user=self.username, password=self.password)
-        remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
-        if not ftp.file_exists(remote_env_file):
-            m.message('Uploading environment file to %s' % remote_env_file)
-            ftp.upload(env_file, remote_env_file)
-        if package_name:
-            remote_filename = os.path.join(self.remote, remote_dir, package_name)
-            remote_sha256_filename = remote_filename + '.sha256'
-            local_filename = os.path.join(local_dir, package_name)
-            local_sha256_filename = local_filename + '.sha256'
-            upload_needed = True
+        with Ftp(self.remote, user=self.username, password=self.password) as ftp:
+            remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
+            if not ftp.file_exists(remote_env_file):
+                m.message('Uploading environment file to %s' % remote_env_file)
+                ftp.upload(env_file, remote_env_file)
+            if package_name:
+                remote_filename = os.path.join(self.remote, remote_dir, package_name)
+                remote_sha256_filename = remote_filename + '.sha256'
+                local_filename = os.path.join(local_dir, package_name)
+                local_sha256_filename = local_filename + '.sha256'
+                upload_needed = True
 
-            sha256 = shell.file_sha256(local_filename)
-            # .sha256 file contains both the sha256 hash and the
-            # filename, separated by a whitespace
-            with open(local_sha256_filename, 'w') as f:
-                f.write('%s %s' % (sha256.hex(), package_name))
+                sha256 = shell.file_sha256(local_filename)
+                # .sha256 file contains both the sha256 hash and the
+                # filename, separated by a whitespace
+                with open(local_sha256_filename, 'w') as f:
+                    f.write('%s %s' % (sha256.hex(), package_name))
 
-            try:
-                tmp_sha256 = tempfile.NamedTemporaryFile()
-                tmp_sha256_filename = tmp_sha256.name
-                ftp.download(remote_sha256_filename,
-                                tmp_sha256_filename)
-                with open(local_sha256_filename, 'r') as file:
-                    local_sha256 = file.read().split()[0]
-                with open(tmp_sha256_filename, 'r') as file:
-                    remote_sha256 = file.read().split()[0]
-                if local_sha256 == remote_sha256:
-                    upload_needed = False
-            except Exception:
-                pass
+                try:
+                    tmp_sha256 = tempfile.NamedTemporaryFile()
+                    tmp_sha256_filename = tmp_sha256.name
+                    ftp.download(remote_sha256_filename,
+                                    tmp_sha256_filename)
+                    with open(local_sha256_filename, 'r') as file:
+                        local_sha256 = file.read().split()[0]
+                    with open(tmp_sha256_filename, 'r') as file:
+                        remote_sha256 = file.read().split()[0]
+                    if local_sha256 == remote_sha256:
+                        upload_needed = False
+                except Exception:
+                    pass
 
-            if upload_needed:
-                ftp.upload(local_sha256_filename, remote_sha256_filename)
-                ftp.upload(local_filename, remote_filename)
-            else:
-                m.action('No need to upload since local and remote SHA256 are the same for filename: {}'.format(package_name))
-        ftp.close()
+                if upload_needed:
+                    ftp.upload(local_sha256_filename, remote_sha256_filename)
+                    ftp.upload(local_filename, remote_filename)
+                else:
+                    m.action('No need to upload since local and remote SHA256 are the same for filename: {}'.format(package_name))
 
 
 class Fridge (object):

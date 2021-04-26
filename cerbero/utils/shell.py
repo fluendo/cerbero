@@ -528,6 +528,12 @@ class Ftp:
         with open(local_filename, 'rb') as f:
             self.ftp.storbinary('STOR ' + os.path.basename(remote.path), f)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
 
 def _splitter(string, base_url):
     lines = string.split('\n')
