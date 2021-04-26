@@ -26,22 +26,27 @@ from cerbero.packages.packagesstore import PackagesStore
 
 
 class CheckBinariesRemote(Command):
-    doc = N_('Checks if a binary remote package exists')
+    doc = N_('Checks if a binary remote package exists. This is useful to check whether the binary already '
+             'exists in the remote to avoid building and testing again the same recipes')
     name = 'check-binaries-remote'
 
     def __init__(self):
         Command.__init__(self,
-            [ArgparseArgument('recipe', nargs=1,
+            [ArgparseArgument('recipes', nargs='*',
                              help=_('name of the recipe to check')),
             ])
 
     def run(self, config, args):
         cookbook = CookBook(config)
-        recipe_name = args.recipe[0]
+        recipes = args.recipes
+        fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=recipes, cookbook=cookbook))
 
-        recipe = cookbook.get_recipe(recipe_name)
-        fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=recipe, cookbook=cookbook))
-        return run_until_complete(fridge.check_remote_package_exists(recipe))
+        tasks = []
+        for recipe_name in args.recipes:
+            recipe = cookbook.get_recipe(recipe_name)
+            tasks.append(fridge.check_remote_package_exists(recipe))
+
+        run_until_complete(tasks)
 
 
 register_command(CheckBinariesRemote)
