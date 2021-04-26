@@ -39,7 +39,7 @@ from cerbero.packages import PackageType
 class BinaryRemote (object):
     """Interface for binary remotes"""
 
-    def package_exists(self, package_name, remote_dir):
+    def binary_exists(self, package_name, remote_dir):
         '''
         Method to check if remote file exists
         @param package_name: Packages name to check
@@ -87,7 +87,7 @@ class FtpBinaryRemote (BinaryRemote):
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
-    def package_exists(self, package_name, remote_dir):
+    def binary_exists(self, package_name, remote_dir):
         exists = False
         with Ftp(self.remote, user=self.username, password=self.password) as ftp:
             exists = ftp.file_exists(os.path.join(remote_dir, package_name))
@@ -143,7 +143,7 @@ class FtpBinaryRemote (BinaryRemote):
         with Ftp(self.remote, user=self.username, password=self.password) as ftp:
             remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
             if not ftp.file_exists(remote_env_file):
-                m.message('Uploading environment file to %s' % remote_env_file)
+                m.action('Uploading environment file to %s' % remote_env_file)
                 ftp.upload(env_file, remote_env_file)
             if package_name:
                 remote_filename = os.path.join(self.remote, remote_dir, package_name)
@@ -229,7 +229,7 @@ class Fridge (object):
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
 
-    async def check_remote_package_exists(self, recipe):
+    async def check_remote_binary_exists(self, recipe):
         self._ensure_ready(recipe)
 
         try:
@@ -241,8 +241,8 @@ class Fridge (object):
             if hasattr(recipe, 'async_built_version'):
                 await recipe.async_built_version()
             package_name = self._get_package_name(recipe)
-            m.action('Checking if fridge package exists {}/{}'.format(self.env_checksum, package_name))
-            if self.binaries_remote.package_exists(package_name, self.env_checksum):
+            m.action('Checking if fridge binary exists {}/{}'.format(self.env_checksum, package_name))
+            if self.binaries_remote.binary_exists(package_name, self.env_checksum):
                 m.message('Package exists in remote')
             else:
                 raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
@@ -286,7 +286,7 @@ class Fridge (object):
     async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
         package_name = self._get_package_name(recipe)
-        m.action('Downloading fridge package {}/{}'.format(self.env_checksum, package_name))
+        m.action('Downloading fridge binary {}/{}'.format(self.env_checksum, package_name))
         await self.binaries_remote.fetch_binary(package_name,
                                           self.binaries_local, self.env_checksum)
 
@@ -326,12 +326,13 @@ class Fridge (object):
 
     def upload_binary(self, recipe):
         self._ensure_ready(recipe)
-        package = self._get_package_name(recipe)
+        package_name = self._get_package_name(recipe)
         fetch_package = None
-        if os.path.exists(os.path.join(self.binaries_local, package)):
-            fetch_package = package
+        if os.path.exists(os.path.join(self.binaries_local, package_name)):
+            fetch_package = package_name
         else:
-            m.warning("No package was created for %s" % package)
+            m.warning("No package was created for %s" % package_name)
+        m.action('Uploading fridge binary {}/{}'.format(self.env_checksum, package_name))
         self.binaries_remote.upload_binary(fetch_package, self.binaries_local,
                                            self.env_checksum, self.env_file)
 

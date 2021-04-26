@@ -44,7 +44,7 @@ class CheckBinariesRemote(Command):
         tasks = []
         for recipe_name in args.recipes:
             recipe = cookbook.get_recipe(recipe_name)
-            tasks.append(fridge.check_remote_package_exists(recipe))
+            tasks.append(fridge.check_remote_binary_exists(recipe))
 
         run_until_complete(tasks)
 
