@@ -89,8 +89,9 @@ class FtpBinaryRemote (BinaryRemote):
 
     def binary_exists(self, package_name, remote_dir):
         exists = False
+        remote = urllib.parse.urlparse(self.remote)
         with Ftp(self.remote, user=self.username, password=self.password) as ftp:
-            exists = ftp.file_exists(os.path.join(remote_dir, package_name))
+            exists = ftp.file_exists(os.path.join(remote.path, remote_dir, package_name))
         return exists
 
     async def fetch_binary(self, package_name, local_dir, remote_dir):
@@ -141,12 +142,13 @@ class FtpBinaryRemote (BinaryRemote):
 
     def upload_binary(self, package_name, local_dir, remote_dir, env_file):
         with Ftp(self.remote, user=self.username, password=self.password) as ftp:
-            remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
+            remote = urllib.parse.urlparse(self.remote)
+            remote_env_file = os.path.join(remote.path, remote_dir, os.path.basename(env_file))
             if not ftp.file_exists(remote_env_file):
                 m.action('Uploading environment file to %s' % remote_env_file)
                 ftp.upload(env_file, remote_env_file)
             if package_name:
-                remote_filename = os.path.join(self.remote, remote_dir, package_name)
+                remote_filename = os.path.join(remote.path, remote_dir, package_name)
                 remote_sha256_filename = remote_filename + '.sha256'
                 local_filename = os.path.join(local_dir, package_name)
                 local_sha256_filename = local_filename + '.sha256'
