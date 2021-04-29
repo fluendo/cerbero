@@ -20,7 +20,6 @@
 import os
 import traceback
 import tempfile
-from ftplib import FTP
 import urllib.parse
 import asyncio
 import aioftp
@@ -40,12 +39,22 @@ from cerbero.packages import PackageType
 class BinaryRemote (object):
     """Interface for binary remotes"""
 
-    def fetch_binary(self, package_names, local_dir, remote_dir):
+    def binary_exists(self, package_name, remote_dir):
+        '''
+        Method to check if remote file exists
+        @param package_name: Packages name to check
+        @type package_name: str
+        @param remote_dir: Remote directory to fetch from where packages exist
+        @type remote_dir: str
+        '''
+        raise NotImplementedError
+
+    def fetch_binary(self, package_name, local_dir, remote_dir):
         '''
         Method to be overriden that fetches a binary
 
-        @param package_names: List of packages to fetch
-        @type package_names: list
+        @param package_name: Package to fetch
+        @type package_name: str
         @param local_dir: Local directory to fetch to
         @type local_dir: str
         @param remote_dir: Remote directory to fetch from where packages exist
@@ -53,15 +62,15 @@ class BinaryRemote (object):
         '''
         raise NotImplementedError
 
-    def upload_binary(self, package_names, local_dir, remote_dir, env_file):
+    def upload_binary(self, package_name, local_dir, remote_dir, env_file):
         '''
         Method to be overriden that uploads a binary
 
-        @param package_names: List of packages to fetch
-        @type package_names: list
-        @param local_dir: Local directory to fetch to
+        @param package_name: Packages to upload
+        @type package_name: str
+        @param local_dir: Local directory to upload from
         @type local_dir: str
-        @param remote_dir: Remote directory to fetch from where packages exist
+        @param remote_dir: Remote directory to upload to where packages exist
         @type remote_dir: str
         '''
         raise NotImplementedError
@@ -78,64 +87,70 @@ class FtpBinaryRemote (BinaryRemote):
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
-    async def fetch_binary(self, package_names, local_dir, remote_dir):
+    def binary_exists(self, package_name, remote_dir):
+        exists = False
+        remote = urllib.parse.urlparse(self.remote)
+        with Ftp(self.remote, user=self.username, password=self.password) as ftp:
+            exists = ftp.file_exists(os.path.join(remote.path, remote_dir, package_name))
+        return exists
+
+    async def fetch_binary(self, package_name, local_dir, remote_dir):
         remote = urllib.parse.urlparse(self.remote)
         port = 21 if not remote.port else remote.port
         logging.getLogger('aioftp.client').setLevel(logging.CRITICAL)
         async with aioftp.ClientSession(remote.hostname, port, self.username, self.password, socket_timeout=15) as ftp:
-            for filename in package_names:
-                if filename:
-                    local_filename = os.path.join(local_dir, filename)
-                    local_sha256_filename = local_filename + '.sha256'
-                    download_needed = True
-                    remote_sha256_filename = os.path.join(remote.path, remote_dir, filename) + '.sha256'
-                    local_sha256 = 'local_sha256'
-                    remote_sha256 = 'remote_sha256'
+            if package_name:
+                local_filename = os.path.join(local_dir, package_name)
+                local_sha256_filename = local_filename + '.sha256'
+                download_needed = True
+                remote_sha256_filename = os.path.join(remote.path, remote_dir, package_name) + '.sha256'
+                local_sha256 = 'local_sha256'
+                remote_sha256 = 'remote_sha256'
 
-                    await ftp.download(remote_sha256_filename, local_sha256_filename, write_into=True)
-                    # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
-                    with open(local_sha256_filename, 'r') as file:
-                        remote_sha256 = file.read().split(' ')[0]
+                await ftp.download(remote_sha256_filename, local_sha256_filename, write_into=True)
+                # .sha256 file contains both the sha256 hash and the filename, separated by a whitespace
+                with open(local_sha256_filename, 'r') as file:
+                    remote_sha256 = file.read().split(' ')[0]
 
+                try:
+                    if os.path.isfile(local_filename):
+                        local_sha256 = shell.file_sha256(local_filename).hex()
+                        if local_sha256 == remote_sha256:
+                            download_needed = False
+                except Exception:
+                    pass
+
+                if download_needed:
                     try:
-                        if os.path.isfile(local_filename):
+                        remote_file = os.path.join(remote.path, remote_dir, package_name)
+                        if await ftp.exists(remote_file):
+                            await ftp.download(remote_file, local_filename, write_into=True)
                             local_sha256 = shell.file_sha256(local_filename).hex()
-                            if local_sha256 == remote_sha256:
-                                download_needed = False
+                        else:
+                            raise Exception
                     except Exception:
-                        pass
+                        # Ensure there are no file leftovers
+                        if os.path.exists(local_filename):
+                            os.remove(local_filename)
+                        if os.path.exists(local_sha256_filename):
+                            os.remove(local_sha256_filename)
+                        raise PackageNotFoundError(os.path.join(self.remote, remote_dir, package_name))
 
-                    if download_needed:
-                        try:
-                            remote_file = os.path.join(remote.path, remote_dir, filename)
-                            if await ftp.exists(remote_file):
-                                await ftp.download(remote_file, local_filename, write_into=True)
-                                local_sha256 = shell.file_sha256(local_filename).hex()
-                            else:
-                                raise Exception
-                        except Exception:
-                            # Ensure there are no file leftovers
-                            if os.path.exists(local_filename):
-                                os.remove(local_filename)
-                            if os.path.exists(local_sha256_filename):
-                                os.remove(local_sha256_filename)
-                            raise PackageNotFoundError(os.path.join(self.remote, remote_dir, filename))
+                    if remote_sha256 != local_sha256:
+                        raise Exception('Local file \'{}\' hash \'{}\' is different than expected remote hash \'{}\''
+                                        .format(remote_file, local_sha256, remote_sha256))
 
-                        if remote_sha256 != local_sha256:
-                            raise Exception('Local file \'{}\' hash \'{}\' is different than expected remote hash \'{}\''
-                                            .format(remote_file, local_sha256, remote_sha256))
-
-    def upload_binary(self, package_names, local_dir, remote_dir, env_file):
-        ftp = Ftp(self.remote, user=self.username, password=self.password)
-        remote_env_file = os.path.join(self.remote, remote_dir, os.path.basename(env_file))
-        if not ftp.file_exists(remote_env_file):
-            m.message('Uploading environment file to %s' % remote_env_file)
-            ftp.upload(env_file, remote_env_file)
-        for filename in package_names:
-            if filename:
-                remote_filename = os.path.join(self.remote, remote_dir, filename)
+    def upload_binary(self, package_name, local_dir, remote_dir, env_file):
+        with Ftp(self.remote, user=self.username, password=self.password) as ftp:
+            remote = urllib.parse.urlparse(self.remote)
+            remote_env_file = os.path.join(remote.path, remote_dir, os.path.basename(env_file))
+            if not ftp.file_exists(remote_env_file):
+                m.action('Uploading environment file to %s' % remote_env_file)
+                ftp.upload(env_file, remote_env_file)
+            if package_name:
+                remote_filename = os.path.join(remote.path, remote_dir, package_name)
                 remote_sha256_filename = remote_filename + '.sha256'
-                local_filename = os.path.join(local_dir, filename)
+                local_filename = os.path.join(local_dir, package_name)
                 local_sha256_filename = local_filename + '.sha256'
                 upload_needed = True
 
@@ -143,13 +158,13 @@ class FtpBinaryRemote (BinaryRemote):
                 # .sha256 file contains both the sha256 hash and the
                 # filename, separated by a whitespace
                 with open(local_sha256_filename, 'w') as f:
-                    f.write('%s %s' % (sha256.hex(), filename))
+                    f.write('%s %s' % (sha256.hex(), package_name))
 
                 try:
                     tmp_sha256 = tempfile.NamedTemporaryFile()
                     tmp_sha256_filename = tmp_sha256.name
                     ftp.download(remote_sha256_filename,
-                                 tmp_sha256_filename)
+                                    tmp_sha256_filename)
                     with open(local_sha256_filename, 'r') as file:
                         local_sha256 = file.read().split()[0]
                     with open(tmp_sha256_filename, 'r') as file:
@@ -163,8 +178,7 @@ class FtpBinaryRemote (BinaryRemote):
                     ftp.upload(local_sha256_filename, remote_sha256_filename)
                     ftp.upload(local_filename, remote_filename)
                 else:
-                    m.action('No need to upload since local and remote SHA256 are the same for filename: {}'.format(filename))
-        ftp.close()
+                    m.action('No need to upload since local and remote SHA256 are the same for filename: {}'.format(package_name))
 
 
 class Fridge (object):
@@ -217,6 +231,29 @@ class Fridge (object):
         steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
         run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
 
+    async def check_remote_binary_exists(self, recipe):
+        self._ensure_ready(recipe)
+
+        try:
+            # Ensure the built_version is collected asynchronously before
+            # calling _get_package_name, because that is done in a sync way and
+            # would call otherwise the sync built_version, which takes time.
+            # Since the built_version is cached, we can gather it here and will be
+            # reused by both the sync and async flavors of built_version
+            if hasattr(recipe, 'async_built_version'):
+                await recipe.async_built_version()
+            package_name = self._get_package_name(recipe)
+            m.action('Checking if fridge binary exists {}/{}'.format(self.env_checksum, package_name))
+            if self.binaries_remote.binary_exists(package_name, self.env_checksum):
+                m.message('Package exists in remote')
+            else:
+                raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
+        except PackageNotFoundError:
+            raise
+        except Exception as e:
+            m.warning('Error checking if recipe %s exists in remote: %s' % (recipe.name, e))
+            raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
+
     async def fetch_recipe(self, recipe, build_status_printer, count):
         '''
         Fetch the recipe
@@ -231,7 +268,7 @@ class Fridge (object):
         self._ensure_ready(recipe)
         try:
             # Ensure the built_version is collected asynchronously before
-            # calling _get_package_names, because that is done in a sync way and
+            # calling _get_package_name, because that is done in a sync way and
             # would call otherwise the sync built_version, which takes time.
             # Since the built_version is cached, we can gather it here and will be
             # reused by both the sync and async flavors of built_version
@@ -250,30 +287,29 @@ class Fridge (object):
 
     async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
-        package_names = self._get_package_names(recipe).values()
-        m.action('Downloading fridge package {}/{}'.format(self.env_checksum, list(package_names)[0]))
-        await self.binaries_remote.fetch_binary(package_names,
+        package_name = self._get_package_name(recipe)
+        m.action('Downloading fridge binary {}/{}'.format(self.env_checksum, package_name))
+        await self.binaries_remote.fetch_binary(package_name,
                                           self.binaries_local, self.env_checksum)
 
     def extract_binary(self, recipe):
         self._ensure_ready(recipe)
-        package_names = self._get_package_names(recipe)
+        package_name = self._get_package_name(recipe)
         # There is a weird bug where the links in the devel package are overwriting the
         # file it's linking instead of just creating the link.
         # For example libmonosgen-2.0.dylib will be extracted creating a link
         # libmonosgen-2.0.dylib -> libmonosgen-2.0.1.dylib and copying
         # libmonosgen-2.0.dylib to libmonosgen-2.0.1.dylib
         # As a workaround we extract first the devel package and finally the runtime
-        for filename in package_names.values():
-            if filename:
-                if self.config.target_platform == Platform.DARWIN:
-                    tarclass = RelocatableTarOSX
-                else:
-                    tarclass = RelocatableTar
-                tar = tarclass.open(os.path.join(self.binaries_local,
-                                                 filename), 'r:bz2')
-                tar.extract_and_relocate(self.config.prefix, self.config.toolchain_prefix)
-                tar.close()
+        if package_name:
+            if self.config.target_platform == Platform.DARWIN:
+                tarclass = RelocatableTarOSX
+            else:
+                tarclass = RelocatableTar
+            tar = tarclass.open(os.path.join(self.binaries_local,
+                                                package_name), 'r:bz2')
+            tar.extract_and_relocate(self.config.prefix, self.config.toolchain_prefix)
+            tar.close()
 
     def generate_binary(self, recipe):
         self._ensure_ready(recipe)
@@ -292,14 +328,14 @@ class Fridge (object):
 
     def upload_binary(self, recipe):
         self._ensure_ready(recipe)
-        packages = self._get_package_names(recipe)
-        fetch_packages = []
-        for p in packages.values():
-            if os.path.exists(os.path.join(self.binaries_local, p)):
-                fetch_packages.append(p)
-            else:
-                m.warning("No package was created for %s" % p)
-        self.binaries_remote.upload_binary(fetch_packages, self.binaries_local,
+        package_name = self._get_package_name(recipe)
+        fetch_package = None
+        if os.path.exists(os.path.join(self.binaries_local, package_name)):
+            fetch_package = package_name
+        else:
+            m.warning("No package was created for %s" % package_name)
+        m.action('Uploading fridge binary {}/{}'.format(self.env_checksum, package_name))
+        self.binaries_remote.upload_binary(fetch_package, self.binaries_local,
                                            self.env_checksum, self.env_file)
 
     def _ensure_ready(self, recipe):
@@ -318,12 +354,10 @@ class Fridge (object):
                     f.write('%s\n\n%s' % (self.env_checksum, self.config.get_string_for_checksum()))
             m.message('Fridge initialized with environment hash {}'.format(self.env_checksum))
 
-    def _get_package_names(self, recipe):
-        ret = dict()
+    def _get_package_name(self, recipe):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
-        ret[PackageType.DEVEL] = tar.get_name(PackageType.DEVEL)
-        return ret
+        return tar.get_name(PackageType.DEVEL)
 
     async def _apply_steps(self, recipe, steps, build_status_printer, count):
         self._ensure_ready(recipe)

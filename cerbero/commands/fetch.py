@@ -26,7 +26,7 @@ from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
 from cerbero.errors import FatalError
 from cerbero.packages.packagesstore import PackagesStore
-from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, determine_num_of_cpus, run_until_complete
+from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
