@@ -739,24 +739,6 @@ def check_perl_version(needed, env):
     return perl, found, newer
 
 
-def check_compiler_version(config, cc):
-    '''
-    Returns the compiler version
-    @param config: Configuration
-    @type config: L{cerbero.config.Config}
-    @param cc: Compiler
-    @type cc: str
-    '''
-    if 'gcc' in cc or 'clang' in cc or not config.msvc_version:
-        result = re.search(r'\s(\d+\.\d+\.\d+(\.\d+)?)\s', check_output(cc + ' --version'))
-        if result.groups():
-            return result.groups()[0]
-        else:
-            raise FatalError(_('Cannot retrieve version of the compiler'))
-    else:
-        return config.msvc_version
-
-
 def windows_proof_rename(from_name, to_name):
     '''
     On Windows, if you try to rename a file or a directory that you've newly
