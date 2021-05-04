@@ -12,14 +12,14 @@ configure and compile steps, which are arguably the most time-consuming ones.
 ## How recipes are reused
 
 A hash is generated for the current environment used in the configuration. This
-means everything that `config::get_env` considers plus the compiler version.
-e.g. the linker flags, include dir, LD_LIBRARY_PATH, etc. Hence, the idea is to
-reuse the same binaries already built in a conservative way to ensure they will
-work. The environment is sanitized before creating the hash, so that the prefix,
+means everything that `config::get_env` considers. e.g. the linker flags,
+include dir, LD_LIBRARY_PATH, etc. Hence, the idea is to reuse the same
+binaries already built in a conservative way to ensure they will work. The
+environment is sanitized before creating the hash, so that the prefix,
 Cerbero's home and user's home are normalized. Apart from that, the package
-naming already contains the target platform and target architecture. A directory
-is created for each of the configurations (aka. environments) where prebuilt
-packages will live.
+naming already contains the target platform and target architecture. A
+directory is created for each of the configurations (aka. environments) where
+prebuilt packages will live.
 
 Apart from the environment hash, a hash is generated per recipe to allow having
 different versions. The recipe hash is taken from a checksum of all the files
@@ -72,15 +72,17 @@ Additionally, every environment directory includes an `ENVIRONMENT` file
 containing the list of all the variables considered to generate the hash:
 
 ```
-9beba1f2
+96c0de0d
 
 ACLOCAL=aclocal
 ACLOCAL_FLAGS=-I{PREFIX}/share/aclocal
-CC=clang
-CC_VERSION=10.0.0
-CFLAGS=-Wall -g -O2 -arch x86_64 -m64 -Wno-error=format-nonliteral -I{PREFIX}/include -mmacosx-version-min=10.10 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
+ARCH=x86_64
+CC=gcc
+CFLAGS=-Wall -g -O2 -m64 -Wall -g -O2 -m64
 CPLUS_INCLUDE_PATH={PREFIX}/include
 C_INCLUDE_PATH={PREFIX}/include
+DISTRO=debian
+DISTRO_VERSION=ubuntu_20_04_focal
 GI_TYPELIB_PATH={PREFIX}/lib/girepository-1.0
 GSTREAMER_ROOT={PREFIX}
 GST_PLUGIN_PATH={PREFIX}/lib/gstreamer-0.10
@@ -88,19 +90,24 @@ GST_PLUGIN_PATH_1_0={PREFIX}/lib/gstreamer-1.0
 GST_REGISTRY={USER}/.gstreamer-0.10/cerbero-registry-x86_64
 GST_REGISTRY_1_0={USER}/.cache/gstreamer-1.0/cerbero-registry-x86_64
 INFOPATH={PREFIX}/share/info
-LDFLAGS=-L{PREFIX}/lib -headerpad_max_install_names -Wl,-headerpad_max_install_names -Wno-error=unused-command-line-argument -arch x86_64 -m64 -Wl,-arch,x86_64 -mmacosx-version-min=10.10 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
-LD_LIBRARY_PATH={PREFIX}/lib:{PREFIX}/lib:{PREFIX}/bin:/opt/local/bin:/opt/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:~/.dotnet/tools:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/Xamarin Workbooks.app/Contents/SharedSupport/path-bin
+LDFLAGS=-L{PREFIX}/lib -m64 -m64
+LD_LIBRARY_PATH={PREFIX}/lib:{HOME}/build-tools/lib
 MANPATH={PREFIX}/share/man
 MONO_GAC_PREFIX={PREFIX}
 MONO_PATH={PREFIX}/lib/mono/4.5
-PERL5LIB={PREFIX}/lib/perl5:{PREFIX}/lib/perl5/site_perl/5.18.2
-PKG_CONFIG={PREFIX}/bin/pkg-config
+PERL5LIB={PREFIX}/lib/perl5:{PREFIX}/lib/perl5/site_perl/5.32.1
+PKG_CONFIG={HOME}/build-tools/bin/pkg-config
 PKG_CONFIG_LIBDIR={PREFIX}/lib/pkgconfig
 PKG_CONFIG_PATH={PREFIX}/share/pkgconfig
-PYTHONPATH={PREFIX}/lib/python3.7/site-packages/:{PREFIX}/lib/python3.7/site-packages/
+PLATFORM=linux
+PYTHONPATH={PREFIX}/lib/python3.9/site-packages/:{HOME}/build-tools/lib/python3.9/site-packages/
+TARGET_ARCH=x86_64
+TARGET_DISTRO=debian
+TARGET_DISTRO_VERSION=ubuntu_20_04_focal
+TARGET_PLATFORM=linux
 XCURSOR_PATH={PREFIX}/share/icons
 XDG_CONFIG_DIRS={PREFIX}/etc/xdg
-XDG_DATA_DIRS={PREFIX}/share
+XDG_DATA_DIRS={PREFIX}/share:/usr/share:/usr/local/share
 ```
 
 The following directory contains the packages of yasm and zlib recipes for macOS

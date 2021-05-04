@@ -399,7 +399,15 @@ class Config (object):
                'PYTHONPATH': pythonpath,
                'MONO_PATH': os.path.join(libdir, 'mono', '4.5'),
                'MONO_GAC_PREFIX': prefix,
-               'GSTREAMER_ROOT': prefix
+               'GSTREAMER_ROOT': prefix,
+               'PLATFORM': self.platform,
+               'TARGET_PLATFORM': self.target_platform,
+               'ARCH': self.arch,
+               'TARGET_ARCH': self.target_arch,
+               'DISTRO': self.distro,
+               'TARGET_DISTRO': self.target_distro,
+               'DISTRO_VERSION': self.distro_version,
+               'TARGET_DISTRO_VERSION': self.target_distro_version,
                }
 
         return env
@@ -561,9 +569,6 @@ class Config (object):
             v = replace_prefix(os.path.expanduser('~'), v, '{USER}')
             ret_env[e] = re.sub(r'\s+', ' ', v.strip())
 
-        # We need to add the compiler version after the bootstrap phase because
-        # there is no compiler installed yet and get_env is cached
-        ret_env['CC_VERSION'] = shell.check_compiler_version(self, self.env.get('CC'))
         return ret_env
 
     def _parse(self, filename, reset=True):
