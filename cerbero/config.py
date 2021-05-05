@@ -399,15 +399,7 @@ class Config (object):
                'PYTHONPATH': pythonpath,
                'MONO_PATH': os.path.join(libdir, 'mono', '4.5'),
                'MONO_GAC_PREFIX': prefix,
-               'GSTREAMER_ROOT': prefix,
-               'PLATFORM': self.platform,
-               'TARGET_PLATFORM': self.target_platform,
-               'ARCH': self.arch,
-               'TARGET_ARCH': self.target_arch,
-               'DISTRO': self.distro,
-               'TARGET_DISTRO': self.target_distro,
-               'DISTRO_VERSION': self.distro_version,
-               'TARGET_DISTRO_VERSION': self.target_distro_version,
+               'GSTREAMER_ROOT': prefix
                }
 
         return env
@@ -540,6 +532,19 @@ class Config (object):
     @lru_cache(maxsize=None)
     def get_string_for_checksum(self):
         env = self._get_sanitized_env()
+        # Add some important information about the host and target
+        # platforms to ensure that the checksum is different whenever
+        # some of them change. This is a lazy attempt to ensure ABI
+        # compatibility.
+        env.update({'PLATFORM': self.platform,
+            'TARGET_PLATFORM': self.target_platform,
+            'ARCH': self.arch,
+            'TARGET_ARCH': self.target_arch,
+            'DISTRO': self.distro,
+            'TARGET_DISTRO': self.target_distro,
+            'DISTRO_VERSION': self.distro_version,
+            'TARGET_DISTRO_VERSION': self.target_distro_version,
+            })
         string = ''
         for e in sorted(env.keys()):
             string += '{}={}\n'.format(e, env[e])
