@@ -536,6 +536,7 @@ class Config (object):
         # platforms to ensure that the checksum is different whenever
         # some of them change. This is a lazy attempt to ensure ABI
         # compatibility.
+        sorted_variants = ['\'{}\': {}'.format(k, v) for k,v in sorted(self.variants.__dict__.items())]
         env.update({'PLATFORM': self.platform,
             'TARGET_PLATFORM': self.target_platform,
             'ARCH': self.arch,
@@ -544,6 +545,7 @@ class Config (object):
             'TARGET_DISTRO': self.target_distro,
             'DISTRO_VERSION': self.distro_version,
             'TARGET_DISTRO_VERSION': self.target_distro_version,
+            'CERBERO_VARIANTS': '{{{}}}'.format(', '.join(sorted_variants))
             })
         string = ''
         for e in sorted(env.keys()):
