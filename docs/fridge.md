@@ -72,12 +72,13 @@ Additionally, every environment directory includes an `ENVIRONMENT` file
 containing the list of all the variables considered to generate the hash:
 
 ```
-96c0de0d
+73f25829
 
 ACLOCAL=aclocal
 ACLOCAL_FLAGS=-I{PREFIX}/share/aclocal
 ARCH=x86_64
 CC=gcc
+CERBERO_VARIANTS=<Variants: {'debug': True, 'python': True, 'testspackage': True, 'x11': True, 'alsa': True, 'pulse': True, 'cdparanoia': False, 'v4l2': True, 'gi': True, 'unwind': True, 'rpi': False, 'visualstudio': False, 'qt5': False, 'intelmsdk': False, 'nvcodec': False, 'werror': False, 'gst1': False, 'sdl': False, 'clutter': False, 'gtk': False, 'strip': True, 'fluffgst_demo': False, 'static': True, 'va': True}>
 CFLAGS=-Wall -g -O2 -m64 -Wall -g -O2 -m64
 CPLUS_INCLUDE_PATH={PREFIX}/include
 C_INCLUDE_PATH={PREFIX}/include
