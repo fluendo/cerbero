@@ -32,8 +32,9 @@ This is a comprehensive list that shows the changes that affect the package
 name:
 
 * The recipe content
-* Any of the patches' content, or a new one is added
 * The commit hash a recipe is pointing to
+* Any of the patches' content, or a new one is added
+* Any of the values of the variants
 * If `strict_recipe_checksum=True`
   * Any of the non-builtin parent's classes of the recipe
   * Any of the recipe dependencies
