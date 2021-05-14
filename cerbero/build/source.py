@@ -129,7 +129,7 @@ class Source (object):
         files = list(map(self.relative_path, self.patches))
         if hasattr(self, '__file__'):
             files.append(self.__file__)
-        return files
+        return sorted(set(files))
 
 
 class CustomSource (Source):
