@@ -557,7 +557,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         Add to the given SHA256 the checksum of its dependencies in case
         they are static
         '''
-        deps = self.list_deps()
+        deps = sorted(set(self.list_deps()))
         for dep in deps:
             recipe = self.config.cookbook.get_recipe(dep)
             sha256.update(recipe.get_checksum().encode('utf-8'))
