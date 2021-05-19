@@ -513,6 +513,8 @@ class Ftp:
             return False
 
     def download(self, remote_url, local_filename):
+        if not self.file_exists(remote_url):
+            raise Exception('Remote file {} does not exist'.format(remote_url))
         remote = urllib.parse.urlparse(remote_url)
         self.ftp.cwd(os.path.dirname(remote.path))
         with open(local_filename, 'wb') as f:
