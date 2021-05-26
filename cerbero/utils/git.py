@@ -65,18 +65,24 @@ def clean(git_dir, logfile=None):
     return shell.call('%s clean -dfx' % GIT, git_dir, logfile=logfile)
 
 
-def list_tags(git_dir, fail=True):
+def list_tags(git_dir, commit=None, fail=True):
     '''
     List all tags
 
     @param git_dir: path of the git repository
     @type git_dir: str
+    @param commit: the commit to list tags of
+    @type commit: str
     @param fail: raise an error if the command failed
     @type fail: false
     @return: list of tag names (str)
     @rtype: list
     '''
-    tags = shell.check_call('%s tag -l' % GIT, git_dir, fail=fail)
+    cmd = '%s tag -l' % GIT
+    if commit is not None:
+        cmd = '%s --points-at %s' % (cmd, commit)
+
+    tags = shell.check_call(cmd, git_dir, fail=fail)
     tags = tags.strip()
     if tags:
         tags = tags.split('\n')
