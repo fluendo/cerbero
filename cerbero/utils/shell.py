@@ -762,37 +762,25 @@ def windows_proof_rename(from_name, to_name):
 
 
 class BuildStatusPrinter:
-    def __init__(self, steps, interactive):
+    def __init__(self, steps):
         self.steps = steps[:]
         self.step_to_recipe = collections.defaultdict(list)
         self.recipe_to_step = {}
         self.total = 0
         self.count = 0
-        self.interactive = interactive
-        # FIXME: Default MSYS shell doesn't handle ANSI escape sequences correctly
-        if os.environ.get('TERM') == 'cygwin':
-            m.message('Running under MSYS: reverting to basic build status output')
-            self.interactive = False
 
     def remove_recipe(self, recipe_name):
         if recipe_name in self.recipe_to_step:
             self.step_to_recipe[self.recipe_to_step[recipe_name]].remove(recipe_name)
             del self.recipe_to_step[recipe_name]
-        self.output_status_line()
 
     def built(self, count, recipe_name):
         self.count += 1
-        if self.interactive:
-            m.build_recipe_done(self.count, self.total, recipe_name, _("built"))
         self.remove_recipe(recipe_name)
 
     def already_built(self, count, recipe_name):
         self.count += 1
-        if self.interactive:
-            m.build_recipe_done(self.count, self.total, recipe_name, _("already built"))
-        else:
-            m.build_recipe_done(count, self.total, recipe_name, _("already built"))
-        self.output_status_line()
+        m.build_recipe_done(count, self.total, recipe_name, _("already built"))
 
     def _get_completion_percent(self):
         one_recipe = 100. / float(self.total)
@@ -807,19 +795,4 @@ class BuildStatusPrinter:
         self.step_to_recipe[step].append(recipe_name)
         self.recipe_to_step[recipe_name] = step
         self.count = count
-        if not self.interactive:
-            m.build_step(count, self.total, self._get_completion_percent(), recipe_name, step)
-        else:
-            self.output_status_line()
-
-    def generate_status_line(self):
-        s = "[(" + str(self.count) + "/" + str(self.total) + " @ " + str(self._get_completion_percent()) + "%)"
-        for step in self.steps:
-            if self.step_to_recipe[step]:
-                s += " " + str(step).upper() + ": " + ", ".join(self.step_to_recipe[step])
-        s += "]"
-        return s
-
-    def output_status_line(self):
-        if self.interactive:
-            m.output_status(self.generate_status_line())
+        m.build_step(count, self.total, self._get_completion_percent(), recipe_name, step)

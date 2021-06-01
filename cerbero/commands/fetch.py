@@ -71,9 +71,9 @@ class Fetch(Command):
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
-            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY], False) #cookbook.get_config().interactive)
+            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY])
         else:
-            printer = BuildStatusPrinter (('fetch',), False) #cookbook.get_config().interactive)
+            printer = BuildStatusPrinter (('fetch',))
         printer.total = len(fetch_recipes)
 
         async def _fetch(cookbook, recipe):
