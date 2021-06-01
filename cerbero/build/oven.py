@@ -115,10 +115,7 @@ class Oven (object):
             fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
                             force=self.force, dry_run=shell.DRY_RUN)
 
-        steps = [step[1] for step in recipes[0].steps]
-        if upload_binaries:
-            steps += [Fridge.GEN_BINARY, Fridge.UPLOAD_BINARY]
-        self._build_status_printer = BuildStatusPrinter(steps)
+        self._build_status_printer = BuildStatusPrinter()
         self._build_status_printer.total = length
         self._static_libraries_built = []
         i = 1
@@ -198,7 +195,7 @@ class Oven (object):
         recipe.force = self.force
         steps_run = []
         for desc, step in recipe.steps:
-            self._build_status_printer.update_recipe_step(count, recipe.name, step)
+            self._build_status_printer.update_recipe_step(count, recipe, step)
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action(_("Step done"))

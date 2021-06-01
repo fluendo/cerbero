@@ -71,9 +71,8 @@ class Fetch(Command):
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
-            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY])
-        else:
-            printer = BuildStatusPrinter (('fetch',))
+
+        printer = BuildStatusPrinter()
         printer.total = len(fetch_recipes)
 
         async def _fetch(cookbook, recipe):
@@ -100,7 +99,7 @@ class Fetch(Command):
             if asyncio.iscoroutinefunction(stepfunc):
                 tasks.append(_fetch(cookbook, recipe))
             else:
-                printer.update_recipe_step(printer.count, recipe.name, 'fetch')
+                printer.update_recipe_step(printer.count, recipe, 'fetch')
                 stepfunc()
                 printer.count += 1
                 printer.remove_recipe(recipe.name)
