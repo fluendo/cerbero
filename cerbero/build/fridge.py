@@ -18,18 +18,16 @@
 # Boston, MA 02111-1307, USA.
 
 import os
-import traceback
 import tempfile
 import urllib.parse
-import asyncio
 import aioftp
 import logging
 import urllib.parse
 
 from cerbero.build.relocatabletar import *
 from cerbero.config import Platform
-from cerbero.errors import BuildStepError, FatalError, RecipeNotFreezableError, EmptyPackageError, PackageNotFoundError
-from cerbero.utils import N_, _, shell, run_until_complete
+from cerbero.errors import FatalError, RecipeNotFreezableError, EmptyPackageError, PackageNotFoundError
+from cerbero.utils import N_, _, shell
 from cerbero.utils.shell import Ftp
 from cerbero.utils import messages as m
 from cerbero.packages.disttarball import DistTarball
@@ -201,36 +199,6 @@ class Fridge (object):
         if not self.config.binaries_local:
             raise FatalError(_('Configuration without binaries local dir'))
 
-    def unfreeze_recipe(self, recipe, build_status_printer, count):
-        '''
-        Unfreeze the recipe, downloading the package and installing it
-
-        @param recipe: The recipe to unfreeze
-        @type recipe: L{cerbero.build.cookbook.Recipe}
-        @param count: Current number of step
-        @type count: int
-        @param total: Total number of step
-        @type total: int
-        '''
-        self._ensure_ready(recipe)
-        steps = [self.FETCH_BINARY, self.EXTRACT_BINARY]
-        run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
-
-    def freeze_recipe(self, recipe, build_status_printer, count):
-        '''
-        Freeze the recipe, creating a package and uploading it
-
-        @param recipe: The recipe to freeze
-        @type recipe: L{cerbero.build.cookbook.Recipe}
-        @param count: Current number of step
-        @type count: int
-        @param total: Total number of step
-        @type total: int
-        '''
-        self._ensure_ready(recipe)
-        steps = [self.GEN_BINARY, self.UPLOAD_BINARY]
-        run_until_complete(self._apply_steps(recipe, steps, build_status_printer, count))
-
     async def check_remote_binary_exists(self, recipe):
         self._ensure_ready(recipe)
 
@@ -253,37 +221,6 @@ class Fridge (object):
         except Exception as e:
             m.warning('Error checking if recipe %s exists in remote: %s' % (recipe.name, e))
             raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
-
-    async def fetch_recipe(self, recipe, build_status_printer, count):
-        '''
-        Fetch the recipe
-
-        @param recipe: The recipe to fetch
-        @type recipe: L{cerbero.build.cookbook.Recipe}
-        @param count: Current number of step
-        @type count: int
-        @param total: Total number of step
-        @type total: int
-        '''
-        self._ensure_ready(recipe)
-        try:
-            # Ensure the built_version is collected asynchronously before
-            # calling _get_package_name, because that is done in a sync way and
-            # would call otherwise the sync built_version, which takes time.
-            # Since the built_version is cached, we can gather it here and will be
-            # reused by both the sync and async flavors of built_version
-            if hasattr(recipe, 'async_built_version'):
-                await recipe.async_built_version()
-            await self._apply_steps(recipe, [self.FETCH_BINARY], build_status_printer, count)
-        except Exception:
-            # Fallback to fetch the source instead
-            build_status_printer.update_recipe_step(count, recipe, 'fetch')
-            if not self.cookbook.step_done(recipe.name, 'fetch'):
-                await recipe.fetch()
-                self.cookbook.update_step_status(recipe.name, 'fetch')
-            else:
-                m.action('Step done')
-        self.cookbook.update_needs_build(recipe.name, True)
 
     async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)
@@ -358,42 +295,3 @@ class Fridge (object):
         p = self.store.get_package('%s-pkg' % recipe.name)
         tar = DistTarball(self.config, p, self.store)
         return tar.get_name(PackageType.DEVEL)
-
-    async def _apply_steps(self, recipe, steps, build_status_printer, count):
-        self._ensure_ready(recipe)
-        for _, step in steps:
-            build_status_printer.update_recipe_step(count, recipe, step)
-            # check if the current step needs to be done
-            if self.cookbook.step_done(recipe.name, step) and not self.force:
-                m.action("Step done")
-                continue
-
-            # check if the recipe was installed from a frozen one,
-            # in which case, we won't generate it again unless force is used
-            if step in [self.GEN_BINARY[1], self.UPLOAD_BINARY[1]]:
-                if self.cookbook.step_done(recipe.name, self.EXTRACT_BINARY[1]) and not self.force:
-                    m.action('No need since a package exists in remote for this recipe')
-                    self.cookbook.update_step_status(recipe.name, step)
-                    continue
-
-            # call step function
-            if not hasattr(self, step):
-                raise FatalError(_('Step %s not found for recipe %s') % (step, recipe.name))
-            stepfunc = getattr(self, step)
-            if not stepfunc:
-                raise FatalError(_('Step %s not found for recipe %s') % (step, recipe.name))
-            try:
-                if asyncio.iscoroutinefunction(stepfunc):
-                    await stepfunc(recipe)
-                else:
-                    stepfunc(recipe)
-                # update status successfully
-                self.cookbook.update_step_status(recipe.name, step)
-            except Exception as e:
-                m.warning(str(e))
-                raise BuildStepError(recipe, step, traceback.format_exc())
-
-        # Update the recipe status
-        p = self.store.get_package('%s-pkg' % recipe.name)
-        v = p.version.rsplit('-')[0]
-        self.cookbook.update_build_status(recipe.name, v)

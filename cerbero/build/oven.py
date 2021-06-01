@@ -22,11 +22,10 @@ import shutil
 import traceback
 import asyncio
 from subprocess import CalledProcessError
-import os
 import time
 
-from cerbero.enums import Architecture, Platform, LibraryType
-from cerbero.errors import BuildStepError, FatalError, AbortedError, RecipeNotFreezableError
+from cerbero.enums import Platform, LibraryType
+from cerbero.errors import BuildStepError, FatalError, AbortedError
 from cerbero.build.recipe import Recipe, BuildSteps
 from cerbero.utils import _, N_, shell, run_until_complete
 from cerbero.utils.shell import BuildStatusPrinter
@@ -34,7 +33,6 @@ from cerbero.utils import messages as m
 from cerbero.build.fridge import Fridge
 from cerbero.packages.packagesstore import PackagesStore
 
-import inspect
 
 class RecoveryActions(object):
     '''
@@ -106,9 +104,23 @@ class Oven (object):
         if self.deps_only:
             ordered_recipes = [x for x in ordered_recipes if x not in recipes]
 
-        m.message(_("Building the following recipes: %s") %
-                  ' '.join([x.name for x in ordered_recipes]))
+        # Filter out all those recipes that are either already built or those
+        # that don't need to be uploaded to fridge because:
+        # 1. Don't allow creating a package
+        # 2. Already run the extract_binary step
+        # 3. Have already uploaded the binary to fridge
+        filtered_ordered_recipes = [x for x in ordered_recipes if self.cookbook.recipe_needs_build(x.name) or \
+                            (upload_binaries and x.allow_package_creation and not self.cookbook.step_done(x.name, Fridge.EXTRACT_BINARY[1]) \
+                            and not self.cookbook.step_done(x.name, Fridge.UPLOAD_BINARY[1]))]
 
+        m.message(_("Building the following recipes: %s") %
+                  ' '.join([x.name for x in filtered_ordered_recipes]))
+
+        recipes_built = [x.name for x in set(ordered_recipes) - set(filtered_ordered_recipes)]
+        if recipes_built:
+            m.message('Related recipes already built: {}'.format(' '.join(recipes_built)))
+
+        ordered_recipes = filtered_ordered_recipes
         length = len(ordered_recipes)
         fridge = None
         if use_binaries or upload_binaries:
@@ -121,7 +133,11 @@ class Oven (object):
         i = 1
         for recipe in ordered_recipes:
             try:
-                self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
+                if recipe.allow_package_creation:
+                    recipe.add_fridge_steps(self.force, use_binaries, upload_binaries)
+                else:
+                    m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
+                self._cook_recipe(recipe, i, fridge)
             except BuildStepError as be:
                 if not self.interactive:
                     raise be
@@ -135,9 +151,9 @@ class Oven (object):
                 elif action == RecoveryActions.RETRY_ALL:
                     shutil.rmtree(recipe.get_for_arch (be.arch, 'build_dir'))
                     self.cookbook.reset_recipe_status(recipe.name)
-                    self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
+                    self._cook_recipe(recipe, i, fridge)
                 elif action == RecoveryActions.RETRY_STEP:
-                    self._cook_recipe(recipe, i, fridge, use_binaries, upload_binaries)
+                    self._cook_recipe(recipe, i, fridge)
                 elif action == RecoveryActions.SKIP:
                     i += 1
                     continue
@@ -145,22 +161,14 @@ class Oven (object):
                     raise AbortedError()
             i += 1
 
-    def _cook_recipe(self, recipe, count, fridge=None, use_binaries=False, upload_binaries=False):
+        m.message('[({}/{} @ 100%) All recipes built]'.format(i - 1, i - 1))
+
+    def _cook_recipe(self, recipe, count, fridge=None):
         # A Recipe depending on a static library that has been rebuilt
         # also needs to be rebuilt to pick up the latest build.
         if recipe.library_type != LibraryType.STATIC:
             if len(set(self._static_libraries_built) & set(recipe.deps)) != 0:
                 self.cookbook.reset_recipe_status(recipe.name)
-        if not self.cookbook.recipe_needs_build(recipe.name) and \
-                not self.force:
-            if upload_binaries:
-                try:
-                    fridge.freeze_recipe(recipe, self._build_status_printer, count)
-                except RecipeNotFreezableError:
-                    m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
-                    pass
-
-            return
 
         # Create a temp file that will be used to find newer files
         tmp = tempfile.NamedTemporaryFile()
@@ -172,26 +180,6 @@ class Oven (object):
         if self.config.platform != Platform.LINUX:
             time.sleep(1.5)
 
-        if use_binaries:
-            try:
-                needs_update = not self.cookbook.step_done(recipe.name, Fridge.EXTRACT_BINARY[1])
-                fridge.unfreeze_recipe(recipe, self._build_status_printer, count)
-                if needs_update:
-                    self._update_installed_files(recipe, tmp)
-                return
-            except RecipeNotFreezableError:
-                m.message('Recipe {} does not allow being unfrozen (allow_package_creation = False)'.format(recipe.name))
-            except Exception:
-                # In case of any error unfreezing the recipe, ensure we clean
-                # whatever files might have been extracted. Also, reset the status
-                # so that the fallback build is done from the beginning since the
-                # current status is inconsistent
-                self._update_installed_files(recipe, tmp)
-                self.cookbook.recipe_remove_installed_files(recipe.name)
-                self.cookbook.reset_recipe_status(recipe.name)
-                m.warning('Error unfreezing recipe \'{}\'. Falling back to build it from scratch'.format(recipe.name))
-                return self._cook_recipe(recipe, count, fridge, False, upload_binaries)
-
         recipe.force = self.force
         steps_run = []
         for desc, step in recipe.steps:
@@ -199,28 +187,52 @@ class Oven (object):
             # check if the current step needs to be done
             if self.cookbook.step_done(recipe.name, step) and not self.force:
                 m.action(_("Step done"))
+                steps_run.append(step)
                 continue
-            try:
-                # call step function
-                stepfunc = getattr(recipe, step)
-                if not stepfunc:
-                    raise FatalError(_('Step %s not found') % step)
 
-                # We need to update the installed files before the relocate_osx_binaries step
-                # because it needs to know the list of files that needs to relocate
-                # WARNING: the method to automatically detect files will only work
-                # when installing recipes not concurrently
-                if step == BuildSteps.RELOCATE_OSX_LIBRARIES[1]:
+            # check if the recipe was installed from a frozen one,
+            # in which case, we won't generate it again unless force is used
+            if step in [Fridge.GEN_BINARY[1], Fridge.UPLOAD_BINARY[1]]:
+                if self.cookbook.step_done(recipe.name, Fridge.EXTRACT_BINARY[1]) and not self.force:
+                    m.action('No need since a package exists in remote for this recipe')
+                    self.cookbook.update_step_status(recipe.name, step)
+                    steps_run.append(step)
+                    continue
+
+            try:
+                # We need to update the installed files before the gen_binary
+                # and relocate_osx_binaries steps because it needs to know the
+                # list of files to packare or the ones that need to be
+                # relocated
+                # WARNING: the method to automatically detect files will only
+                # work when installing recipes not concurrently
+                if self.cookbook.recipe_needs_build(recipe.name) and \
+                    step in [BuildSteps.RELOCATE_OSX_LIBRARIES[1], Fridge.GEN_BINARY[1]]:
                     self._update_installed_files(recipe, tmp)
 
-                if asyncio.iscoroutinefunction(stepfunc):
-                    run_until_complete(stepfunc())
+                def _run_step(stepfunc, *args):
+                    if asyncio.iscoroutinefunction(stepfunc):
+                        run_until_complete(stepfunc(*args))
+                    else:
+                        stepfunc(*args)
+
+                # call step function
+                if hasattr(recipe, step):
+                    stepfunc = getattr(recipe, step)
+                    if not stepfunc:
+                        raise FatalError(_('Step %s not found') % step)
+                    _run_step(stepfunc)
                 else:
-                    stepfunc()
+                    # Fridge-related steps are not within the recipe, but within
+                    # the fridge class. This is done this way to have an isolated
+                    # fridge environment. Thus, the fridge steps need to receive
+                    # the recipe as an argument.
+                    stepfunc = getattr(fridge, step)
+                    _run_step(stepfunc, recipe)
+
                 # update status successfully
                 self.cookbook.update_step_status(recipe.name, step)
                 steps_run.append(step)
-
             except FatalError as e:
                 exc_traceback = sys.exc_info()[2]
                 trace = ''
@@ -235,7 +247,20 @@ class Oven (object):
                         trace += 'Exception at {}:{}\n'.format(tb.filename, tb.lineno)
                     trace += e.args[0] + '\n'
                 self._handle_build_step_error(recipe, step, trace, e.arch)
-            except Exception:
+            except Exception as e:
+                if step in [Fridge.FETCH_BINARY[1], Fridge.EXTRACT_BINARY[1]]:
+                    m.warning(e)
+
+                    # In case of any error unfreezing the recipe, ensure we clean
+                    # whatever files might have been extracted. Also, reset the status
+                    # so that the fallback build is done from the beginning since the
+                    # current status is inconsistent
+                    self._update_installed_files(recipe, tmp)
+                    self.cookbook.recipe_remove_installed_files(recipe.name)
+                    self.cookbook.reset_recipe_status(recipe.name)
+                    recipe.remove_fridge_steps()
+                    self._cook_recipe(recipe, count, fridge)
+                    return
                 raise BuildStepError(recipe, step, traceback.format_exc())
         self.cookbook.update_build_status(recipe.name, recipe.built_version())
 
@@ -243,7 +268,7 @@ class Oven (object):
         # list of installed files for this recipe
         # WARNING: the method to automatically detect files will only work
         # when installing recipes not concurrently
-        if set([BuildSteps.INSTALL[1], BuildSteps.POST_INSTALL[1]]).intersection(set(steps_run)):
+        if len(recipe.steps) == len(steps_run):
             self._update_installed_files(recipe, tmp)
 
         if recipe.library_type == LibraryType.STATIC:
@@ -251,12 +276,6 @@ class Oven (object):
 
         if self.missing_files:
             self._print_missing_files(recipe, tmp)
-
-        if upload_binaries:
-            try:
-                fridge.freeze_recipe(recipe, self._build_status_printer, count)
-            except RecipeNotFreezableError:
-                m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
 
     def _update_installed_files(self, recipe, tmp):
         installed_files = list(set(shell.find_newer_files(recipe.config.prefix,

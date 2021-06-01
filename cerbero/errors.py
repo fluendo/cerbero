@@ -97,4 +97,4 @@ class AbortedError(Exception):
 class RecipeNotFreezableError(CerberoException):
 
     def __init__(self, recipe):
-        CerberoException.__init__(self, _("Recipe '%s' is not freezable") % recipe)
+        CerberoException.__init__(self, _("Recipe '%s' is not freezable (allow_package_creation = False)") % recipe)

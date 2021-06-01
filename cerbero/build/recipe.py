@@ -27,7 +27,7 @@ from functools import reduce, lru_cache
 from pathlib import Path
 import hashlib
 
-from cerbero.enums import LicenseDescription, LibraryType
+from cerbero.enums import LicenseDescription
 from cerbero.build import build, source
 from cerbero.build.filesprovider import FilesProvider, UniversalFilesProvider, UniversalFlatFilesProvider
 from cerbero.config import Platform
@@ -39,6 +39,7 @@ from cerbero.utils import N_, _
 from cerbero.utils import shell, add_system_libs, get_class_checksum, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.tools.libtool import LibtoolLibrary
+from cerbero.build.fridge import Fridge
 
 LICENSE_INFO_FILENAME = 'README-LICENSE-INFO.txt'
 
@@ -228,6 +229,7 @@ DISCLAIMER: THIS LICENSING INFORMATION IS PROVIDED ON A BEST-EFFORT BASIS
 AND IS NOT MEANT TO BE LEGAL ADVICE. PLEASE TALK TO A LAWYER FOR ADVICE ON
 SOFTWARE LICENSE COMPLIANCE.\n\n'''
     _licenses_terms = 'The {} in this package may be used under the terms of license file(s):\n\n'
+    _orig_steps = None
 
     def __init__(self, config):
         self.config = config
@@ -764,6 +766,22 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
     @property
     def steps(self):
         return self._steps
+
+    def add_fridge_steps(self, force=False, use_binaries=False, upload_binaries=False):
+        self._orig_steps = self._steps
+        # In case we want to upload binaries, there is no need to re-generate
+        # the binaries and upload them if the fetch and extract binaries steps
+        # work correctly. Thus, we only do the GEN_BINARY and UPLOAD_BINARY in
+        # case using binaries fails somehow.
+        if use_binaries and (self.config.cookbook.recipe_needs_build(self.name) or force):
+            self._steps = [Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY]
+        if upload_binaries:
+            self._orig_steps += [Fridge.GEN_BINARY, Fridge.UPLOAD_BINARY]
+
+    def remove_fridge_steps(self):
+        if self._orig_steps:
+            self._steps = self._orig_steps
+            self._orig_steps = None
 
     def _remove_steps(self, steps):
         self._steps = [x for x in self._steps if x not in steps]
