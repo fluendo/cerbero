@@ -1,0 +1,14 @@
+# -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
+from cerbero.tools.libtool import LibtoolLibrary
+
+class Recipe(recipe.Recipe):
+    name = 'test3'
+    version = '0.10'
+    remotes = {'origin': 'git@bitbucket.org:fluendo/recipe_test.git'}
+    commit = 'origin/master'
+    #library_type = LibraryType.STATIC
+    deps = ['test', 'test2']
+    allow_package_creation = False
+
+    def prepare(self):
+        self.repo_dir = os.path.join(self.config.local_sources, "test")
