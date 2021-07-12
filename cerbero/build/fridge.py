@@ -211,16 +211,15 @@ class Fridge (object):
             if hasattr(recipe, 'async_built_version'):
                 await recipe.async_built_version()
             package_name = self._get_package_name(recipe)
-            m.action('Checking if fridge binary exists {}/{}'.format(self.env_checksum, package_name))
             if self.binaries_remote.binary_exists(package_name, self.env_checksum):
-                m.message('Package exists in remote')
+                m.action('{}: Remote package \'{}/{}\' found'.format(recipe, self.env_checksum, package_name))
             else:
-                raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
+                raise PackageNotFoundError(os.path.join(self.env_checksum, package_name))
         except PackageNotFoundError:
             raise
         except Exception as e:
             m.warning('Error checking if recipe %s exists in remote: %s' % (recipe.name, e))
-            raise PackageNotFoundError(os.path.join(self.binaries_remote.remote, self.env_checksum, package_name))
+            raise PackageNotFoundError(os.path.join(self.env_checksum, package_name))
 
     async def fetch_binary(self, recipe):
         self._ensure_ready(recipe)

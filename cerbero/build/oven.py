@@ -25,7 +25,7 @@ from subprocess import CalledProcessError
 import time
 
 from cerbero.enums import Platform, LibraryType
-from cerbero.errors import BuildStepError, FatalError, AbortedError
+from cerbero.errors import BuildStepError, FatalError, AbortedError, PackageNotFoundError
 from cerbero.build.recipe import Recipe, BuildSteps
 from cerbero.utils import _, N_, shell, run_until_complete
 from cerbero.utils.shell import BuildStatusPrinter
@@ -130,13 +130,31 @@ class Oven (object):
         self._build_status_printer = BuildStatusPrinter()
         self._build_status_printer.total = length
         self._static_libraries_built = []
+
+        # Check whether there are available binary packages in the remote
+        # before even trying to fetch them. This ensures consistency in terms
+        # of percentage displayed and prevents confusion.
+        tasks = []
+        for recipe in ordered_recipes:
+            async def _add_fridge_steps_if_needed(recipe):
+                binary_exists = False
+                try:
+                    if use_binaries:
+                        await fridge.check_remote_binary_exists(recipe)
+                        binary_exists = True
+                except PackageNotFoundError as e:
+                    m.action('{}: {}. Falling back to fetch from source'.format(recipe, e))
+                    pass
+                recipe.add_fridge_steps(self.force, use_binaries=binary_exists, upload_binaries=upload_binaries)
+            if recipe.allow_package_creation:
+                tasks.append(_add_fridge_steps_if_needed(recipe))
+            else:
+                m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
+        run_until_complete(tasks)
+
         i = 1
         for recipe in ordered_recipes:
             try:
-                if recipe.allow_package_creation:
-                    recipe.add_fridge_steps(self.force, use_binaries, upload_binaries)
-                else:
-                    m.message('Recipe {} does not allow being frozen (allow_package_creation = False)'.format(recipe.name))
                 self._cook_recipe(recipe, i, fridge)
             except BuildStepError as be:
                 if not self.interactive:

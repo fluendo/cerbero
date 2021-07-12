@@ -172,8 +172,8 @@ the status the previous step left:
   and the /tmp/fridge should have 3 packages: for test, test2 and test4
 
 ```bash
-rm -rf /tmp/fridge/**; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --upload-binaries
-tree -D /tmp/fridge
+rm -rf /tmp/fridge/*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --upload-binaries
+tree -hD /tmp/fridge
 ```
 
 * Fridge packages can be used. Expected: `fetch_binary` steps should run and only test3
@@ -188,9 +188,9 @@ rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --u
   in second command, skipping building steps since they were done previously
 
 ```bash
-rm -rf /tmp/fridge/**; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4
+rm -rf /tmp/fridge/*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4
 ./cerbero-uninstalled -t -c test.cbc build test4 --upload-binaries
-tree -D /tmp/fridge
+tree -hD /tmp/fridge
 ```
 
 * Modifying a recipe changes its checksum, generating a new fridge package.
@@ -204,7 +204,7 @@ echo "Restoring and fetching original test4.recipe..."
 content=$(head recipes-test/test4.recipe -n -1)
 echo "$content" > recipes-test/test4.recipe
 ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
-tree -D /tmp/fridge
+tree -hD /tmp/fridge
 ```
 
 * Modifying a dependency changes the name of both that recipe and all its
@@ -215,45 +215,32 @@ tree -D /tmp/fridge
 ```bash
 echo "# dummy comment" >> recipes-test/test2.recipe
 ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
-tree -D /tmp/fridge
+tree -hD /tmp/fridge
 echo "Restoring and fetching original test2.recipe..."
 content=$(head recipes-test/test2.recipe -n -1)
 echo "$content" > recipes-test/test2.recipe
 ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
-tree -D /tmp/fridge
+tree -hD /tmp/fridge
 ```
 
 * If a package is not available, recipe is built from scratch as a fallback.
   Expected: test4 is rebuilt and uploaded
 
 ```bash
-rm -rf /tmp/fridge/**/test4* && rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
+rm -rf /tmp/fridge/*/test4* && rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
 ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
-tree -D /tmp/fridge
+tree -hD /tmp/fridge
 ```
 
 * If a package in fridge does not match the checksum, recipe is built from
   scratch. Expected: test4 is rebuilt and uploaded
 
 ```bash
-echo "1234 1234" > /tmp/fridge/**/test4*.tar.bz2.sha256
-cat /tmp/fridge/**/test4*.tar.bz2.sha256
+echo "1234 1234" > /tmp/fridge/*/test4*.tar.bz2.sha256
+cat /tmp/fridge/*/test4*.tar.bz2.sha256
 rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
-cat /tmp/fridge/**/test4*.tar.bz2.sha256
-tree -D /tmp/fridge
-```
-
-* If a package in the local cache does not match the checksum, it gets
-  downloaded again. Expected: test4 is uninstalled and test4 is fetched and
-  installed from fridge
-
-```bash
-./cerbero-uninstalled -t -c test.cbc uninstall test4
-tree -D /opt/cerbero-test/binaries
-echo "1234 1234" > /opt/cerbero-test/**/test4*.tar.bz2.sha256
-cat /tmp/fridge/**/test4*.tar.bz2.sha256
-./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
-cat /tmp/fridge/**/test4*.tar.bz2.sha256
+cat /tmp/fridge/*/test4*.tar.bz2.sha256
+tree -hD /tmp/fridge
 ```
 
 * If a package in fridge is corrupted, recipe is built from scratch. Expected:
@@ -264,7 +251,7 @@ file=$(find /tmp/fridge -iname "test4*.tar.bz2")
 dd if=$file count=100 bs=1 of=/tmp/tmp_package.tar.bz2
 cp /tmp/tmp_package.tar.bz2 $file
 sha256sum $file > $file.sha256
-rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
+rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --fridge
 ```
 
 * If a package in local cache is corrupted, recipe is fetched again. Expected:
@@ -276,7 +263,9 @@ dd if=$file count=100 bs=1 of=/tmp/tmp_package.tar.bz2
 cp /tmp/tmp_package.tar.bz2 $file
 sha256sum $file > $file.sha256
 ./cerbero-uninstalled -t -c test.cbc uninstall test4
+tree -hD /opt/cerbero-test/binaries
 ./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
+tree -hD /opt/cerbero-test/binaries
 ```
 
 * Packages can be fetched from fridge. Expected: `fetch_binary` step runs
@@ -284,13 +273,13 @@ sha256sum $file > $file.sha256
 
 ```bash
 rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc fetch test4 --use-binaries
-tree -D /opt/cerbero-test/binaries
+tree -hD /opt/cerbero-test/binaries
 ```
 
 * If missing package in fridge, sources are fetched as a fallback. Expected:
-  `fetch_binary` for test4 fails, thus its source is downloaded instead
+  `fetch_binary` for test fails, thus its source is downloaded instead
 
 ```bash
-rm -rf /tmp/fridge/**/test4*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc fetch test4 --use-binaries
-tree -D /opt/cerbero-test/binaries && tree -D /opt/cerbero-test/sources/local
+rm -rf /tmp/fridge/*/test-*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc fetch test --use-binaries
+tree -hD /opt/cerbero-test/binaries && tree -hD /opt/cerbero-test/sources/local
 ```

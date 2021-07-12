@@ -68,7 +68,7 @@ class RecipeNotFoundError(CerberoException):
 class PackageNotFoundError(CerberoException):
 
     def __init__(self, package):
-        CerberoException.__init__(self, _("Package '%s' not found") % package)
+        CerberoException.__init__(self, _("Remote package '%s' not found") % package)
 
 
 class EmptyPackageError(CerberoException):

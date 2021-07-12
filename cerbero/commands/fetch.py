@@ -23,7 +23,7 @@ import json
 from cerbero.commands import Command, register_command
 from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
-from cerbero.errors import FatalError
+from cerbero.errors import FatalError, PackageNotFoundError
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, run_until_complete
 from cerbero.utils import messages as m
@@ -86,6 +86,15 @@ class Fetch(Command):
                     # reused by both the sync and async flavors of built_version
                     if hasattr(recipe, 'async_built_version'):
                         await recipe.async_built_version()
+
+                    # Attempt to run fetch_binary step only if remote binary exists
+                    try:
+                        await fridge.check_remote_binary_exists(recipe)
+                    except PackageNotFoundError as e:
+                        # Fallback to fetch step instead
+                        m.action('{}: {}. Falling back to fetch from source'.format(recipe, e))
+                        await _run_fetch(cookbook, fridge, recipe, BuildSteps.FETCH[1])
+                        return
                     stepfunc = getattr(fridge, step_name)
                     await stepfunc(recipe)
                 except:
