@@ -19,19 +19,18 @@
 import os, sys
 import urllib
 import json
-import asyncio
 
 from cerbero.commands import Command, register_command
 from cerbero.build.cookbook import CookBook
 from cerbero.enums import LibraryType
-from cerbero.errors import FatalError
+from cerbero.errors import FatalError, PackageNotFoundError
 from cerbero.packages.packagesstore import PackagesStore
 from cerbero.utils import _, N_, ArgparseArgument, remove_list_duplicates, git, shell, run_until_complete
 from cerbero.utils import messages as m
 from cerbero.build.source import Tarball
 from cerbero.config import Distro
 from cerbero.build.fridge import Fridge
-from cerbero.utils.shell import BuildStatusPrinter
+from cerbero.build.recipe import BuildSteps
 
 NUMBER_OF_JOBS_IF_USED = 8
 NUMBER_OF_JOBS_IF_UNUSED = NUMBER_OF_JOBS_IF_USED
@@ -71,14 +70,40 @@ class Fetch(Command):
         fridge = None
         if use_binaries:
             fridge = Fridge(PackagesStore(cookbook.get_config(), recipes=fetch_recipes, cookbook=cookbook))
-            printer = BuildStatusPrinter([Fridge.FETCH_BINARY, Fridge.EXTRACT_BINARY], False) #cookbook.get_config().interactive)
-        else:
-            printer = BuildStatusPrinter (('fetch',), False) #cookbook.get_config().interactive)
-        printer.total = len(fetch_recipes)
 
-        async def _fetch(cookbook, recipe):
-            await recipe.fetch()
-            cookbook.update_step_status(recipe.name, 'fetch')
+        async def _run_fetch(cookbook, fridge, recipe, step_name):
+            # Fetch step
+            if hasattr(recipe, step_name):
+                stepfunc = getattr(recipe, step_name)
+                await stepfunc()
+            # Fetch binary step
+            else:
+                try:
+                    # Ensure the built_version is collected asynchronously before
+                    # calling _get_package_name, because that is done in a sync way and
+                    # would call otherwise the sync built_version, which takes time.
+                    # Since the built_version is cached, we can gather it here and will be
+                    # reused by both the sync and async flavors of built_version
+                    if hasattr(recipe, 'async_built_version'):
+                        await recipe.async_built_version()
+
+                    # Attempt to run fetch_binary step only if remote binary exists
+                    try:
+                        await fridge.check_remote_binary_exists(recipe)
+                    except PackageNotFoundError as e:
+                        # Fallback to fetch step instead
+                        m.action('{}: {}. Falling back to fetch from source'.format(recipe, e))
+                        await _run_fetch(cookbook, fridge, recipe, BuildSteps.FETCH[1])
+                        return
+                    stepfunc = getattr(fridge, step_name)
+                    await stepfunc(recipe)
+                except:
+                    m.warning('Error downloading remote package {}. Falling back to fetch from source'.format(recipe.name))
+                    # Something failed using fridge. Fallback to normal fetch step
+                    return await _run_fetch(cookbook, fridge, recipe, BuildSteps.FETCH[1])
+
+            cookbook.update_step_status(recipe.name, step_name)
+            cookbook.update_needs_build(recipe.name, True)
 
         for i in range(len(fetch_recipes)):
             recipe = fetch_recipes[i]
@@ -87,23 +112,13 @@ class Fetch(Command):
                 if isinstance(recipe, Tarball):
                     m.message("TARBALL: {} {}".format(recipe.url, recipe.tarball_name))
                 continue
-            try:
-                if recipe.allow_package_creation and fridge:
-                    tasks.append(fridge.fetch_recipe(recipe, printer, i + 1))
-                    continue
-            except Exception:
-                pass
+            step_name = BuildSteps.FETCH[1]
+            if recipe.allow_package_creation and fridge:
+                step_name = Fridge.FETCH_BINARY[1]
 
-            if cookbook.step_done(recipe.name, 'fetch'):
+            if cookbook.step_done(recipe.name, step_name):
                 continue
-            stepfunc = getattr(recipe, 'fetch')
-            if asyncio.iscoroutinefunction(stepfunc):
-                tasks.append(_fetch(cookbook, recipe))
-            else:
-                printer.update_recipe_step(printer.count, recipe.name, 'fetch')
-                stepfunc()
-                printer.count += 1
-                printer.remove_recipe(recipe.name)
+            tasks.append(_run_fetch(cookbook, fridge, recipe, step_name))
 
         run_until_complete(tasks, max_concurrent=jobs)
         m.message("All async fetch jobs finished")

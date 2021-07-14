@@ -1,0 +1,12 @@
+import os
+from cerbero.build.fridge import FtpBinaryRemote
+
+path = os.path.dirname(os.path.abspath(__file__))
+
+recipes_dir = os.path.join(path, 'recipes-test')
+home_dir = '/opt/cerbero-test'
+# binaries_local = '/opt/cerbero-binaries'
+
+binaries_remote=FtpBinaryRemote('localhost:2121/fridge')
+# binaries_remote=FtpBinaryRemote('officestorage1.fluendo.lan/data/fluendo/tech/public/cerbero-binaries-1.0', 'fluendosys', 'fluendo sys')
+variants += ['static', 'strip', 'va', 'nocdparanoia']
