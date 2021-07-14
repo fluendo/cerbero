@@ -37,7 +37,7 @@ from cerbero.packages import PackageType
 class BinaryRemote (object):
     """Interface for binary remotes"""
 
-    def binary_exists(self, package_name, remote_dir):
+    async def binary_exists(self, package_name, remote_dir):
         '''
         Method to check if remote file exists
         @param package_name: Packages name to check
@@ -47,7 +47,7 @@ class BinaryRemote (object):
         '''
         raise NotImplementedError
 
-    def fetch_binary(self, package_name, local_dir, remote_dir):
+    async def fetch_binary(self, package_name, local_dir, remote_dir):
         '''
         Method to be overriden that fetches a binary
 
@@ -85,11 +85,13 @@ class FtpBinaryRemote (BinaryRemote):
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
 
-    def binary_exists(self, package_name, remote_dir):
+    async def binary_exists(self, package_name, remote_dir):
         exists = False
         remote = urllib.parse.urlparse(self.remote)
-        with Ftp(self.remote, user=self.username, password=self.password) as ftp:
-            exists = ftp.file_exists(os.path.join(remote.path, remote_dir, package_name))
+        port = 21 if not remote.port else remote.port
+        logging.getLogger('aioftp.client').setLevel(logging.CRITICAL)
+        async with aioftp.ClientSession(remote.hostname, port, self.username, self.password, socket_timeout=15) as ftp:
+            exists = await ftp.exists(os.path.join(remote.path, remote_dir, package_name))
         return exists
 
     async def fetch_binary(self, package_name, local_dir, remote_dir):
@@ -211,7 +213,7 @@ class Fridge (object):
             if hasattr(recipe, 'async_built_version'):
                 await recipe.async_built_version()
             package_name = self._get_package_name(recipe)
-            if self.binaries_remote.binary_exists(package_name, self.env_checksum):
+            if await self.binaries_remote.binary_exists(package_name, self.env_checksum):
                 m.action('{}: Remote package \'{}/{}\' found'.format(recipe, self.env_checksum, package_name))
             else:
                 raise PackageNotFoundError(os.path.join(self.env_checksum, package_name))
