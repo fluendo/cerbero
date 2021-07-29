@@ -109,7 +109,7 @@ class Oven (object):
         # 1. Don't allow creating a package
         # 2. Already run the extract_binary step
         # 3. Have already uploaded the binary to fridge
-        filtered_ordered_recipes = [x for x in ordered_recipes if self.cookbook.recipe_needs_build(x.name) or \
+        filtered_ordered_recipes = [x for x in ordered_recipes if self.force or self.cookbook.recipe_needs_build(x.name) or \
                             (upload_binaries and x.allow_package_creation and not self.cookbook.step_done(x.name, Fridge.EXTRACT_BINARY[1]) \
                             and not self.cookbook.step_done(x.name, Fridge.UPLOAD_BINARY[1]))]
 
@@ -125,7 +125,7 @@ class Oven (object):
         fridge = None
         if use_binaries or upload_binaries:
             fridge = Fridge(PackagesStore(self.config, recipes=ordered_recipes, cookbook=self.cookbook),
-                            force=self.force, dry_run=shell.DRY_RUN)
+                            dry_run=shell.DRY_RUN)
 
         self._build_status_printer = BuildStatusPrinter()
         self._build_status_printer.total = length
@@ -224,7 +224,7 @@ class Oven (object):
                 # relocated
                 # WARNING: the method to automatically detect files will only
                 # work when installing recipes not concurrently
-                if self.cookbook.recipe_needs_build(recipe.name) and \
+                if (self.force or self.cookbook.recipe_needs_build(recipe.name)) and \
                     step in [BuildSteps.RELOCATE_OSX_LIBRARIES[1], Fridge.GEN_BINARY[1]]:
                     self._update_installed_files(recipe, tmp)
 

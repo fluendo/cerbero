@@ -176,8 +176,8 @@ rm -rf /tmp/fridge/*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c te
 tree -hD /tmp/fridge
 ```
 
-* Fridge packages can be used. Expected: `fetch_binary` steps should run and only test3
-  should run configure and compile steps
+* Fridge packages can be used. Expected: `fetch_binary` and `extract_binary`
+  steps should run and only test3 should run configure and compile steps
 
 ```bash
 rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --use-binaries
@@ -191,6 +191,28 @@ rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4 --u
 rm -rf /tmp/fridge/*; rm -rf /opt/cerbero-test && ./cerbero-uninstalled -t -c test.cbc build test4
 ./cerbero-uninstalled -t -c test.cbc build test4 --upload-binaries
 tree -hD /tmp/fridge
+```
+
+* buildone command forces a rebuild of the recipe. Expected: only test4 is
+  built from scratch
+
+```bash
+./cerbero-uninstalled -t -c test.cbc buildone test4
+```
+
+* Fridge with buildone command forces a rebuild of the recipe, uploading the
+  binaries. Expected: only test4 is built from scratch and `upload_binary` step
+  is executed
+
+```bash
+./cerbero-uninstalled -t -c test.cbc buildone test4 --upload-binaries
+```
+
+* Fridge with buildone command forces a rebuild of the recipe, fetching the binaries. Expected: only
+  test4 recipe runs `fetch_binary` and `extract_binary` steps:
+
+```bash
+./cerbero-uninstalled -t -c test.cbc buildone test4 --use-binaries
 ```
 
 * Modifying a recipe changes its checksum, generating a new fridge package.
