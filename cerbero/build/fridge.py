@@ -190,11 +190,10 @@ class Fridge (object):
     GEN_BINARY = (N_('Generate Binary'), 'generate_binary')
     UPLOAD_BINARY = (N_('Upload Binary'), 'upload_binary')
 
-    def __init__(self, store, force=False, dry_run=False):
+    def __init__(self, store, dry_run=False):
         self.store = store
         self.cookbook = store.cookbook
         self.config = self.cookbook.get_config()
-        self.force = force
         self.binaries_remote = self.config.binaries_remote
         self.env_checksum = None
         shell.DRY_RUN = dry_run
