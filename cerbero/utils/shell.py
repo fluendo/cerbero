@@ -573,7 +573,7 @@ def find_newer_files(prefix, compfile, include_link=False):
     from compfile.
     '''
     include_links = include_link and '-L' or ''
-    cmd = 'find %s * \( -type f -o -type l \) \( -cnewer %s -o -newer %s \)' % \
+    cmd = 'find %s * \( -type f -o -type l \) \( -cnewer "%s" -o -newer "%s" \)' % \
         (include_links, compfile, compfile)
     sfiles = check_output(cmd, prefix).split('\n')
     sfiles.remove('')
