@@ -111,8 +111,6 @@ class Package(Command):
             pkg = Packager(config, p, self.store)
         m.action(_("Creating package for %s") % p.name)
         output_dir = os.path.abspath(args.output_dir)
-        if args.no_split:
-            args.no_devel = False
         paths = pkg.pack(output_dir, args.no_devel,
                          args.force, args.keep_temp,
                          not args.no_split)

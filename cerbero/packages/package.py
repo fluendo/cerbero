@@ -22,7 +22,7 @@ import hashlib
 import inspect
 
 from cerbero.build.filesprovider import FilesProvider
-from cerbero.enums import License, Platform
+from cerbero.enums import License, Platform, Distro
 from cerbero.packages import PackageType
 from cerbero.utils import remove_list_duplicates, get_class_checksum, messages as m
 
@@ -90,6 +90,12 @@ class PackageBase(object):
     @type strip: list
     @cvar strip_excludes: files that won't be stripped
     @type strip_excludes: list
+    @cvar provides = list of packages which functionality is provided
+    @type provides = dict
+    @cvar conflicts = list of conflicting packages
+    @type conflicts = dict
+    @cvar replaces_obsoletes = list of replaced/obsoleted packages
+    @type replaces_obsoletes = dict
     '''
     name = 'default'
     shortdesc = 'default'
@@ -120,6 +126,12 @@ class PackageBase(object):
     strip = False
     strip_dirs = ['bin']
     strip_excludes = []
+    provides = {Distro.DEBIAN: {PackageType.RUNTIME: [], PackageType.DEVEL: []},
+                Distro.REDHAT: {PackageType.RUNTIME: [], PackageType.DEVEL: []}}
+    conflicts = {Distro.DEBIAN: {PackageType.RUNTIME: [], PackageType.DEVEL: []},
+                 Distro.REDHAT: {PackageType.RUNTIME: [], PackageType.DEVEL: []}}
+    replaces_obsoletes = {Distro.DEBIAN: {PackageType.RUNTIME: [], PackageType.DEVEL: []},
+                          Distro.REDHAT: {PackageType.RUNTIME: [], PackageType.DEVEL: []}}
 
     def __init__(self, config, store):
         self.config = config

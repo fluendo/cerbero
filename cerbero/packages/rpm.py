@@ -49,6 +49,7 @@ Packager:       %(packager)s
 Vendor:         %(vendor)s
 %(url)s
 %(requires)s
+%(provides_conflicts_obsoletes)s
 
 %%description
 %(description)s
@@ -96,7 +97,7 @@ DEVEL_PACKAGE_TPL = '''
 %%package devel
 %(requires)s
 Summary: %(summary)s
-Provides: %(p_prefix)s%(name)s-devel
+%(provides_conflicts_obsoletes)s
 
 %%description devel
 %(description)s
@@ -233,6 +234,17 @@ class RPMPackager(LinuxPackager):
             'files': runtime_files,
             'sources_dir': self.config.sources}
 
+        template_dict['provides_conflicts_obsoletes'] = ''
+        provides = self.package.provides[Distro.REDHAT][PackageType.RUNTIME]
+        conflicts = self.package.conflicts[Distro.REDHAT][PackageType.RUNTIME]
+        obsoletes = self.package.replaces_obsoletes[Distro.REDHAT][PackageType.RUNTIME]
+        if provides:
+            template_dict['provides_conflicts_obsoletes'] += 'Provides: %s' % ', '.join(provides)
+        if conflicts:
+            template_dict['provides_conflicts_obsoletes'] += '\nConflicts: %s' % ', '.join(conflicts)
+        if obsoletes:
+            template_dict['provides_conflicts_obsoletes'] += '\nObsoletes: %s' % ', '.join(obsoletes)
+
         scripts = ''
 
         if os.path.exists(self.package.resources_preinstall):
@@ -334,6 +346,16 @@ class RPMPackager(LinuxPackager):
             args['requires'] = self._get_requires(PackageType.DEVEL)
         args['name'] = self.package.name
         args['p_prefix'] = self.package_prefix
+
+        provides = ['%(p_prefix)s%(name)s-devel' % args] + self.package.provides[Distro.REDHAT][PackageType.DEVEL]
+        conflicts = self.package.conflicts[Distro.REDHAT][PackageType.DEVEL]
+        obsoletes = self.package.replaces_obsoletes[Distro.REDHAT][PackageType.DEVEL]
+        args['provides_conflicts_obsoletes'] = 'Provides: %s' % ', '.join(provides)
+        if conflicts:
+            args['provides_conflicts_obsoletes'] += '\nConflicts: %s' % ', '.join(conflicts)
+        if obsoletes:
+            args['provides_conflicts_obsoletes'] += '\nObsoletes: %s' % ', '.join(obsoletes)
+
         try:
             devel = DEVEL_TPL % self._files_string_list(PackageType.DEVEL)
         except EmptyPackageError:
