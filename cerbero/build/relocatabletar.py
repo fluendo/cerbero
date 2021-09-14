@@ -35,13 +35,13 @@ class RelocatableTar(TarFile):
             content = fo.read()
             # Relocate first the longest of the paths
             if toolchain_prefix and toolchain_prefix in prefix:
-                content = content.replace('CERBERO_PREFIX'.encode('utf-8'), prefix.encode('utf-8'))
+                content = content.replace('__FRIDGE_CERBERO_PREFIX__'.encode('utf-8'), prefix.encode('utf-8'))
                 if toolchain_prefix:
-                    content = content.replace('CERBERO_TOOLCHAIN_PREFIX'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
+                    content = content.replace('__FRIDGE_CERBERO_TOOLCHAIN_PREFIX__'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
             else:
                 if toolchain_prefix:
-                    content = content.replace('CERBERO_TOOLCHAIN_PREFIX'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
-                content = content.replace('CERBERO_PREFIX'.encode('utf-8'), prefix.encode('utf-8'))
+                    content = content.replace('__FRIDGE_CERBERO_TOOLCHAIN_PREFIX__'.encode('utf-8'), toolchain_prefix.encode('utf-8'))
+                content = content.replace('__FRIDGE_CERBERO_PREFIX__'.encode('utf-8'), prefix.encode('utf-8'))
             fo.seek(0)
             fo.write(content)
             fo.truncate()
