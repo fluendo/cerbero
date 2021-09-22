@@ -180,13 +180,13 @@ class DistTarball(PackagerBase):
                         content = fo.read()
                         # Relocate first the longest of the paths
                         if self.config.toolchain_prefix and self.config.toolchain_prefix in self.config.prefix:
-                            content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
+                            content = replace_prefix_in_bytes(self.config.prefix, content, '__FRIDGE_CERBERO_PREFIX__')
                             if self.config.toolchain_prefix:
-                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, 'CERBERO_TOOLCHAIN_PREFIX')
+                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, '__FRIDGE_CERBERO_TOOLCHAIN_PREFIX__')
                         else:
                             if self.config.toolchain_prefix:
-                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, 'CERBERO_TOOLCHAIN_PREFIX')
-                            content = replace_prefix_in_bytes(self.config.prefix, content, 'CERBERO_PREFIX')
+                                content = replace_prefix_in_bytes(self.config.toolchain_prefix, content, '__FRIDGE_CERBERO_TOOLCHAIN_PREFIX__')
+                            content = replace_prefix_in_bytes(self.config.prefix, content, '__FRIDGE_CERBERO_PREFIX__')
                         fo.seek(0)
                         fo.write(content)
                         fo.truncate()
