@@ -398,7 +398,9 @@ async def download_urllib2(url, destination=None, check_cert=True, overwrite=Fal
     try:
         logging.info(destination)
         with open(destination, 'wb') as d:
-            f = urllib.request.urlopen(url, context=ctx)
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'cerbero')
+            f = urllib.request.urlopen(req, context=ctx)
             d.write(f.read())
     except urllib.error.HTTPError as e:
         if os.path.exists(destination):
