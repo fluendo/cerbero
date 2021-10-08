@@ -364,7 +364,7 @@ async def download_wget(url, destination=None, check_cert=True, overwrite=False,
         if password:
             cmd += " --password \"%s\"" % password
 
-    cmd += " --tries=2"
+    cmd += " --tries=2 --retry-connrefused --retry-on-host-error --retry-on-http-error=404,429,503,504"
     cmd += " --timeout=10.0"
     cmd += " --progress=dot:giga"
 
