@@ -488,10 +488,14 @@ async def download(url, destination=None, check_cert=True, overwrite=False, logf
 
     errors = []
     for murl in urls:
-        try:
-            return await download_func(murl, destination, check_cert, overwrite, logfile)
-        except Exception as ex:
-            errors.append(ex)
+        tries = 2
+        while tries > 0:
+            try:
+                return await download_func(murl, destination, check_cert, overwrite, logfile)
+            except Exception as ex:
+                tries -= 1
+                if tries == 0:
+                    errors.append(ex)
     raise Exception(errors)
 
 
