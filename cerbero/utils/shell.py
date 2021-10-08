@@ -364,16 +364,19 @@ async def download_wget(url, destination=None, check_cert=True, overwrite=False,
         if password:
             cmd += " --password \"%s\"" % password
 
-    cmd += " --tries=2 --retry-connrefused --retry-on-host-error --retry-on-http-error=404,429,503,504"
     cmd += " --timeout=10.0"
     cmd += " --progress=dot:giga"
 
-    try:
-        await async_call(cmd, path, logfile=logfile)
-    except FatalError as e:
-        if os.path.exists(destination):
-            os.remove(destination)
-        raise e
+    tries = 2
+    while True:
+        try:
+            return await async_call(cmd, path, logfile=logfile)
+        except FatalError as e:
+            tries -= 1
+            if os.path.exists(destination):
+                os.remove(destination)
+            if tries == 0:
+                raise e
 
 
 async def download_urllib2(url, destination=None, check_cert=True, overwrite=False, logfile=None, user=None, password=None):
