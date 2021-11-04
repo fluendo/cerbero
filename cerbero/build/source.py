@@ -23,7 +23,7 @@ import tarfile
 import urllib.request, urllib.parse, urllib.error
 from hashlib import sha256
 
-from cerbero.config import Platform, DEFAULT_MIRRORS
+from cerbero.config import Platform, DistroVersion, DEFAULT_MIRRORS
 from cerbero.utils import git, svn, shell, run_until_complete, _
 from cerbero.errors import FatalError, InvalidRecipeError
 import cerbero.utils.messages as m
@@ -182,7 +182,7 @@ class BaseTarball(object):
             os.makedirs(self.download_dir)
         # Enable certificate checking only on Linux for now
         # FIXME: Add more platforms here after testing
-        cc = self.config.platform == Platform.LINUX
+        cc = self.config.platform == Platform.LINUX and self.config.distro_version != DistroVersion.REDHAT_6
         await shell.download(self.url, self.download_path, check_cert=cc,
             overwrite=redownload, logfile=get_logfile(self),
             mirrors= self.config.extra_mirrors + DEFAULT_MIRRORS)
