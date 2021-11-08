@@ -79,6 +79,9 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
+        if sys.version_info[:2] >= (3, 9):
+            self.patches.append(self.name + '/0003-Drop-deprecated-xml.etree.ElementTree.Element.getchi.patch')
+
         # on arch python2 needs to be specified as the interpreter
         # the full path needs to be specified, since shebangs are generated
         if self.config.target_distro == Distro.ARCH:
