@@ -8,6 +8,7 @@ class Recipe(recipe.Recipe):
     commit = '0.4.30'
     btype = BuildType.MESON
     licenses = [{License.BSD_like: ['COPYING']}]
+    patches = ['orc/0001-Fix-OrcTargetPowerPCFlags-enum-typedef.patch']
     deps = ['meson']
     meson_options = {'benchmarks': 'disabled', 'tests': 'disabled',
                      'tools': 'enabled', 'orc-test': 'enabled'}

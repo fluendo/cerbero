@@ -1,0 +1,25 @@
+From 0b1a288835d6a3b6d52f77e0c2e86d685de6526e Mon Sep 17 00:00:00 2001
+From: Pablo Marcos Oltra <pablo.marcos.oltra@gmail.com>
+Date: Tue, 10 Sep 2019 17:36:51 +0200
+Subject: [PATCH] Fix OrcTargetPowerPCFlags enum typedef
+
+---
+ orc/orctarget.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/orc/orctarget.h b/orc/orctarget.h
+index 642bfe3..53000b3 100644
+--- a/orc/orctarget.h
++++ b/orc/orctarget.h
+@@ -19,7 +19,7 @@ enum {
+   ORC_TARGET_FAST_DENORMAL = (1<<31)
+ };
+ 
+-enum {
++typedef enum {
+   ORC_TARGET_POWERPC_64BIT = (1<<0),
+   ORC_TARGET_POWERPC_LE = (1<<1),
+   ORC_TARGET_POWERPC_ALTIVEC = (1<<2),
+-- 
+2.23.0
+
