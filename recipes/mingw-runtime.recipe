@@ -58,10 +58,8 @@ class Recipe(recipe.Recipe):
                 libdir = os.path.join(hostroot, 'lib')
 
         # copy the dll
-        if not os.path.exists(os.path.join(self.config.prefix, 'bin')):
-            os.makedirs(os.path.join(self.config.prefix, 'bin'))
-        if not os.path.exists(os.path.join(self.config.prefix, 'lib')):
-            os.makedirs(os.path.join(self.config.prefix, 'lib'))
+        os.makedirs(os.path.join(self.config.prefix, 'bin'), exist_ok = True)
+        os.makedirs(os.path.join(self.config.prefix, 'lib'), exist_ok = True)
         for f in ['libwinpthread-1.dll']:
             shutil.copy(
                 os.path.join(libmingw, f),

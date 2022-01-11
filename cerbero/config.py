@@ -607,11 +607,10 @@ class Config (object):
         self.uninstalled = int(os.environ.get(CERBERO_UNINSTALLED, 0)) == 1
 
     def _create_path(self, path):
-        if not os.path.exists(path):
-            try:
-                os.makedirs(path)
-            except:
-                raise FatalError(_('directory (%s) can not be created') % path)
+        try:
+            os.makedirs(path, exist_ok = True)
+        except:
+            raise FatalError(_('directory (%s) can not be created') % path)
 
     def _join_path(self, path1, path2):
         if len(path1) == 0:

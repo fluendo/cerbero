@@ -28,8 +28,7 @@ class Recipe(recipe.Recipe):
 
     def compile(self):
         libdir = os.path.join(self.config.prefix, 'lib')
-        if not os.path.exists(libdir):
-            os.makedirs(libdir)
+        os.makedirs(libdir, exist_ok = True)
 
         # Generate libraries that aren't copied from the NDK
         v = DistroVersion.get_android_api_version(self.config.target_distro_version)
@@ -55,8 +54,7 @@ class Recipe(recipe.Recipe):
             raise FatalError("Unsupported Android architecture %s" % self.config.target_arch)
         stl_libdir = os.path.join(stl_prefix, 'libs', libarch)
         libdir = os.path.join(self.config.prefix, 'lib')
-        if not os.path.exists(libdir):
-            os.makedirs(libdir)
+        os.makedirs(libdir, exist_ok = True)
 
         override_libname = 'libc++_shared%s.so' % self.config.libname_suffix
         output_libpath = os.path.join(libdir, override_libname)
@@ -88,8 +86,7 @@ class Recipe(recipe.Recipe):
 
         # Create pkg-config file (gnustl.pc)
         pkgdir = os.path.join(self.config.prefix, 'lib', 'pkgconfig')
-        if not os.path.exists(pkgdir):
-            os.makedirs(pkgdir)
+        os.makedirs(pkgdir, exist_ok = True)
         stl_pc = PkgConfigWritter('gnustl', 'gnustl', '2.0',
                 '', '-L${libdir} ${libdir}/%s' % override_libname +
                 (' ${libdir}/libandroid_support.a ' if v < 21 else '') +

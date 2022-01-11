@@ -1005,6 +1005,5 @@ class UniversalFlatRecipe(BaseUniversalRecipe, UniversalFlatFilesProvider):
 
                     dest = os.path.join(self._config.prefix,
                                         recipe.config.target_arch, f)
-                    if not os.path.exists(os.path.dirname(dest)):
-                        os.makedirs(os.path.dirname(dest))
+                    os.makedirs(os.path.dirname(dest), exist_ok = True)
                     shutil.move(src, dest)

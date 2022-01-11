@@ -45,8 +45,7 @@ class GenVSProps(Command):
         self.runargs(config, args.output_dir, args.prefix)
 
     def runargs(self, config, output_dir, prefix=DEFAULT_PREFIX_MACRO):
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok = True)
 
         for pc in PkgConfig.list_all():
             p2v = PkgConfig2VSProps(pc, prefix=config.prefix,

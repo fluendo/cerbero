@@ -73,8 +73,7 @@ class FrameworkHeadersMixin(object):
             for p in os.listdir(inc_dir):
                 src = os.path.join(inc_dir, p)
                 dest = os.path.join(headers, p)
-                if not os.path.exists(os.path.dirname(dest)):
-                    os.makedirs(os.path.dirname(dest))
+                os.makedirs(os.path.dirname(dest), exist_ok = True)
                 # include/cairo/cairo.h -> Headers/cairo.h
                 if os.path.isfile(src):
                     shutil.copy(src, dest)
@@ -94,8 +93,7 @@ class FrameworkHeadersMixin(object):
             if os.path.isfile(path):
                 p = os.path.join(headers, rel_path)
                 d = os.path.dirname(p)
-                if not os.path.exists(d):
-                    os.makedirs(d)
+                os.makedirs(d, exist_ok = True)
                 shutil.copy(path, p)
             # scan sub-directories
             elif os.path.isdir(path):
@@ -192,8 +190,7 @@ class OSXPackager(PackagerBase, FrameworkHeadersMixin):
                     continue
                 out_path = os.path.join(root, f)
                 out_dir = os.path.split(out_path)[0]
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
+                os.makedirs(out_dir, exist_ok = True)
                 shutil.copy(in_path, out_path, follow_symlinks=False)
             if package_type == PackageType.DEVEL or not self.split:
                 self._create_framework_headers(self.config.prefix, self.include_dirs, root)
@@ -425,8 +422,7 @@ class ApplicationPackager(PackagerBase):
                 continue
             out_path = os.path.join(out_dir, f)
             odir = os.path.split(out_path)[0]
-            if not os.path.exists(odir):
-                os.makedirs(odir)
+            os.makedirs(odir, exist_ok = True)
             shutil.copy(in_path, out_path)
 
     def _create_app_bundle(self):
@@ -558,8 +554,7 @@ class IOSPackager(ProductPackager, FrameworkHeadersMixin):
         for f in files:
             out_path = f.replace(self.config.prefix, root)
             out_dir = os.path.split(out_path)[0]
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
+            os.makedirs(out_dir, exist_ok = True)
             shutil.copy(f, out_path)
 
     def _copy_templates(self, files):
@@ -570,8 +565,7 @@ class IOSPackager(ProductPackager, FrameworkHeadersMixin):
                                  os.path.join(self.tmp, 'Templates'))
             out_path = out_path.replace(templates_prefix, '')
             out_dir = os.path.split(out_path)[0]
-            if not os.path.exists(out_dir):
-                os.makedirs(out_dir)
+            os.makedirs(out_dir, exist_ok = True)
             shutil.copy(f, out_path)
 
     def _copy_headers(self, files, version_dir):

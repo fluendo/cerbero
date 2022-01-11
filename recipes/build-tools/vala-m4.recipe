@@ -26,7 +26,6 @@ class Recipe(recipe.Recipe):
                         os.path.join(self.config.prefix, 'share',
                                      'aclocal', 'vala.m4'))
         destdir = os.path.join(self.config.prefix, 'share', 'vala')
-        if not os.path.exists(destdir):
-            os.makedirs(destdir)
+        os.makedirs(destdir, exist_ok = True)
         shutil.copy(os.path.join(self.build_dir, 'vapigen', 'Makefile.vapigen'),
                     os.path.join(destdir, 'Makefile.vapigen'))

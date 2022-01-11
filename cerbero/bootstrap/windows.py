@@ -112,13 +112,10 @@ class WindowsBootstrapper(BootstrapperBase):
             self.fix_mingw_unused()
 
     def check_dirs(self):
-        if not os.path.exists(self.perl_prefix):
-            os.makedirs(self.perl_prefix)
-        if not os.path.exists(self.prefix):
-            os.makedirs(self.prefix)
+        os.makedirs(self.perl_prefix, exist_ok = True)
+        os.makedirs(self.prefix, exist_ok = True)
         etc_path = os.path.join(self.config.prefix, 'etc')
-        if not os.path.exists(etc_path):
-            os.makedirs(etc_path)
+        os.makedirs(etc_path, exist_ok = True)
 
     def fix_mingw(self):
         if self.arch == Architecture.X86:

@@ -328,8 +328,7 @@ async def unpack(filepath, output_dir, logfile=None):
     # can't use tar on Windows because MSYS tar is ancient and buggy.
     if filepath.endswith(TARBALL_SUFFIXES):
         if PLATFORM != Platform.WINDOWS:
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+            os.makedirs(output_dir, exist_ok = True)
             await async_call(['tar', '-C', output_dir, '-xf', filepath])
         else:
             cmode = 'bz2' if filepath.endswith('bz2') else filepath[-2:]
@@ -461,8 +460,7 @@ async def download(url, destination=None, check_cert=True, overwrite=False, logf
             logging.info("File %s already downloaded." % destination)
         return
     else:
-        if not os.path.exists(os.path.dirname(destination)):
-            os.makedirs(os.path.dirname(destination))
+        os.makedirs(os.path.dirname(destination), exist_ok = True)
         log("Downloading {}".format(url), logfile)
 
     urls = [url]
@@ -629,8 +627,7 @@ def copy_dir(src, dest, exclude_dirs=[]):
             continue
         s = os.path.join(src, path)
         d = os.path.join(dest, path)
-        if not os.path.exists(os.path.dirname(d)):
-            os.makedirs(os.path.dirname(d))
+        os.makedirs(os.path.dirname(d), exist_ok = True)
         if os.path.isfile(s):
             shutil.copy(s, d)
         elif os.path.isdir(s):

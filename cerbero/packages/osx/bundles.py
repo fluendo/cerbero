@@ -188,8 +188,7 @@ class ApplicationBundlePackager(object):
         macos = os.path.join(contents, 'MacOS')
         resources = os.path.join(contents, 'Resources')
         for p in [contents, macos, resources]:
-            if not os.path.exists(p):
-                os.makedirs(p)
+            os.makedirs(p, exist_ok = True)
 
         # Create Contents/Info.plist
         # Use the template if provided in the package
