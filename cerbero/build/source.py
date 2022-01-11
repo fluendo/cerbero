@@ -178,8 +178,7 @@ class BaseTarball(object):
             self.verify()
             m.action(_('Found %s at %s') % (self.url, self.download_path))
             return
-        if not os.path.exists(self.download_dir):
-            os.makedirs(self.download_dir)
+        os.makedirs(self.download_dir, exist_ok = True)
         # Enable certificate checking only on Linux for now
         # FIXME: Add more platforms here after testing
         cc = self.config.platform == Platform.LINUX and self.config.distro_version != DistroVersion.REDHAT_6
@@ -244,8 +243,7 @@ class Tarball(BaseTarball, Source):
         BaseTarball.__init__(self)
 
     async def fetch_impl(self, redownload=False):
-        if not os.path.exists(self.download_dir):
-            os.makedirs(self.download_dir)
+        os.makedirs(self.download_dir, exist_ok = True)
 
         cached_file = os.path.join(self.config.cached_sources,
                                    self.package_name, self.tarball_name)

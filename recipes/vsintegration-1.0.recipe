@@ -15,22 +15,19 @@ class Recipe(recipe.Recipe):
         from cerbero.commands.genvsprops import GenVSProps
         env_var = ('GSTREAMER_1_0_ROOT_%s' % self.config.target_arch).upper()
         vspropsdir =  os.path.join(self.config.prefix, self.files_devel[0], 'libs')
-        if not os.path.exists(vspropsdir):
-            os.makedirs(vspropsdir)
+        os.makedirs(vspropsdir, exist_ok = True)
         genvsprops = GenVSProps()
         genvsprops.runargs(self.config, vspropsdir, env_var)
         # Copy msvc
         propsdir = os.path.join(self.config.prefix, 'share/vs/2010/msvc')
-        if not os.path.exists(propsdir):
-            os.makedirs(propsdir)
+        os.makedirs(propsdir, exist_ok = True)
         datapropsdir = os.path.join(self.config.data_dir, 'vs-1.0', 'msvc')
         for f in os.listdir(datapropsdir):
             path = os.path.join(datapropsdir, f)
             shutil.copy(path, os.path.join(propsdir, f))
         # Copy Wizard files
         propsdir = os.path.join(self.config.prefix, 'share/vs/2010/wizard')
-        if not os.path.exists(propsdir):
-            os.makedirs(propsdir)
+        os.makedirs(propsdir, exist_ok = True)
         datapropsdir = os.path.join(self.config.data_dir, 'vs-1.0', 'wizard')
         for f in os.listdir(datapropsdir):
             path = os.path.join(datapropsdir, f)

@@ -108,12 +108,10 @@ class BuildTools (BootstrapperBase, Fetch):
         config.binaries_local = self.config.binaries_local
         config.binaries_remote = self.config.binaries_remote
 
-        if config.toolchain_prefix and not os.path.exists(config.toolchain_prefix):
-            os.makedirs(config.toolchain_prefix)
-        if not os.path.exists(config.prefix):
-            os.makedirs(config.prefix)
-        if not os.path.exists(config.sources):
-            os.makedirs(config.sources)
+        if config.toolchain_prefix:
+            os.makedirs(config.toolchain_prefix, exist_ok = True)
+        os.makedirs(config.prefix, exist_ok = True)
+        os.makedirs(config.sources, exist_ok = True)
 
         config.do_setup_env()
         self.cookbook = CookBook(config, offline=self.offline)

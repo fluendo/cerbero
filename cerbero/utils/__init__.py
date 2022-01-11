@@ -382,8 +382,7 @@ def copy_files(origdir, destdir, files, extensions, target_platform):
     for f in files:
         f = f % extensions
         install_dir = os.path.dirname(os.path.join(destdir, f))
-        if not os.path.exists(install_dir):
-            os.makedirs(install_dir)
+        os.makedirs(install_dir, exist_ok = True)
         if destdir[1] == ':':
             # windows path
             relprefix = to_unixpath(destdir)[2:]

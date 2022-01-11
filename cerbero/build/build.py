@@ -394,8 +394,7 @@ class MakefilesBase (Build, ModifyEnvBase):
         When called from a method in derived class, that method has to be
         decorated with modify_environment decorator.
         '''
-        if not os.path.exists(self.make_dir):
-            os.makedirs(self.make_dir)
+        os.makedirs(self.make_dir, exist_ok = True)
         if self.requires_non_src_build:
             self.config_sh = os.path.join('../', self.config_sh)
 

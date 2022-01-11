@@ -283,8 +283,7 @@ class Fridge (object):
             self.binaries_local = os.path.join(self.config.binaries_local, self.env_checksum)
             if not self.binaries_remote:
                 raise FatalError(_('Configuration without binaries remote'))
-            if not os.path.exists(self.binaries_local):
-                os.makedirs(self.binaries_local)
+            os.makedirs(self.binaries_local, exist_ok = True)
             self.env_file = os.path.join(self.binaries_local, 'ENVIRONMENT')
             if not os.path.exists(self.env_file):
                 with open(self.env_file, 'w') as f:
