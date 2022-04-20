@@ -49,6 +49,7 @@ class Recipe(recipe.Recipe):
                # https://gitlab.gnome.org/GNOME/glib/merge_requests/187
                #'glib/0001-meson-use-the-new-python-module-instead-of-the-pytho.patch',
                'glib/0001-Make-it-compile-for-Android-API-18.patch',
+               'glib/0001-meson-Define-__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4-on-G.patch',
               ]
 
     files_libs = [

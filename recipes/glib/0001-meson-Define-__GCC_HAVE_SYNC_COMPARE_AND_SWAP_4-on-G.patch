@@ -1,0 +1,54 @@
+From 4e058a698afdf892f1ee2692a4b818e4ded03570 Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@collabora.com>
+Date: Tue, 30 Oct 2018 17:20:34 +0000
+Subject: [PATCH] meson: Define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 on GNU/Linux
+ if needed
+
+armv5 Linux systems implement __sync_bool_compare_and_swap() and
+friends by calling a function provided by the kernel. This is not
+technically an atomic intrinsic, so gcc doesn't define
+__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 in this case, but it's good
+enough for us. Extend the current Android special case to cover
+GNU/Linux too.
+
+The possibilities are:
+
+* __sync_foo detected and __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 predefined:
+  calls to __atomic_foo or __sync_foo primitives are inlined into user
+  code by gatomic.h
+
+* __sync_foo detected but __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 not
+  predefined: user code has an extern reference to g_atomic_foo(),
+  which calls __atomic_foo or __sync_foo because we defined
+  __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 when compiling GLib itself
+
+* Windows: user code has an extern reference to g_atomic_foo(),
+  which calls InterlockedFoo()
+
+* !defined(G_ATOMIC_LOCK_FREE): user code has an extern reference to
+  g_atomic_foo(), which emulates atomic operations with a mutex
+
+Signed-off-by: Simon McVittie <smcv@collabora.com>
+Closes: #1576
+---
+ meson.build | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index e642ae227..3af08f866 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1575,8 +1575,8 @@ atomicdefine = '''
+ # We know that we can always use real ("lock free") atomic operations with MSVC
+ if cc.get_id() == 'msvc' or cc.links(atomictest, name : 'atomic ops')
+   have_atomic_lock_free = true
+-  if host_system == 'android' and not cc.compiles(atomicdefine, name : 'atomic ops define')
+-    # When building for armv5 on Android, gcc 4.9 provides
++  if (host_system == 'android' or host_system == 'linux') and not cc.compiles(atomicdefine, name : 'atomic ops define')
++    # When building for armv5 on Linux, gcc provides
+     # __sync_bool_compare_and_swap but doesn't define
+     # __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+     glib_conf.set('__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4', true)
+-- 
+2.35.1
+
