@@ -9,10 +9,9 @@ class Recipe(recipe.Recipe):
     """
     name = 'vala-m4'
     version = '0.35.2'
-    stype = SourceType.TARBALL
-    url = 'gnome://vala/%(maj_ver)s/vala-%(version)s.tar.xz'
-    tarball_dirname = 'vala-%(version)s'
-    tarball_checksum = 'af5efb30e8a303dd1c211e2a30ba0b41e64d47c9d6c5271f1d8ffb4fb63a017f'
+    commit = '0.35.2'
+    stype = SourceType.GIT
+    remotes = {'origin': 'https://gitlab.gnome.org/m-shinder/vala.git'}
     licenses = [License.LGPLv2_1Plus]
     btype = BuildType.CUSTOM
     files_devel = ['share/aclocal/vala.m4', 'share/aclocal/vapigen.m4',
