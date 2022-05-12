@@ -442,7 +442,7 @@ class Git (GitCache):
             # If we used cookbook.step_done, we'd be creating a new status
             # for those recipes that don't exist yet, introducing overhead.
             status = self.config.cookbook.status.get(recipe.name)
-            if status and 'fetch' in status.steps and not recipe.force:
+            if status and 'fetch' in status.steps and not self.force:
                 return True
         return False
 
