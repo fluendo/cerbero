@@ -1,0 +1,147 @@
+From bffe005c8b354f9a7b4a8152cbd98c23b256af7a Mon Sep 17 00:00:00 2001
+From: Ruben Gonzalez <rgonzalez@fluendo.com>
+Date: Thu, 26 May 2022 00:25:57 +0200
+Subject: [PATCH] build: Avoid the doctemplates hack
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The hack that copies the doctemplates directory into the build
+directory has stopped working with newer versions of Meson; while it's
+possible to copy files, custom_target() cannot depend on a directory.
+Additionally, the dependency has always been broken.
+
+Instead, we enumerate the template files—after all, it's not like they
+change a lot—and then we list them as dependencies for the test targets.
+
+Fixes: #414
+---
+ giscanner/doctemplates/devdocs/meson.build | 19 +++++++
+ giscanner/doctemplates/mallard/meson.build | 63 ++++++++++++++++++++++
+ giscanner/meson.build                      | 14 ++---
+ 3 files changed, 85 insertions(+), 11 deletions(-)
+ create mode 100644 giscanner/doctemplates/devdocs/meson.build
+ create mode 100644 giscanner/doctemplates/mallard/meson.build
+
+diff --git a/giscanner/doctemplates/devdocs/meson.build b/giscanner/doctemplates/devdocs/meson.build
+new file mode 100644
+index 0000000..2037182
+--- /dev/null
++++ b/giscanner/doctemplates/devdocs/meson.build
+@@ -0,0 +1,19 @@
++doc_templates += files([
++  'Gjs/_doc.tmpl',
++  'Gjs/_index.tmpl',
++  'Gjs/_method.tmpl',
++  'Gjs/_methods.tmpl',
++  'Gjs/_properties.tmpl',
++  'Gjs/_signals.tmpl',
++  'Gjs/_staticmethods.tmpl',
++  'Gjs/_vfuncs.tmpl',
++  'Gjs/base.tmpl',
++  'Gjs/callback.tmpl',
++  'Gjs/class.tmpl',
++  'Gjs/default.tmpl',
++  'Gjs/enum.tmpl',
++  'Gjs/function.tmpl',
++  'Gjs/interface.tmpl',
++  'Gjs/method.tmpl',
++  'Gjs/namespace.tmpl',
++])
+diff --git a/giscanner/doctemplates/mallard/meson.build b/giscanner/doctemplates/mallard/meson.build
+new file mode 100644
+index 0000000..5fe4e2a
+--- /dev/null
++++ b/giscanner/doctemplates/mallard/meson.build
+@@ -0,0 +1,63 @@
++base_templates = files([
++  'base.tmpl',
++  'class.tmpl',
++  'namespace.tmpl',
++])
++
++c_templates = files([
++  'C/callback.tmpl',
++  'C/class.tmpl',
++  'C/constructor.tmpl',
++  'C/default.tmpl',
++  'C/enum.tmpl',
++  'C/field.tmpl',
++  'C/function.tmpl',
++  'C/interface.tmpl',
++  'C/method.tmpl',
++  'C/namespace.tmpl',
++  'C/property.tmpl',
++  'C/record.tmpl',
++  'C/signal.tmpl',
++  'C/vfunc.tmpl',
++])
++
++gjs_templates = files([
++  'Gjs/callback.tmpl',
++  'Gjs/class.tmpl',
++  'Gjs/constructor.tmpl',
++  'Gjs/default.tmpl',
++  'Gjs/enum.tmpl',
++  'Gjs/field.tmpl',
++  'Gjs/function.tmpl',
++  'Gjs/interface.tmpl',
++  'Gjs/method.tmpl',
++  'Gjs/namespace.tmpl',
++  'Gjs/property.tmpl',
++  'Gjs/record.tmpl',
++  'Gjs/signal.tmpl',
++  'Gjs/vfunc.tmpl',
++])
++
++py_templates = files([
++  'Python/callback.tmpl',
++  'Python/class.tmpl',
++  'Python/constructor.tmpl',
++  'Python/default.tmpl',
++  'Python/enum.tmpl',
++  'Python/field.tmpl',
++  'Python/function.tmpl',
++  'Python/interface.tmpl',
++  'Python/method.tmpl',
++  'Python/namespace.tmpl',
++  'Python/property.tmpl',
++  'Python/record.tmpl',
++  'Python/signal.tmpl',
++  'Python/vfunc.tmpl',
++])
++
++doc_templates += [
++  base_templates,
++  c_templates,
++  gjs_templates,
++  py_templates,
++]
+diff --git a/giscanner/meson.build b/giscanner/meson.build
+index 6ae3406..72f12ca 100644
+--- a/giscanner/meson.build
++++ b/giscanner/meson.build
+@@ -49,17 +49,9 @@ endforeach
+ 
+ install_subdir('doctemplates', install_dir: giscannerdir)
+ 
+-# XXX: this doesn't track the input, but there is nothing to copy many files
+-# in meson.
+-doc_templates = custom_target('copy-templates',
+-  input : 'doctemplates',
+-  output : 'doctemplates',
+-  command : [
+-    python, '-c',
+-      'import sys, shutil;' +
+-      'shutil.rmtree(sys.argv[2], ignore_errors=True);' +
+-      'shutil.copytree(sys.argv[1], sys.argv[2])',
+-    '@INPUT@', '@OUTPUT@'])
++doc_templates = []
++subdir('doctemplates/devdocs')
++subdir('doctemplates/mallard')
+ 
+ flex = find_program('flex', 'win_flex')
+ bison = find_program('bison', 'win_bison')
+-- 
+2.25.1
+
