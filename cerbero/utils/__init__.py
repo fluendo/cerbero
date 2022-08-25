@@ -265,6 +265,8 @@ Terminating.''', file=sys.stderr)
                 distro_version = DistroVersion.DEBIAN_STRETCH
             elif d[1].startswith('10.') or d[1].startswith('buster'):
                 distro_version = DistroVersion.DEBIAN_BUSTER
+            elif d[0] in ['Ubuntu']:
+                distro_version = "ubuntu_{number}_{name}".format(number=d[1].replace('.', '_'), name=distro_version)
             else:
                 raise FatalError("Distribution '%s' not supported" % str(d))
         elif d[0] in ['RedHat', 'Fedora', 'CentOS', 'Red Hat Enterprise Linux Server', 'CentOS Linux']:
