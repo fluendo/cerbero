@@ -647,6 +647,7 @@ class Meson (Build, ModifyEnvBase) :
     # All meson recipes are MSVC-compatible, except if the code itself isn't
     can_msvc = True
     meson_builddir = "_builddir"
+    meson_wrap_mode = "nodownload"
 
     def __init__(self):
         self.meson_options = self.meson_options or {}
@@ -875,7 +876,7 @@ class Meson (Build, ModifyEnvBase) :
         meson_cmd = [self.meson_sh, '--prefix=' + self.config.prefix,
             '--libdir=lib' + self.config.lib_suffix,
             '--default-library=' + self.library_type, '--buildtype=' + buildtype,
-            '--backend=' + self.meson_backend, '--wrap-mode=nodownload']
+            '--backend=' + self.meson_backend, '--wrap-mode=' + self.meson_wrap_mode]
 
         # Don't enable bitcode by passing flags manually, use the option
         if self.config.ios_platform == 'iPhoneOS':
