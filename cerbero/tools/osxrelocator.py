@@ -55,7 +55,7 @@ class OSXRelocator(object):
     def change_id(self, object_file, id=None):
         id = id or object_file.replace(self.lib_prefix, '@rpath')
         filename = os.path.basename(object_file)
-        if not self.is_mach_o_file(filename):
+        if not self.is_mach_o_file(object_file):
             return
         cmd = '%s -id "%s" "%s"' % (INT_CMD, id, object_file)
         shell.call(cmd, fail=False, logfile=self.logfile)
