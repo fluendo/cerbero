@@ -299,11 +299,11 @@ Terminating.''', file=sys.stderr)
                 distro_version = DistroVersion.FEDORA_28
             elif d[1] == '29':
                 distro_version = DistroVersion.FEDORA_29
-            elif d[1].startswith('6.'):
+            elif d[1] == '6' or d[1].startswith('6.'):
                 distro_version = DistroVersion.REDHAT_6
-            elif d[1].startswith('7.'):
+            elif d[1] == '7' or d[1].startswith('7.'):
                 distro_version = DistroVersion.REDHAT_7
-            elif d[1].startswith('8.'):
+            elif d[1] == '8' or d[1].startswith('8.'):
                 distro_version = DistroVersion.REDHAT_8
             elif d[1] == 'amazon':
                 distro_version = DistroVersion.AMAZON_LINUX
