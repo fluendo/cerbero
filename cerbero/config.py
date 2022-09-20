@@ -311,21 +311,13 @@ class Config (object):
         gstregistry = os.path.expanduser(gstregistry)
         gstregistry10 = os.path.expanduser(gstregistry10)
 
-        pypath = sysconfig.get_path('purelib', vars={'base': ''})
+        pypath = sysconfig.get_path('purelib', 'posix_prefix', vars={'base': ''})
         # Must strip \/ to ensure that the path is relative
         pypath = PurePath(pypath.strip('\\/'))
         # Starting with Python 3.7.1 on Windows, each PYTHONPATH must use the
         # native path separator and must end in a path separator.
         pythonpath = [str(prefix / pypath) + os.sep,
                       str(self.build_tools_prefix / pypath) + os.sep]
-        # On specific platforms (like Centos7), python packages may be
-        # installed in self.py_prefix/site-packages when they include
-        # native libraries. This path may be different from pypath
-        # (on x64 architectures it may begin with lib64 instead of lib)
-        # and must also be included in PYTHONPATH environment variable.
-        pypath_extra = PurePath(self.py_prefix.strip('\\/')) / 'site-packages'
-        if pypath_extra != pypath:
-            pythonpath.append(str(prefix / pypath_extra) + os.sep)
 
         if self.platform == Platform.WINDOWS:
             # On Windows, pypath doesn't include Python version although some

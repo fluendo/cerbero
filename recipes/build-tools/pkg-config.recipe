@@ -15,3 +15,4 @@ class Recipe(recipe.Recipe):
 
     def prepare(self):
         self.append_env('CFLAGS', '-Wno-error=format-nonliteral')
+        self.set_env('PYTHONDONTWRITEBYTECODE', '1')
