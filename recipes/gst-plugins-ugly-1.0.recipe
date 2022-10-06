@@ -7,16 +7,14 @@ class Recipe(custom.GStreamer):
     tarball_checksum = 'e3f7c0087cc8605e71c604fcee4630be36ebb122153f9e096ccf2e8c98cb0317'
     meson_options = {'gpl': 'enabled',
                      # enabled plugins
-                     'a52dec': 'enabled',
                      'amrnb': 'enabled',
                      'amrwbdec': 'enabled',
                      'dvdread': 'enabled',
                      'x264': 'enabled'}
-    deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'a52dec', 'opencore-amr',
+    deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'opencore-amr',
             'libdvdread', 'x264']
 
     files_plugins_codecs_restricted = [
-             'lib/gstreamer-1.0/libgsta52dec%(mext)s',
              'lib/gstreamer-1.0/libgstamrnb%(mext)s',
              'lib/gstreamer-1.0/libgstamrwbdec%(mext)s',
              'lib/gstreamer-1.0/libgstasf%(mext)s',
@@ -28,7 +26,6 @@ class Recipe(custom.GStreamer):
     ]
 
     files_plugins_codecs_restricted_devel = [
-             'lib/gstreamer-1.0/libgsta52dec.a', 'lib/gstreamer-1.0/libgsta52dec.la',
              'lib/gstreamer-1.0/libgstamrnb.a', 'lib/gstreamer-1.0/libgstamrnb.la',
              'lib/gstreamer-1.0/libgstamrwbdec.a', 'lib/gstreamer-1.0/libgstamrwbdec.la',
              'lib/gstreamer-1.0/libgstasf.a', 'lib/gstreamer-1.0/libgstasf.la',
@@ -56,7 +53,6 @@ class Recipe(custom.GStreamer):
         # Recipes that need autoreconf hang on the Windows CI
         if self.config.platform == Platform.WINDOWS:
             self.disable_plugin('dvdread', 'dvd', dep='libdvdread')
-            self.disable_plugin('a52dec', 'codecs_restricted', dep='a52dec')
 
         if self.using_uwp():
             self.disable_plugin('amrnb', 'codecs_restricted', dep='opencore-amr')

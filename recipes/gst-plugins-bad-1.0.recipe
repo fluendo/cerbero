@@ -29,23 +29,17 @@ class Recipe(custom.GStreamer):
                      'openh264': 'enabled',
                      'openjpeg': 'enabled',
                      'opus': 'enabled',
-                     'rtmp': 'enabled',
-                     'rtmp2': 'enabled',
                      'sbc': 'enabled',
                      'sctp': 'enabled',
                      'sctp-internal-usrsctp': 'enabled',
                      'soundtouch': 'enabled',
                      'srt': 'enabled',
-                     'spandsp': 'enabled',
                      'srtp': 'enabled',
                      'resindvd': 'enabled',
                      'rist' : 'enabled',
                      'rsvg': 'enabled',
                      'voaacenc': 'enabled',
                      'vulkan': 'enabled',
-                     'webrtc': 'enabled',
-                     'webrtcdsp': 'enabled',
-                     'zbar': 'enabled',
                      # disabled plugins
                      'amfcodec': 'disabled',
                      'curl': 'disabled',
@@ -77,11 +71,11 @@ class Recipe(custom.GStreamer):
                      'wildmidi': 'disabled',
                     }
     deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'bzip2', 'libass',
-            'libkate', 'zlib', 'openh264', 'opus', 'librtmp', 'libxml2',
-            'libsrtp', 'libdca', 'libdvdnav', 'libnice',
+            'libkate', 'zlib', 'openh264', 'opus', 'libxml2',
+            'libsrtp', 'libdca', 'libdvdnav',
             'soundtouch', 'vo-aacenc', 'librsvg', 'openjpeg',
-            'pango', 'spandsp', 'webrtc-audio-processing', 'sbc', 'ladspa',
-            'srt', 'zbar']
+            'pango', 'webrtc-audio-processing', 'sbc', 'ladspa',
+            'srt']
     use_system_libs = True
 
     files_lang = ['gst-plugins-bad-1.0']
@@ -103,7 +97,6 @@ class Recipe(custom.GStreamer):
         'libgsturidownloader-1.0',
         'libgstvulkan-1.0',
         'libgstwebrtc-1.0',
-        'libgstwebrtcnice-1.0',
     ]
 
     files_plugins_devel = [
@@ -231,9 +224,7 @@ class Recipe(custom.GStreamer):
              'lib/gstreamer-1.0/libgstgdp%(mext)s',
              'lib/gstreamer-1.0/libgstrsvg%(mext)s',
              'lib/gstreamer-1.0/libgstopenjpeg%(mext)s',
-             'lib/gstreamer-1.0/libgstspandsp%(mext)s',
              'lib/gstreamer-1.0/libgstsbc%(mext)s',
-             'lib/gstreamer-1.0/libgstzbar%(mext)s',
     ]
 
     files_plugins_codecs_devel = [
@@ -264,9 +255,7 @@ class Recipe(custom.GStreamer):
              'lib/gstreamer-1.0/libgstgdp.a', 'lib/gstreamer-1.0/libgstgdp.la',
              'lib/gstreamer-1.0/libgstrsvg.a', 'lib/gstreamer-1.0/libgstrsvg.la',
              'lib/gstreamer-1.0/libgstopenjpeg.a', 'lib/gstreamer-1.0/libgstopenjpeg.la',
-             'lib/gstreamer-1.0/libgstspandsp.a', 'lib/gstreamer-1.0/libgstspandsp.la',
              'lib/gstreamer-1.0/libgstsbc.a', 'lib/gstreamer-1.0/libgstsbc.la',
-             'lib/gstreamer-1.0/libgstzbar.a', 'lib/gstreamer-1.0/libgstzbar.la',
     ]
 
     platform_files_plugins_codecs = {
@@ -319,7 +308,6 @@ class Recipe(custom.GStreamer):
              'lib/gstreamer-1.0/libgstdtls%(mext)s',
              'lib/gstreamer-1.0/libgstnetsim%(mext)s',
              'lib/gstreamer-1.0/libgstrist%(mext)s',
-             'lib/gstreamer-1.0/libgstrtmp2%(mext)s',
              'lib/gstreamer-1.0/libgstrtpmanagerbad%(mext)s',
              'lib/gstreamer-1.0/libgstsctp%(mext)s',
              'lib/gstreamer-1.0/libgstsdpelem%(mext)s',
@@ -332,21 +320,11 @@ class Recipe(custom.GStreamer):
              'lib/gstreamer-1.0/libgstdtls.a', 'lib/gstreamer-1.0/libgstdtls.la',
              'lib/gstreamer-1.0/libgstnetsim.a', 'lib/gstreamer-1.0/libgstnetsim.la',
              'lib/gstreamer-1.0/libgstrist.a', 'lib/gstreamer-1.0/libgstrist.la',
-             'lib/gstreamer-1.0/libgstrtmp2.a', 'lib/gstreamer-1.0/libgstrtmp2.la',
              'lib/gstreamer-1.0/libgstrtpmanagerbad.a', 'lib/gstreamer-1.0/libgstrtpmanagerbad.la',
              'lib/gstreamer-1.0/libgstsctp.a', 'lib/gstreamer-1.0/libgstsctp.la',
              'lib/gstreamer-1.0/libgstsdpelem.a', 'lib/gstreamer-1.0/libgstsdpelem.la',
              'lib/gstreamer-1.0/libgstsrtp.a', 'lib/gstreamer-1.0/libgstsrtp.la',
              'lib/gstreamer-1.0/libgstsrt.a', 'lib/gstreamer-1.0/libgstsrt.la',
-             'lib/gstreamer-1.0/libgstwebrtc.a', 'lib/gstreamer-1.0/libgstwebrtc.la',
-    ]
-
-    files_plugins_net_restricted = [
-             'lib/gstreamer-1.0/libgstrtmp%(mext)s',
-    ]
-
-    files_plugins_net_restricted_devel = [
-             'lib/gstreamer-1.0/libgstrtmp.a', 'lib/gstreamer-1.0/libgstrtmp.la',
     ]
 
     files_plugins_capture = [
@@ -564,14 +542,11 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('kate', 'codecs', dep='libkate')
             self.disable_plugin('ladspa', 'effects', dep='ladspa')
             self.disable_plugin('openjpeg', 'codecs', dep='openjpeg')
-            self.disable_plugin('rtmp', 'net_restricted', option='rtmp', dep='librtmp')
             self.disable_plugin('sbc', 'codecs', dep='sbc')
-            self.disable_plugin('spandsp', 'codecs', dep='spandsp')
             self.disable_plugin('smoothstreaming', 'codecs', dep='libxml2')
             self.disable_plugin('srt', 'net', dep='srt')
             self.disable_plugin('rsvg', 'codecs', dep='librsvg')
             self.disable_plugin('voaacenc', 'codecs_restricted', dep='vo-aacenc')
-            self.disable_plugin('zbar', 'codecs', dep='zbar')
             # amf, nvcodec, and qsv all load dlls which wouldn't work on UWP
             self.disable_plugin('amfcodec', 'codecs')
             self.disable_plugin('nvcodec', 'codecs')

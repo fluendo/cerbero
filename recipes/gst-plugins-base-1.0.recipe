@@ -5,11 +5,7 @@ class Recipe(custom.GStreamer):
     name = 'gst-plugins-base-1.0'
     btype = BuildType.MESON
     tarball_checksum = 'bcd192f6ca808d94fc5b5d19ffa3d66f179b1a025468cc55e01dfe9ef1c5c584'
-    meson_options = {# enabled plugins
-                     'gl': 'enabled',
-                     'gl-graphene': 'enabled',
-                     'gl-png': 'enabled',
-                     'gl-jpeg': 'enabled',
+    meson_options = {
                      'ogg': 'enabled',
                      'opus': 'enabled',
                      'pango': 'enabled',
@@ -29,7 +25,7 @@ class Recipe(custom.GStreamer):
                  'libgstapp-1.0', 'libgstaudio-1.0',
                  'libgstfft-1.0', 'libgstpbutils-1.0', 'libgstriff-1.0', 'libgstrtp-1.0',
                  'libgstrtsp-1.0', 'libgstsdp-1.0', 'libgsttag-1.0',
-                 'libgstvideo-1.0', 'libgstgl-1.0']
+                 'libgstvideo-1.0']
 
     files_plugins_core = [
              'lib/gstreamer-1.0/libgstadder%(mext)s',
@@ -109,8 +105,6 @@ class Recipe(custom.GStreamer):
             'include/gstreamer-1.0/gst/app',
             'include/gstreamer-1.0/gst/audio',
             'include/gstreamer-1.0/gst/fft',
-            'include/gstreamer-1.0/gst/gl',
-            'lib/gstreamer-1.0/include/gst/gl',
             'include/gstreamer-1.0/gst/pbutils',
             'include/gstreamer-1.0/gst/riff',
             'include/gstreamer-1.0/gst/rtp',
@@ -122,7 +116,6 @@ class Recipe(custom.GStreamer):
             'lib/pkgconfig/gstreamer-app-1.0.pc',
             'lib/pkgconfig/gstreamer-audio-1.0.pc',
             'lib/pkgconfig/gstreamer-fft-1.0.pc',
-            'lib/pkgconfig/gstreamer-gl-1.0.pc',
             'lib/pkgconfig/gstreamer-pbutils-1.0.pc',
             'lib/pkgconfig/gstreamer-riff-1.0.pc',
             'lib/pkgconfig/gstreamer-rtp-1.0.pc',
@@ -139,14 +132,6 @@ class Recipe(custom.GStreamer):
 
     files_plugins_net_devel = [
             'lib/gstreamer-1.0/libgsttcp.a', 'lib/gstreamer-1.0/libgsttcp.la',
-    ]
-
-    files_plugins_sys = [
-            'lib/gstreamer-1.0/libgstopengl%(mext)s',
-    ]
-
-    files_plugins_sys_devel = [
-             'lib/gstreamer-1.0/libgstopengl.a', 'lib/gstreamer-1.0/libgstopengl.la',
     ]
 
     platform_files_plugins_codecs = {
@@ -172,7 +157,6 @@ class Recipe(custom.GStreamer):
     files_typelibs = [
         'GstAllocators-1.0',
         'GstApp-1.0',
-        'GstGL-1.0',
         'GstPbutils-1.0',
 #        'GstRiff-1.0',         Gir disabled due to incompatibilities
         'GstRtp-1.0',
@@ -190,11 +174,6 @@ class Recipe(custom.GStreamer):
             self.append_env('CFLAGS', '-DGSTREAMER_GLIB_COCOA_NSAPPLICATION=1')
             self.append_env('OBJCFLAGS', '-DGSTREAMER_GLIB_COCOA_NSAPPLICATION=1')
 
-        self.enable_plugin('cdparanoia', 'sys', 'cdparanoia', dep='cdparanoia')
-        self.enable_plugin('ximagesink', 'sys', 'x11', option='x11')
-        self.enable_plugin('xvimagesink', 'sys', 'x11', option='xvideo')
-        self.enable_plugin('alsa', 'sys', 'alsa')
-
         if self.config.target_platform in (Platform.ANDROID, Platform.IOS):
             self.meson_options['tremor'] = 'enabled'
 
@@ -206,16 +185,6 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('vorbis', 'codecs', dep='libvorbis')
             if self.config.target_arch in (Architecture.ARM64, Architecture.X86_64, Architecture.X86):
                 self.deps.append('angle-uwp')
-                # To avoid complicating winrt vs win32 detection,
-                # explicitly select api/platform/winsys
-                self.meson_options['gl_api'] = 'gles2'
-                self.meson_options['gl_platform'] = 'egl'
-                self.meson_options['gl_winsys'] = 'winrt'
-            else:
-                self.disable_plugin('opengl', 'sys', 'gl', library_name='gl')
-            self.meson_options['gl-graphene'] = 'disabled'
-            self.meson_options['gl-png'] = 'disabled'
-            self.meson_options['gl-jpeg'] = 'disabled'
             for dep in ('graphene', 'libpng', 'libjpeg-turbo'):
                 self.deps.remove(dep)
 
