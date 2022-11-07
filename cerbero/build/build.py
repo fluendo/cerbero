@@ -370,7 +370,8 @@ class MakefilesBase (Build, ModifyEnvBase):
         # Make sure user's env doesn't mess up with our build.
         self.set_env('MAKEFLAGS')
         # Disable site config, which is set on openSUSE
-        self.set_env('CONFIG_SITE')
+        if self.config.distro_version == Distro.SUSE:
+            self.set_env('CONFIG_SITE')
         # Only add this for non-meson recipes, and only for iPhoneOS
         if self.config.ios_platform == 'iPhoneOS':
             bitcode_cflags = ['-fembed-bitcode']
