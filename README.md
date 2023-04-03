@@ -1,3 +1,20 @@
+# Attention! Fluendo specific notes
+
+This is a fork of [Community's Cerbero project](https://gitlab.freedesktop.org/gstreamer/cerbero)
+and was synced last time before 2020.
+Since that time, this fork has been used only in the context of
+[the Fluendo-Cerbero project](https://github.com/fluendo/fluendo-cerbero).
+
+Changes to this fork should be contributed separately to the Community main branch
+to have consistent state bitween two projects.
+
+For any further information including but not limiting to dependencies,
+see the corresponding [README file](https://github.com/fluendo/fluendo-cerbero#readme)
+in Fluendo-Cerbero project.
+
+See also the internal Confluence page:
+[Fluendo Codec Pack engineering onboarding](https://fluendo.atlassian.net/wiki/spaces/FCP/pages/1348730921/Fluendo+Codec+Pack+engineering+onboarding)
+
 # Description
 
 Cerbero is a cross-platform build aggregator for Open Source projects that builds
