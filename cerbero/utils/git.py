@@ -32,13 +32,13 @@ def ensure_user_is_set(git_dir, logfile=None):
     # Set the user configuration for this repository so that Cerbero never warns
     # about it or errors out (it errors out with git-for-windows)
     try:
-        shell.call('%s config user.email' % GIT, logfile=logfile)
+        shell.call('%s config user.email' % GIT, git_dir, logfile=logfile)
     except FatalError:
         shell.call('%s config user.email "cerbero@gstreamer.freedesktop.org"' %
                    GIT, git_dir, logfile=logfile)
 
     try:
-        shell.call('%s config user.name' % GIT, logfile=logfile)
+        shell.call('%s config user.name' % GIT, git_dir, logfile=logfile)
     except FatalError:
         shell.call('%s config user.name "Cerbero Build System"' %
                    GIT, git_dir, logfile=logfile)
