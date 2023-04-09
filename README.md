@@ -7,8 +7,11 @@ Since that time, this fork has been used only in the context of
 
 Changes to this fork should be contributed separately to the Community main branch
 to have consistent state bitween two projects.
+And please, don't forget to move the version
+of cerbero sub-module in the Fluendo-Cerbero project after applying your changes.
 
 For any further information including but not limiting to dependencies,
+additional environment setups,
 see the corresponding [README file](https://github.com/fluendo/fluendo-cerbero#readme)
 in Fluendo-Cerbero project.
 
