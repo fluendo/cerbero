@@ -625,7 +625,9 @@ class Config (object):
         if filenames is not None:
             for f in filenames:
                 if not os.path.exists(f):
-                    f = os.path.join(CONFIG_DIR, f + "." + CONFIG_EXT)
+                    m.message("File '{}' does not exist. ".format(f))
+                    f = os.path.join(CONFIG_DIR, f)
+                    m.message("Trying with fIle '{}'".format(f))
 
                 if os.path.exists(f):
                     self._parse(f, reset=False)
