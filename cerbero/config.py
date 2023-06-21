@@ -627,7 +627,7 @@ class Config (object):
                 if not os.path.exists(f):
                     m.message("File '{}' does not exist. ".format(f))
                     f = os.path.join(CONFIG_DIR, f)
-                    m.message("Trying with fIle '{}'".format(f))
+                    m.message("Trying with file '{}'".format(f))
 
                 if os.path.exists(f):
                     self._parse(f, reset=False)
