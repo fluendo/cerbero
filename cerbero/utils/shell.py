@@ -503,7 +503,7 @@ class Ftp:
     def __init__(self, remote_url, user=None, password=None):
         remote = urllib.parse.urlparse(remote_url)
         self.ftp = FTP()
-        self.ftp.connect(remote.hostname, remote.port or 0)
+        self.ftp.connect(remote.hostname, remote.port or 0, timeout=5)
         self.ftp.login(user, password)
 
     def close(self):
