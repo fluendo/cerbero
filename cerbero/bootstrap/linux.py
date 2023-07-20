@@ -53,7 +53,9 @@ class UnixBootstrapper (BootstrapperBase):
             if self.assume_yes:
               tool += ' ' + self.yes_arg;
             tool += ' ' + self.command;
+            self.config._restore_environment()
             shell.call(tool % ' '.join(self.packages))
+            self.config.do_setup_env()
 
 
 class DebianBootstrapper (UnixBootstrapper):
