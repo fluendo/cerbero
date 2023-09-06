@@ -1,0 +1,36 @@
+From 812aae555c94a55fb0cdcb82ca16d813381b0092 Mon Sep 17 00:00:00 2001
+From: Andoni Morales Alastruey <ylatuya@gmail.com>
+Date: Fri, 20 Nov 2020 15:17:30 +0100
+Subject: [PATCH] macos: fix build MacOS 11 Sdk
+
+../gzlib.c:252:9: error: implicit declaration of function 'lseek' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+        LSEEK(state->fd, 0, SEEK_END);  /* so gzoffset() is correct */
+        ^
+../gzread.c:35:15: error: implicit declaration of function 'read' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+        ret = read(state->fd, buf + *have, get);
+              ^
+../gzwrite.c:89:20: error: implicit declaration of function 'write' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+            writ = write(state->fd, strm->next_in, put);
+                   ^
+../gzwrite.c:661:9: error: implicit declaration of function 'close' is invalid in C99 [-Werror,-Wimplicit-function-declaration]
+    if (close(state->fd) == -1)
+        ^
+---
+ gzguts.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/gzguts.h b/gzguts.h
+index 990a4d2..aefbbd8 100644
+--- a/gzguts.h
++++ b/gzguts.h
+@@ -24,6 +24,7 @@
+ #  include <string.h>
+ #  include <stdlib.h>
+ #  include <limits.h>
++#  include <unistd.h>
+ #endif
+ 
+ #ifndef _POSIX_SOURCE
+-- 
+2.23.0
+
