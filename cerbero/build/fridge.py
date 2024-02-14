@@ -88,7 +88,7 @@ class FtpBinaryRemote (BinaryRemote):
 
     @classmethod
     def from_netrc(cls, remote):
-        user, _, password = netrc().authenticators(urlparse(remote).hostname)
+        user, _, password = netrc().authenticators(urlparse('ftp://' + remote).hostname)
         return cls(remote, user, password)
 
     async def binary_exists(self, package_name, remote_dir):
