@@ -32,7 +32,8 @@ from cerbero.utils.shell import Ftp
 from cerbero.utils import messages as m
 from cerbero.packages.disttarball import DistTarball
 from cerbero.packages import PackageType
-
+from netrc import netrc
+from urllib.parse import urlparse
 
 class BinaryRemote (object):
     """Interface for binary remotes"""
@@ -84,6 +85,11 @@ class FtpBinaryRemote (BinaryRemote):
 
     def __str__(self):
         return 'remote \'{}\', username \'{}\', password \'{}\''.format(self.remote, self.username, self.password)
+
+    @classmethod
+    def from_netrc(cls, remote):
+        user, _, password = netrc().authenticators(urlparse(remote).hostname)
+        return cls(remote, user, password)
 
     async def binary_exists(self, package_name, remote_dir):
         exists = False
