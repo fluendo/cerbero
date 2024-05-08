@@ -1,0 +1,10 @@
+# FLUENDO S.A.
+# Copyright (C) <2024>  <support@fluendo.com>
+# Cross-compilation config file for Emscripten WASM 32 bits.
+
+from cerbero.config import Platform, Architecture, Distro
+
+target_platform = Platform.WEB
+target_distro = Distro.EMSCRIPTEN
+target_distro_version = None
+target_arch = Architecture.WASM32
