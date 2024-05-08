@@ -149,7 +149,10 @@ class FilesProvider(object):
         Platform.DARWIN: {'bext': '', 'sregex': _DYLIB_REGEX,
             'mext': '.so', 'smext': '.a', 'pext': '.so', 'srext': '.dylib'},
         Platform.IOS: {'bext': '', 'sregex': _DYLIB_REGEX,
-            'mext': '.so', 'smext': '.a', 'pext': '.so', 'srext': '.dylib'}}
+            'mext': '.so', 'smext': '.a', 'pext': '.so', 'srext': '.dylib'},
+        Platform.WEB: {'bext': '.js', 'sregex': _DYLIB_REGEX,
+            'mext': '.so', 'smext': '.a', 'pext': '.so', 'srext': '.dylib'},
+    }
 
     # Match static gstreamer plugins, GIO modules, etc.
     _FILES_STATIC_PLUGIN_REGEX = re.compile(r'lib/.+/lib(gst|)([^/.]+)\.a')
