@@ -45,6 +45,7 @@ class Platform:
     ANDROID = 'android'
     IOS = 'ios'
     TVOS = 'tvos'
+    WEB = 'web'
 
     def is_apple(platform):
         return platform in (Platform.DARWIN, Platform.IOS, Platform.TVOS)
@@ -69,6 +70,9 @@ class Architecture:
     ARMv7S = 'armv7s'
     ARM64 = 'arm64'
     RISCV64 = 'riscv64'
+    WASM = 'wasm'
+    WASM32 = 'wasm32'
+    WASM64 = 'wasm64'
 
     @staticmethod
     def is_arm(arch):
@@ -99,6 +103,7 @@ class Distro:
     ANDROID = 'android'
     GENTOO = 'gentoo'
     NONE = 'none'
+    EMSCRIPTEN = 'emscripten'
 
 
 class DistroVersion:
