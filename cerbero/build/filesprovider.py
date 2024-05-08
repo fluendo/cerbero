@@ -210,6 +210,15 @@ class FilesProvider(object):
             'srext': '.dylib',
             'debugext': '.dSYM',
         },
+        Platform.WEB: {
+            'bext': '.js',
+            'sregex': _DYLIB_REGEX,
+            'mext': '.so',
+            'smext': '.a',
+            'pext': '.so',
+            'srext': '.dylib',
+            'debugext': None,
+        },
     }
 
     # Match static gstreamer plugins, GIO modules, etc.
