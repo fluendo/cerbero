@@ -184,8 +184,6 @@ class FilesProvider(object):
         return False
 
     def have_pdbs(self):
-        if not self.using_msvc():
-            return False
         if self.config.variants.nodebug:
             return False
         if self.library_type in (LibraryType.STATIC, LibraryType.NONE):
@@ -355,6 +353,7 @@ class FilesProvider(object):
                 continue
             files_expanded.append(f % self.extensions)
         fs = []
+        # FIXME: Last appearance of using_msvc()
         for f in files_expanded:
             if f.endswith('.dll') and self.using_msvc():
                 fs.append(self._get_msvc_dll(f))
