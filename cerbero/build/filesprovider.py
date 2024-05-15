@@ -154,6 +154,8 @@ class FilesProvider(object):
     # Match static gstreamer plugins, GIO modules, etc.
     _FILES_STATIC_PLUGIN_REGEX = re.compile(r'lib/.+/lib(gst|)([^/.]+)\.a')
 
+    library_type = LibraryType.BOTH
+
     def __init__(self, config):
         self.config = config
         self.platform = config.target_platform

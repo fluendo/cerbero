@@ -316,7 +316,6 @@ class Build(object):
     @type config: L{cerbero.config.Config}
     '''
 
-    library_type = LibraryType.BOTH
     # Whether this recipe's build system can be built with MSVC
     can_msvc = False
 
