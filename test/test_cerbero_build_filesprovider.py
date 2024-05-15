@@ -28,8 +28,10 @@ from test.test_common import DummyConfig
 
 class Config(DummyConfig):
     def __init__(self, tmp, platform):
+        super().__init__()
         self.prefix = tmp
         self.target_platform = platform
+        self.env['DLLTOOL'] = 'dlltool'
 
 
 class FilesProvider(filesprovider.FilesProvider):
@@ -37,7 +39,7 @@ class FilesProvider(filesprovider.FilesProvider):
     files_libs = ['libgstreamer-0.10']
     files_bins = ['gst-launch']
     files_devel = ['include/gstreamer.h']
-    licenses_devel = [License.LGPL]
+    licenses_devel = [License.LGPLv2_1Plus]
     platform_files_bins = {Platform.WINDOWS: ['windows'], Platform.LINUX: ['linux']}
     platform_files_libs = {Platform.WINDOWS: ['libgstreamer-win32'], Platform.LINUX: ['libgstreamer-x11']}
 
@@ -79,7 +81,7 @@ class PackageTest(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def testFilesCategories(self):
-        self.assertEqual(sorted(['bins', 'libs', 'misc', 'devel']), self.win32recipe._files_categories())
+        self.assertEqual(sorted(['bins', 'bins_devel', 'libs', 'misc', 'devel']), self.win32recipe._files_categories())
 
     def testListBinaries(self):
         self.assertEqual(self.win32recipe.files_list_by_category('bins'), sorted(self.winbin))
