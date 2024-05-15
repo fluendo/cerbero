@@ -167,7 +167,7 @@ class FilesProvider(object):
             self.extensions['sdir'] = 'bin'
         else:
             self.extensions['sdir'] = self.extensions['libdir']
-        if self._dylib_plugins():
+        if self.dylib_plugins():
             self.extensions['mext'] = '.dylib'
         self.py_prefixes = config.py_prefixes
         self.add_files_bins_devel()
@@ -180,16 +180,8 @@ class FilesProvider(object):
                              self.TYPELIB_CAT: self._search_typelibfiles,
                              'default': self._search_files}
 
-    def _dylib_plugins(self):
-        if self.btype not in (BuildType.MESON, BuildType.CARGO_C):
-            return False
-        if self.platform not in (Platform.DARWIN, Platform.IOS):
-            return False
-        # gstreamer plugins on macOS and iOS use the .dylib extension when
-        # built with Meson but modules that use GModule do not
-        if not self.name.startswith('gst') and self.name != 'libnice':
-            return False
-        return True
+    def dylib_plugins(self):
+        return False
 
     def have_pdbs(self):
         if not self.using_msvc():
@@ -197,9 +189,6 @@ class FilesProvider(object):
         if self.config.variants.nodebug:
             return False
         if self.library_type in (LibraryType.STATIC, LibraryType.NONE):
-            return False
-        # https://github.com/lu-zero/cargo-c/issues/279
-        if issubclass(self.btype, BuildType.CARGO):
             return False
         return True
 

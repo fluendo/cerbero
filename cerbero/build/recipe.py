@@ -328,6 +328,25 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
     def __repr__(self):
         return "<Recipe %s>" % self.name
 
+    def dylib_plugins(self):
+        if self.btype not in (build.BuildType.MESON, build.BuildType.CARGO_C):
+            return False
+        if self.config.target_platform not in (Platform.DARWIN, Platform.IOS):
+            return False
+        # gstreamer plugins on macOS and iOS use the .dylib extension when
+        # built with Meson but modules that use GModule do not
+        if not self.name.startswith('gst') and self.name != 'libnice':
+            return False
+        return True
+
+    def have_pdbs(self):
+        if not self.using_msvc():
+            return False
+        # https://github.com/lu-zero/cargo-c/issues/279
+        if issubclass(self.btype, build.BuildType.CARGO):
+            return False
+        return super().have_pdbs()
+
     def decorate_build_steps(self):
         '''
         Decorate build step functions with a function that sets self.logfile
