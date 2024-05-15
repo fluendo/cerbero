@@ -171,7 +171,6 @@ class FilesProvider(object):
             self.extensions['mext'] = '.dylib'
         self.py_prefixes = config.py_prefixes
         self.add_files_bins_devel()
-        self.add_license_files()
         self.update_categories()
         self._searchfuncs = {self.LIBS_CAT: self._search_libraries,
                              self.BINS_CAT: self._search_binaries,
@@ -189,15 +188,6 @@ class FilesProvider(object):
         if self.library_type in (LibraryType.STATIC, LibraryType.NONE):
             return False
         return True
-
-    def add_license_files(self):
-        '''
-        Ensure that all license files are packaged
-        '''
-        if not hasattr(self, 'files_devel'):
-            self.files_devel = []
-        if self.licenses or getattr(self, 'licenses_bins', None):
-            self.files_devel.append('share/licenses/{}'.format(self.name))
 
     def add_files_bins_devel(self):
         '''

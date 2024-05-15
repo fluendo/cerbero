@@ -313,6 +313,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             self._steps.append(BuildSteps.CODE_SIGN)
 
         FilesProvider.__init__(self, config)
+        self.add_license_files()
         try:
             self.stype.__init__(self)
             self.btype.__init__(self)
@@ -346,6 +347,15 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
         if issubclass(self.btype, build.BuildType.CARGO):
             return False
         return super().have_pdbs()
+
+    def add_license_files(self):
+        '''
+        Ensure that all license files are packaged
+        '''
+        if not hasattr(self, 'files_devel'):
+            self.files_devel = []
+        if self.licenses or getattr(self, 'licenses_bins', None):
+            self.files_devel.append('share/licenses/{}'.format(self.name))
 
     def decorate_build_steps(self):
         '''
