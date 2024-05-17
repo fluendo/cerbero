@@ -109,6 +109,9 @@ class FilesProvider(object):
     '''
     List files by categories using class attributes named files_$category and
     platform_files_$category
+
+    @cvar runtime_dep: runtime dep common to all recipes
+    @type runtime_dep: bool
     '''
 
     LIBS_CAT = 'libs'
@@ -155,6 +158,7 @@ class FilesProvider(object):
     _FILES_STATIC_PLUGIN_REGEX = re.compile(r'lib/.+/lib(gst|)([^/.]+)\.a')
 
     library_type = LibraryType.BOTH
+    runtime_dep = False
 
     def __init__(self, config):
         self.config = config

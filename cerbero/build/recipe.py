@@ -194,8 +194,6 @@ class Recipe(FilesProvider, metaclass=MetaRecipe):
     @type deps: list
     @cvar platform_deps: platform conditional depencies
     @type platform_deps: dict
-    @cvar runtime_dep: runtime dep common to all recipes
-    @type runtime_dep: bool
     @cvar bash_completions: list of bash completion scripts for shell
     @type bash_completions: list
     '''
@@ -240,7 +238,6 @@ class Recipe(FilesProvider, metaclass=MetaRecipe):
     btype = build.BuildType.AUTOTOOLS
     deps = None
     platform_deps = None
-    runtime_dep = False
     bash_completions = None
     skip_steps = None
 
