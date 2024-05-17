@@ -340,6 +340,14 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             return False
         return True
 
+    def using_msvc(self):
+        if not self.config.variants.visualstudio:
+            return False
+        # Let the btype handle this, if any
+        if super().using_msvc:
+            return super().using_msvc()
+        return True
+
     def have_pdbs(self):
         if not self.using_msvc():
             return False

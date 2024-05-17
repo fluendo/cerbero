@@ -331,8 +331,6 @@ class Build(object):
     def using_msvc(self):
         if not self.can_msvc:
             return False
-        if not self.config.variants.visualstudio:
-            return False
         return True
 
     def using_uwp(self):
