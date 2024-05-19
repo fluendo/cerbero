@@ -341,17 +341,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             return False
         return True
 
-    def using_msvc(self):
-        if not self.config.variants.visualstudio:
-            return False
-        # Let the btype handle this, if any
-        if super().using_msvc:
-            return super().using_msvc()
-        return True
-
     def have_pdbs(self):
-        if not self.using_msvc():
-            return False
         # https://github.com/lu-zero/cargo-c/issues/279
         if issubclass(self.btype, build.BuildType.CARGO):
             return False
@@ -537,7 +527,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n'''
             PkgConfig.add_search_dir(self.config.qt5_pkgconfigdir, env, self.config)
 
         # retrieve the list of files we need to generate
-        for f in self.devel_files_list():
+        for f in self.devel_files_list(only_existing=False):
             libdir = self.config.rel_libdir + '/'
             if not f.endswith('.a') or not f.startswith(libdir):
                 continue
