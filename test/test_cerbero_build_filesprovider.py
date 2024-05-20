@@ -22,7 +22,6 @@ import tempfile
 
 from cerbero.build import filesprovider
 from cerbero.config import Platform, License
-from test.test_build_common import add_files
 from test.test_common import DummyConfig
 
 
@@ -32,7 +31,6 @@ class Config(DummyConfig):
         self.prefix = tmp
         self.target_platform = platform
         self.env['DLLTOOL'] = 'dlltool'
-        self.variants.override(['nodebug'])
 
 
 class FilesProvider(filesprovider.FilesProvider):
@@ -49,6 +47,7 @@ class PackageTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         win32config = Config(self.tmp, Platform.WINDOWS)
+        win32config.variants.override(['nodebug'])
         linuxconfig = Config(self.tmp, Platform.LINUX)
         self.win32recipe = FilesProvider(win32config)
         self.linuxrecipe = FilesProvider(linuxconfig)
@@ -91,27 +90,33 @@ class PackageTest(unittest.TestCase):
     def testListBinaries(self):
         self.assertEqual(self.win32recipe.files_list_by_category('bins', False), sorted(self.winbin))
         self.assertEqual(self.linuxrecipe.files_list_by_category('bins', False), sorted(self.linuxbin))
+        self.assertEqual(self.win32recipe.files_list_by_category('bins'), [])
+        self.assertEqual(self.linuxrecipe.files_list_by_category('bins'), [])
 
     def testListLibraries(self):
-        add_files(self.tmp)
         self.assertEqual(self.win32recipe.files_list_by_category('libs', False), sorted(self.winlib))
         self.assertEqual(self.linuxrecipe.files_list_by_category('libs', False), sorted(self.linuxlib))
+        self.assertEqual(self.win32recipe.files_list_by_category('libs'), [])
+        self.assertEqual(self.linuxrecipe.files_list_by_category('libs'), [])
 
     def testDevelFiles(self):
-        add_files(self.tmp)
         self.assertEqual(self.win32recipe.devel_files_list(False), sorted(self.windevfiles))
         self.assertEqual(self.linuxrecipe.devel_files_list(False), sorted(self.lindevfiles))
+        self.assertEqual(self.win32recipe.devel_files_list(), [])
+        self.assertEqual(self.linuxrecipe.devel_files_list(), [])
 
     def testDistFiles(self):
         win32files = self.winlib + self.winbin + self.winmisc
         linuxfiles = self.linuxlib + self.linuxbin + self.linuxmisc
-        add_files(self.tmp)
         self.assertEqual(self.win32recipe.dist_files_list(False), sorted(win32files))
         self.assertEqual(self.linuxrecipe.dist_files_list(False), sorted(linuxfiles))
+        self.assertEqual(self.win32recipe.dist_files_list(), [])
+        self.assertEqual(self.linuxrecipe.dist_files_list(), [])
 
     def testGetAllFiles(self):
         win32files = self.winlib + self.winbin + self.winmisc + self.windevfiles
         linuxfiles = self.linuxlib + self.linuxbin + self.linuxmisc + self.lindevfiles
-        add_files(self.tmp)
         self.assertEqual(self.win32recipe.files_list(False), sorted(win32files))
         self.assertEqual(self.linuxrecipe.files_list(False), sorted(linuxfiles))
+        self.assertEqual(self.win32recipe.files_list(), [])
+        self.assertEqual(self.linuxrecipe.files_list(), [])
