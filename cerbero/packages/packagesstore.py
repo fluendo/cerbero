@@ -118,6 +118,7 @@ class PackagesStore(object):
         @type  package: L{cerbero.packages.package.PackageBase}
         """
         self._packages[package.name] = package
+        self._load_package(package)
 
     def _list_metapackage_deps(self, metapackage):
         def get_package_deps(package_name, visited=[], depslist=[]):
@@ -218,11 +219,14 @@ class PackagesStore(object):
         # a package may need to call something that needs it
         # e.g. prepare() may call self.relative_path(), which uses __file__
         p.__file__ = os.path.abspath(filepath)
+        self._load_package(p)
+        return p
+
+    def _load_package(self, p):
         p.prepare()
         # reload files from package now that we called prepare that
         # may have changed it
         p.load_files()
-        return p
 
     def _is_package_class(self, cls):
         # The final check for 'builtins' is to make sure we only take in
