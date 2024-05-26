@@ -104,10 +104,6 @@ class App(package.App):
     embed_deps = True
 
 
-class DummyConfig(object):
-    pass
-
-
 def create_store(config):
     cookbook = create_cookbook(config)
     store = PackagesStore(config, False)
