@@ -577,9 +577,9 @@ class App(Package):
         return remove_list_duplicates(deps)
 
     def files_list(self):
-        # for each package, call the function that list files
-        files = Package.files_list(self)
+        files = []
         if self.embed_deps:
+            # for each package, call the function that list files
             packages_deps = [self.store.get_package(x) for x in self.deps]
             for package in packages_deps:
                 packages_deps.extend(self.store.get_package_deps(package))
@@ -656,4 +656,4 @@ class App(Package):
                     ret.extend(platform_list)
             return ret
         else:
-            return PackageBase.__getattribute__(self, name)
+            return super().__getattribute__(name)
