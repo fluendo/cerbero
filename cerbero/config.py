@@ -249,7 +249,6 @@ class Config(object):
         'force_git_commit',
         'universal_archs',
         'osx_target_sdk_version',
-        'variants',
         'build_tools_prefix',
         'build_tools_sources',
         'build_tools_logs',
@@ -686,7 +685,6 @@ class Config(object):
         self.set_property('external_recipes', {})
         self.set_property('external_packages', {})
         self.set_property('universal_archs', None)
-        self.set_property('variants', None)
         self.set_property('build_tools_prefix', None)
         self.set_property('build_tools_sources', None)
         self.set_property('build_tools_cache', None)
@@ -857,7 +855,13 @@ class Config(object):
                 self._create_path(path)
 
     def _parse(self, filename, reset=True):
-        config = {'os': os, '__file__': filename, 'env': self.config_env, 'cross': self.cross_compiling()}
+        config = {
+            'os': os,
+            '__file__': filename,
+            'env': self.config_env,
+            'cross': self.cross_compiling(),
+            'variants': self.variants,
+        }
         if not reset:
             for prop in self._properties:
                 if hasattr(self, prop):
