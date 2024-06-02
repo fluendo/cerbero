@@ -76,7 +76,8 @@ class WixBase:
     def write(self, filepath):
         self.fill()
         tree = etree.ElementTree(self.root)
-        tree.write(filepath, encoding='utf-8', pretty_print=True)
+        etree.indent(tree)
+        tree.write(filepath, encoding='unicode')
 
     def _format_level(self, selected):
         return selected and '1' or '4'
