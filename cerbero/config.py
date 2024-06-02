@@ -117,25 +117,31 @@ class Variants(object):
     }
 
     def __init__(self, variants):
+        # Keep track of the unknown variants
+        self._unknown_variants = []
+        self.reset()
         # Set default values
+        self.override(variants)
+
+    def set_bool(self, key):
+        val = True
+        if key.startswith('no'):
+            key = key[2:]
+            val = False
+        if key not in self.__bool_variants:
+            m.warning('Variant {!r} is unknown or obsolete'.format(key))
+            self._unknown_variants.append(key)
+        setattr(self, key, val)
+
+    def reset(self):
         for v in self.__enabled_variants:
             setattr(self, v, True)
         for v in self.__disabled_variants:
             setattr(self, v, False)
         for v, choices in self.__mapping_variants.items():
             setattr(self, v, choices[0])
-        self.override(variants)
-
-    def set_bool(self, key):
-        if key.startswith('no'):
-            key = key[2:]
-            if key not in self.__bool_variants:
-                m.warning('Variant {!r} is unknown or obsolete'.format(key))
-            setattr(self, key, False)
-        else:
-            if key not in self.__bool_variants:
-                m.warning('Variant {!r} is unknown or obsolete'.format(key))
-            setattr(self, key, True)
+        for v in self._unknown_variants:
+            delattr(self, v)
 
     def override(self, variants):
         if not isinstance(variants, list):
@@ -314,6 +320,8 @@ class Config(object):
         # Store raw os.environ data
         self._pre_environ = os.environ.copy()
         self.config_env = os.environ.copy()
+        # Initialize variants
+        self.variants = Variants([])
 
     def _copy(self, arch):
         c = copy.deepcopy(self)
@@ -329,8 +337,9 @@ class Config(object):
         if variants_override is None:
             variants_override = []
 
-        # Initialize variants
-        self.variants = Variants(variants_override)
+        # Reset variants
+        self.variants.reset()
+        self.variants.override(variants_override)
 
         # First load the default configuration
         self.load_defaults()
