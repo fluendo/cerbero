@@ -4,6 +4,7 @@ import os
 
 from fnmatch import fnmatch
 
+from cerbero.build.build import modify_environment
 from cerbero.build.filesprovider import FilesProvider
 from cerbero.tools.libtool import LibtoolLibrary
 
@@ -19,7 +20,6 @@ class Recipe(recipe.Recipe):
     # binaries are GPL and we don't distribute them
     licenses = [License.LGPLv2_1Plus]
     allow_parallel_build = False
-    config_sh = 'CFLAGS="$CFLAGS -fPIC" ./configure'
     patches = ['cdparanoia/0001-configure.in-Always-use-AC_PROG_CC.patch']
 
     files_libs = ['libcdda_paranoia', 'libcdda_interface']
@@ -27,6 +27,10 @@ class Recipe(recipe.Recipe):
 
     # No rule check
     make_check = None
+
+    async def configure(self):
+        self.append_env('CFLAGS', '-fPIC')
+        await super().configure()
 
     def post_install(self):
         if self.config.target_platform == Platform.LINUX:
