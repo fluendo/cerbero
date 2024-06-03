@@ -478,13 +478,12 @@ class Oven(object):
                 if be.step == BuildSteps.EXTRACT[1]:
                     source_dir = recipe.get_for_arch(be.arch, 'config_src_dir')
                 else:
-                    source_dir = recipe.get_for_arch(be.arch, 'build_dir')
-                shell.enter_build_environment(
-                    self.config.target_platform, be.arch, self.config.distro, source_dir, env=environ
-                )
+                    source_dir = recipe.get_for_arch(be.arch, 'config_build_dir')
+                shell.enter_build_environment(self.config.target_platform,
+                        be.arch, self.config.distro, source_dir, env=environ)
                 raise be
             elif action == RecoveryActions.RETRY_ALL:
-                shutil.rmtree(recipe.get_for_arch(be.arch, 'build_dir'))
+                shutil.rmtree(recipe.get_for_arch(be.arch, 'config_build_dir'))
                 self.cookbook.reset_recipe_status(recipe.name)
                 # propagate up to the task manager to retry the recipe entirely
                 raise RetryRecipeError()

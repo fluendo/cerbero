@@ -19,5 +19,5 @@ class Recipe(recipe.Recipe):
     override_libtool = False
 
     async def install(self):
-        shutil.copy(os.path.join(self.build_dir, 'm4', 'introspection.m4'),
+        shutil.copy(os.path.join(self.config_build_dir, 'm4', 'introspection.m4'),
                     os.path.join(self.config.prefix, 'share', 'aclocal'))
