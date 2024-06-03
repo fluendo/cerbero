@@ -16,6 +16,6 @@ class Recipe(recipe.Recipe):
     files_bins = ['bison', 'yacc']
 
     async def extract(self):
-        if os.path.exists(self.build_dir):
-            shutil.rmtree(self.build_dir)
+        if os.path.exists(self.config_build_dir):
+            shutil.rmtree(self.config_build_dir)
         await super(recipe.Recipe, self).extract()
