@@ -27,7 +27,7 @@ class Recipe(recipe.Recipe):
         bin_dir = os.path.join(self.config.prefix, 'bin')
         if not os.path.exists(bin_dir):
             os.makedirs(bin_dir)
-        autotools_dir = os.path.join(self.build_dir, 'buildsystems/autotools')
+        autotools_dir = os.path.join(self.config_build_dir, 'buildsystems/autotools')
         shutil.copy(os.path.join(autotools_dir, 'gtk-doc.m4'),
                     os.path.join(aclocal_dir, 'gtk-doc.m4'))
         shutil.copy(os.path.join(autotools_dir, 'gtk-doc.make'),
