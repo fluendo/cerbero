@@ -42,7 +42,7 @@ class Recipe(recipe.Recipe):
         if os.path.exists(srcdir):
             shutil.rmtree(srcdir)
         # https://vulkan.lunarg.com/doc/sdk/1.3.283.0/mac/getting_started.html
-        vulkan_installer = os.path.join(self.build_dir, 'InstallVulkan.app/Contents/MacOS/InstallVulkan')
+        vulkan_installer = os.path.join(self.config_build_dir, 'InstallVulkan.app/Contents/MacOS/InstallVulkan')
         await shell.async_call([vulkan_installer,
             '--root', self.config.moltenvk_prefix,
             '--accept-licenses',

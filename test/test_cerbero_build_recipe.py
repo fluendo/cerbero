@@ -33,6 +33,7 @@ class Class1(build.Build):
 
     def __init__(self):
         self.test = 'CODEPASS'
+        super().__init__()
 
     class1_method = lambda x: None
 
@@ -109,7 +110,7 @@ class TestRecipe(unittest.TestCase):
         build_dir = os.path.abspath(build_dir)
 
         self.assertEqual(self.recipe.repo_dir, repo_dir)
-        self.assertEqual(self.recipe.build_dir, build_dir)
+        self.assertEqual(self.recipe.config_build_dir, build_dir)
 
     def testListDeps(self):
         self.recipe.config.target_platform = Platform.LINUX

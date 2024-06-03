@@ -34,7 +34,7 @@ class Recipe(recipe.Recipe):
             prefix = self.config.prefix
         python_exe = os.path.join(self.config.build_tools_prefix, 'bin', 'python')
         await shell.async_call([python_exe, '-m', 'pip', 'install', '--prefix', prefix, '.'],
-                               cmd_dir=self.build_dir, env=self.env, logfile=self.logfile)
+                               cmd_dir=self.config_build_dir, env=self.env, logfile=self.logfile)
         if self.config.platform == Platform.WINDOWS:
             # Python insists on using Scripts instead of bin on Windows for
             # scripts. Insist back, and use bin again.

@@ -34,7 +34,7 @@ class Recipe(recipe.Recipe):
 
     def install(self):
         bindir = Path(self.config.prefix) / 'bin'
-        bdir = Path(self.build_dir)
+        bdir = Path(self.config_build_dir)
         if self.config.target_arch == Architecture.ARM64:
             dlldir = bdir / 'bin/UAP/ARM64'
         elif self.config.target_arch == Architecture.X86_64:

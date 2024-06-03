@@ -14,7 +14,7 @@ class Recipe(recipe.Recipe):
     async def install(self):
         if not os.path.exists(os.path.join(self.config.prefix, 'bin')):
             os.makedirs(os.path.join(self.config.prefix, 'bin'))
-        shutil.copy (os.path.join(self.build_dir, 'gas-preprocessor.pl'),
+        shutil.copy (os.path.join(self.config_build_dir, 'gas-preprocessor.pl'),
                      os.path.join(self.config.prefix, 'bin'))
         await shell.async_call ('chmod +x %s' %
                 os.path.join(self.config.prefix, 'bin', 'gas-preprocessor.pl'), env=self.env)

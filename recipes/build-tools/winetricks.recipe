@@ -14,5 +14,5 @@ class Recipe(recipe.Recipe):
 
     async def install(self):
         winetricks_tool = os.path.join(self.config.prefix, 'bin', self.name)
-        shutil.copy(os.path.join(self.build_dir, 'src', self.name), winetricks_tool)
+        shutil.copy(os.path.join(self.config_build_dir, 'src', self.name), winetricks_tool)
         await shell.async_call(['chmod', '+x', winetricks_tool])
