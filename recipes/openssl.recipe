@@ -234,7 +234,7 @@ class Recipe(recipe.Recipe):
         else:
             self.files_bins = ['openssl']
 
-        await shell.async_call(config_sh + self.openssl_platform, self.build_dir,
+        await shell.async_call(config_sh + self.openssl_platform, self.config_build_dir,
                                logfile=self.logfile, env=self.env)
 
     def post_install(self):

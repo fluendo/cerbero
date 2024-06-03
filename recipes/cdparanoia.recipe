@@ -5,6 +5,7 @@ import shutil
 
 from fnmatch import fnmatch
 
+from cerbero.build.build import modify_environment
 from cerbero.build.filesprovider import FilesProvider
 from cerbero.tools.libtool import LibtoolLibrary
 
@@ -20,7 +21,6 @@ class Recipe(recipe.Recipe):
     # binaries are GPL and we don't distribute them
     licenses = [License.LGPLv2_1Plus]
     allow_parallel_build = False
-    config_sh = 'CFLAGS="$CFLAGS -fPIC" ./configure'
     patches = ['cdparanoia/0001-configure.in-Always-use-AC_PROG_CC.patch']
 
     files_libs = ['libcdda_paranoia', 'libcdda_interface']
@@ -30,6 +30,7 @@ class Recipe(recipe.Recipe):
     make_check = None
 
     async def configure(self):
+        self.append_env('CFLAGS', '-fPIC')
         autotools_dir = os.path.join(self.config._relative_path('data'), 'autotools')
         shutil.copy(os.path.join(autotools_dir, 'config.guess'), os.path.join(self.config_src_dir, 'configure.guess'))
         shutil.copy(os.path.join(autotools_dir, 'config.sub'), os.path.join(self.config_src_dir, 'configure.sub'))
