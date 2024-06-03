@@ -74,6 +74,8 @@ class Source(object):
 
         if not self.version:
             raise InvalidRecipeError(self, N_("'version' attribute is missing in the recipe"))
+        self.config_src_dir = os.path.abspath(os.path.join(self.config.sources, self.package_name))
+        self.repo_dir = os.path.abspath(os.path.join(self.config.local_sources, self.package_name))
 
     @property
     def check_cert(self):
@@ -464,7 +466,6 @@ class Tarball(BaseTarball, Source):
         m.action(N_('Extracting tarball to %s') % self.config_src_dir, logfile=get_logfile(self))
         if os.path.exists(self.config_src_dir):
             shutil.rmtree(self.config_src_dir)
-
         unpack_dir = self.config.sources
         if self.tarball_is_bomb:
             unpack_dir = self.config_src_dir
@@ -720,9 +721,30 @@ class Svn(Source):
         return '%s+svn~%s' % (self.version, svn.revision(self.repo_dir))
 
 
+class LocalDir(Source):
+    '''
+    Source handler for local files
+    '''
+    path = None
+
+    def __init__(self):
+        if not self.path:
+            raise FatalError('Missing path. It is mandatory')
+        Source.__init__(self)
+        # Overwrite the source dir to not be relative to the prefix
+        self.config_src_dir = os.path.abspath(self.path)
+
+    def fetch_impl(self):
+        pass
+
+    async def extract(self):
+        pass
+
+
 class SourceType(object):
     CUSTOM = CustomSource
     TARBALL = Tarball
     GIT = Git
     GIT_TARBALL = GitExtractedTarball
     SVN = Svn
+    LOCAL_DIR = LocalDir
