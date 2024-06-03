@@ -14,13 +14,13 @@ class Recipe(recipe.Recipe):
     btype = BuildType.CUSTOM
 
     async def extract(self):
-        if os.path.exists(self.build_dir):
-            shutil.rmtree(self.build_dir)
-        os.makedirs(self.build_dir)
-        await shell.unpack(os.path.join(self.download_dir, self.tarball_name), self.build_dir)
+        if os.path.exists(self.config_build_dir):
+            shutil.rmtree(self.config_build_dir)
+        os.makedirs(self.config_build_dir)
+        await shell.unpack(os.path.join(self.download_dir, self.tarball_name), self.config_build_dir)
 
     async def install(self):
-        shell.copy_dir(self.build_dir, os.path.join(self.config.prefix, 'lib', 'wix', 'bin'))
+        shell.copy_dir(self.config_build_dir, os.path.join(self.config.prefix, 'lib', 'wix', 'bin'))
         # wineconsole fails trying to get env var in a VT with DISPLAY.
         # This is working on docker buildbot and on a real terminal.
         winetricks_tool = os.path.join(self.config.prefix, 'bin', 'winetricks')
