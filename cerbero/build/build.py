@@ -344,6 +344,14 @@ class Build(object):
 
     def __init__(self):
         self._properties_keys = []
+        # Initialize the default build dir
+        # The folder where the build artifacts will be generated
+        self.config_build_dir = os.path.abspath(os.path.join(self.config.sources, self.package_name))
+        # The build dir might be different than the theoretical source dir
+        Path(self.config_build_dir).mkdir(parents=True, exist_ok=True)
+        # Initialize the default sources dir
+        # The folder where the actual build system's sources are located
+        self.sources_dir = self.config_src_dir
 
     @modify_environment
     def get_env(self, var, default=None):
@@ -443,8 +451,8 @@ class MakefilesBase(Build, ModifyEnvBase):
         if not self.using_msvc():
             self.setup_buildtype_env_ops()
 
-        self.make_dir = os.path.abspath(os.path.join(self.config_src_dir, self.srcdir))
-
+        self.sources_dir = os.path.abspath(os.path.join(self.config_src_dir, self.srcdir))
+        self.configure_dir = self.sources_dir
         self.make = self.make or ['make', 'V=1']
         self.make_install = self.make_install or ['make', 'install']
         self.make_clean = self.make_clean or ['make', 'clean']
@@ -465,8 +473,8 @@ class MakefilesBase(Build, ModifyEnvBase):
         When called from a method in deriverd class, that method has to be
         decorated with modify_environment decorator.
         """
-        if not os.path.exists(self.make_dir):
-            os.makedirs(self.make_dir)
+        if not os.path.exists(self.config_build_dir):
+            os.makedirs(self.config_build_dir)
 
         substs = {
             'config-sh': self.config_sh,
@@ -476,8 +484,8 @@ class MakefilesBase(Build, ModifyEnvBase):
             'target': self.config.target,
             'build': self.config.build,
             'options': self.configure_options,
-            'build_dir': self.build_dir,
-            'make_dir': self.make_dir,
+            'build_dir': self.config_build_dir,
+            'sources_dir': self.sources_dir,
         }
 
         # Construct a command list when possible
@@ -496,34 +504,43 @@ class MakefilesBase(Build, ModifyEnvBase):
 
         self.maybe_add_system_libs(step='configure')
 
-        await shell.async_call(configure_cmd, self.make_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(configure_cmd, self.configure_dir,
+                               logfile=self.logfile, env=self.env)
 
     @modify_environment
     async def compile(self):
         self.maybe_add_system_libs(step='compile')
-        await shell.async_call(self.make, self.make_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(self.make, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     async def install(self):
         self.maybe_add_system_libs(step='install')
-        await shell.async_call(self.make_install, self.make_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(self.make_install, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def clean(self):
         self.maybe_add_system_libs(step='clean')
-        shell.new_call(self.make_clean, self.make_dir, logfile=self.logfile, env=self.env)
+        shell.new_call(self.make_clean, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def check(self):
         if self.make_check:
             self.maybe_add_system_libs(step='check')
-            shell.new_call(self.make_check, self.build_dir, logfile=self.logfile, env=self.env)
+            shell.new_call(self.make_check, self.config_build_dir, logfile=self.logfile, env=self.env)
 
 
 class Makefile(MakefilesBase):
     """
     Build handler for Makefile project
     """
+
+    def __init__(self):
+        # For a generic Makefile based project, the src dir can not be different than the build dir
+        if self.config_src_dir != os.path.abspath(os.path.join(self.config.sources, self.package_name)):
+            raise FatalError('For a Makefile based project, source and build dirs must be the same')
+        # For a generic Makefile based project, the srcdir property is also set on the builddir
+        MakefilesBase.__init__(self)
+        self.config_build_dir = self.sources_dir
 
     @modify_environment
     async def configure(self):
@@ -551,10 +568,18 @@ class Autotools(MakefilesBase):
 
     def __init__(self):
         MakefilesBase.__init__(self)
+        # configure_sh must be called from the self.config_build_dir
+        self.configure_dir = self.config_build_dir
+        # Use the absolute path for configure as we call it from another dir
+        self.config_sh = os.path.join(self.sources_dir, self.config_sh)
         self.make_check = self.make_check or ['make', 'check']
 
     @modify_environment
     async def configure(self):
+        # Configuring an autotools project implies:
+        # autoreconf_sh from self.sources_dir
+        # configure_sh from self.config_build_dir
+
         # Build with PIC for static linking
         self.configure_tpl += ' --with-pic '
         # Disable automatic dependency tracking, speeding up one-time builds
@@ -574,7 +599,8 @@ class Autotools(MakefilesBase):
             self.configure_tpl += ' --disable-introspection '
 
         if self.autoreconf:
-            await shell.async_call(self.autoreconf_sh, self.config_src_dir, logfile=self.logfile, env=self.env)
+            await shell.async_call(self.autoreconf_sh, self.sources_dir,
+                                   logfile=self.logfile, env=self.env)
 
         # We don't build libtool on Windows
         if self.config.platform == Platform.WINDOWS:
@@ -587,7 +613,7 @@ class Autotools(MakefilesBase):
         if self.name != 'libtool' and self.override_libtool:
             cfs['ltmain.sh'] = os.path.join(self.config.build_tools_prefix, 'share/libtool/build-aux')
         for cf, srcdir in cfs.items():
-            find_cmd = 'find {} -type f -name {}'.format(self.config_src_dir, cf)
+            find_cmd = 'find {} -maxdepth 0 -type f -name {}'.format(self.config_src_dir, cf)
             files = await shell.async_call_output(find_cmd, logfile=self.logfile, env=self.env)
             files = files.split('\n')
             files.remove('')
@@ -637,21 +663,18 @@ class CMake(MakefilesBase):
     cmake_generator = 'make'
     config_sh_needs_shell = False
     config_sh = None
-    configure_tpl = (
-        '%(config-sh)s -DCMAKE_INSTALL_PREFIX=%(prefix)s '
-        '-H%(make_dir)s '
-        '-B%(build_dir)s '
-        '-DCMAKE_LIBRARY_OUTPUT_PATH=%(libdir)s '
-        '-DCMAKE_INSTALL_BINDIR=bin '
-        '-DCMAKE_INSTALL_INCLUDEDIR=include '
-        '%(options)s -DCMAKE_BUILD_TYPE=Release '
-        '-DCMAKE_FIND_ROOT_PATH=$CERBERO_PREFIX '
-        '-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true '
-    )
+    configure_tpl = '%(config-sh)s -DCMAKE_INSTALL_PREFIX=%(prefix)s ' \
+                    '-B%(build_dir)s ' \
+                    '-DCMAKE_LIBRARY_OUTPUT_PATH=%(libdir)s ' \
+                    '-DCMAKE_INSTALL_BINDIR=bin ' \
+                    '-DCMAKE_INSTALL_INCLUDEDIR=include ' \
+                    '%(options)s -DCMAKE_BUILD_TYPE=Release '\
+                    '-DCMAKE_FIND_ROOT_PATH=$CERBERO_PREFIX '\
+                    '-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true '
 
     def __init__(self):
         MakefilesBase.__init__(self)
-        self.build_dir = os.path.join(self.build_dir, 'b')
+        self.config_build_dir = os.path.join(self.config_build_dir, '_builddir')
         self.config_sh = 'cmake'
         self.configure_tpl += f'-DCMAKE_INSTALL_LIBDIR={self.config.rel_libdir} '
         if self.config.distro == Distro.MSYS2:
@@ -752,17 +775,13 @@ class CMake(MakefilesBase):
             '-DLIB_SUFFIX=' + self.config.lib_suffix,
         ]
 
-        cmake_cache = os.path.join(self.make_dir, 'CMakeCache.txt')
-        cmake_files = os.path.join(self.make_dir, 'CMakeFiles')
+        cmake_cache = os.path.join(self.config_build_dir, 'CMakeCache.txt')
+        cmake_files = os.path.join(self.config_build_dir, 'CMakeFiles')
         if os.path.exists(cmake_cache):
             os.remove(cmake_cache)
         if os.path.exists(cmake_files):
             shutil.rmtree(cmake_files)
         await MakefilesBase.configure(self)
-        if not os.path.exists(self.build_dir):
-            os.makedirs(self.build_dir)
-        # as build_dir is different from source dir, makefile location will be in build_dir.
-        self.make_dir = self.build_dir
 
 
 MESON_FILE_TPL = """
@@ -848,7 +867,7 @@ class Meson(Build, ModifyEnvBase):
         # Allow CMake dependencies to be found if requested
         if self.need_cmake:
             self.append_env('CMAKE_PREFIX_PATH', self.config.prefix, sep=os.pathsep)
-        self.meson_dir = os.path.join(self.build_dir, self.meson_builddir)
+        self.config_build_dir = os.path.join(self.config_build_dir, self.meson_builddir)
 
     @staticmethod
     def _get_option_value(opt_type, value):
@@ -867,10 +886,10 @@ class Meson(Build, ModifyEnvBase):
         if opt_names.intersection(self.meson_options):
             return
         # Error out on invalid usage
-        if not os.path.isdir(self.build_dir):
-            raise FatalError("Build directory doesn't exist yet?")
+        if not os.path.isdir(self.config_build_dir):
+            raise FatalError('Build directory doesn\'t exist yet?')
         # Check if the option exists, and if so, what the type is
-        meson_options = os.path.join(self.build_dir, 'meson_options.txt')
+        meson_options = os.path.join(self.sources_dir, 'meson_options.txt')
         if not os.path.isfile(meson_options):
             return
         opt_name = None
@@ -1117,23 +1136,20 @@ class Meson(Build, ModifyEnvBase):
         return contents
 
     def _write_meson_file(self, contents, fname):
-        fpath = os.path.join(self.meson_dir, fname)
+        fpath = os.path.join(self.config_build_dir, fname)
         with open(fpath, 'w', encoding='utf-8') as f:
             f.write(contents)
         return fpath
 
     @modify_environment
     async def configure(self):
-        # self.build_dir is different on each call to configure() when doing universal builds
-        self.meson_dir = os.path.join(self.build_dir, self.meson_builddir)
-        if os.path.exists(self.meson_dir):
+        if os.path.exists(self.config_build_dir):
             # Only remove if it's not empty
-            if os.listdir(self.meson_dir):
-                shutil.rmtree(self.meson_dir)
-                os.makedirs(self.meson_dir)
+            if os.listdir(self.config_build_dir):
+                shutil.rmtree(self.config_build_dir)
+                os.makedirs(self.config_build_dir)
         else:
-            os.makedirs(self.meson_dir)
-
+            os.makedirs(self.config_build_dir)
         # Explicitly enable/disable introspection, same as Autotools
         self._set_option({'introspection', 'gir'}, 'gi')
         # Control python support using the variant
@@ -1201,6 +1217,9 @@ class Meson(Build, ModifyEnvBase):
         for key, value in self.meson_options.items():
             meson_cmd += ['-D%s=%s' % (key, str(value))]
 
+        # Set the source and build dirs
+        meson_cmd += [self.config_build_dir, self.sources_dir]
+
         # We export the target toolchain with env vars, but that confuses Meson
         # when cross-compiling (it will pick the env vars for the build
         # machine). We always set this using the cross file or native file as
@@ -1211,27 +1230,27 @@ class Meson(Build, ModifyEnvBase):
         self.unset_toolchain_env()
 
         self.maybe_add_system_libs(step='configure')
-        await shell.async_call(meson_cmd, self.meson_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(meson_cmd, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     async def compile(self):
         self.maybe_add_system_libs(step='compile')
-        await shell.async_call(self.make, self.meson_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(self.make, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     async def install(self):
         self.maybe_add_system_libs(step='install')
-        await shell.async_call(self.make_install, self.meson_dir, logfile=self.logfile, env=self.env)
+        await shell.async_call(self.make_install, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def clean(self):
         self.maybe_add_system_libs(step='clean')
-        shell.new_call(self.make_clean, self.meson_dir, logfile=self.logfile, env=self.env)
+        shell.new_call(self.make_clean, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     def check(self):
         self.maybe_add_system_libs(step='check')
-        shell.new_call(self.make_check, self.meson_dir, logfile=self.logfile, env=self.env)
+        shell.new_call(self.make_check, self.config_build_dir, logfile=self.logfile, env=self.env)
 
 
 class Cargo(Build, ModifyEnvBase):
@@ -1258,9 +1277,11 @@ class Cargo(Build, ModifyEnvBase):
         if not self.using_msvc():
             self.setup_buildtype_env_ops()
 
-        self.config_src_dir = os.path.abspath(os.path.join(self.build_dir, self.srcdir))
-        self.cargo_dir = os.path.join(self.config_src_dir, 'b')
-        self.cargo = os.path.join(self.config.cargo_home, 'bin', 'cargo' + self.config._get_exe_suffix())
+        self.sources_dir = os.path.abspath(os.path.join(self.config_src_dir,
+                                                           self.srcdir))
+        self.config_build_dir = os.path.join(self.config_build_dir, '_builddir')
+        self.cargo = os.path.join(self.config.cargo_home, 'bin',
+                'cargo' + self.config._get_exe_suffix())
 
         # Debuginfo is enormous, about 0.5GB per plugin, so it's split out
         # where enabled by default (macOS and MSVC) and stripped everywhere
@@ -1285,7 +1306,7 @@ class Cargo(Build, ModifyEnvBase):
             '--target',
             self.target_triple,
             '--target-dir',
-            self.cargo_dir,
+            self.config_build_dir,
         ]
 
         jobs = self.num_of_cpus()
@@ -1339,13 +1360,13 @@ class Cargo(Build, ModifyEnvBase):
         return data['package']['version']
 
     async def configure(self):
-        if os.path.exists(self.cargo_dir):
+        if os.path.exists(self.config_build_dir):
             # Only remove if it's not empty
-            if os.listdir(self.cargo_dir):
-                shutil.rmtree(self.cargo_dir)
-                os.makedirs(self.cargo_dir)
+            if os.listdir(self.config_build_dir):
+                shutil.rmtree(self.config_build_dir)
+                os.makedirs(self.config_build_dir)
         else:
-            os.makedirs(self.cargo_dir)
+            os.makedirs(self.config_build_dir)
 
         # TODO: Ideally we should strip while packaging, not while linking
         if self.rustc_debuginfo == 'strip':
@@ -1442,13 +1463,13 @@ class CargoC(Cargo):
     async def compile(self):
         self.maybe_add_system_libs(step='configure+compile')
         cmd = [self.cargo, 'cbuild'] + self.get_cargoc_args()
-        await self.retry_run(shell.async_call, cmd, self.cargo_dir, logfile=self.logfile, env=self.env)
+        await self.retry_run(shell.async_call, cmd, self.config_build_dir, logfile=self.logfile, env=self.env)
 
     @modify_environment
     async def install(self):
         self.maybe_add_system_libs(step='configure+install')
         cmd = [self.cargo, 'cinstall'] + self.get_cargoc_args()
-        await self.retry_run(shell.async_call, cmd, self.cargo_dir, logfile=self.logfile, env=self.env)
+        await self.retry_run(shell.async_call, cmd, self.config_build_dir, logfile=self.logfile, env=self.env)
 
 
 class BuildType(object):

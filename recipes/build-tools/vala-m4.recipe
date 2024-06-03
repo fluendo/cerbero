@@ -19,14 +19,14 @@ class Recipe(recipe.Recipe):
                    'share/vala/Makefile.vapigen']
 
     async def install(self):
-        shutil.copy(os.path.join(self.build_dir, 'vapigen', 'vapigen.m4'),
+        shutil.copy(os.path.join(self.config_build_dir, 'vapigen', 'vapigen.m4'),
                         os.path.join(self.config.prefix, 'share',
                                      'aclocal', 'vapigen.m4'))
-        shutil.copy(os.path.join(self.build_dir, 'vala.m4'),
+        shutil.copy(os.path.join(self.config_build_dir, 'vala.m4'),
                         os.path.join(self.config.prefix, 'share',
                                      'aclocal', 'vala.m4'))
         destdir = os.path.join(self.config.prefix, 'share', 'vala')
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        shutil.copy(os.path.join(self.build_dir, 'vapigen', 'Makefile.vapigen'),
+        shutil.copy(os.path.join(self.config_build_dir, 'vapigen', 'Makefile.vapigen'),
                     os.path.join(destdir, 'Makefile.vapigen'))

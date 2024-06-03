@@ -25,12 +25,12 @@ class Recipe(recipe.Recipe):
         'share/aclocal/lt~obsolete.m4']
 
     async def extract(self):
-        if os.path.exists(self.build_dir):
-            shutil.rmtree(self.build_dir)
+        if os.path.exists(self.config_build_dir):
+            shutil.rmtree(self.config_build_dir)
         await super(recipe.Recipe, self).extract()
 
     async def configure(self):
-        shell.touch(os.path.join(self.build_dir, 'doc', 'libtool.1'))
-        shell.touch(os.path.join(self.build_dir, 'doc', 'libtoolize.1'))
+        shell.touch(os.path.join(self.config_build_dir, 'doc', 'libtool.1'))
+        shell.touch(os.path.join(self.config_build_dir, 'doc', 'libtoolize.1'))
         await super(recipe.Recipe, self).configure()
 

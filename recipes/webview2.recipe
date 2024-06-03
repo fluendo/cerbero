@@ -20,7 +20,7 @@ class Recipe(recipe.Recipe):
     can_msvc = True
 
     def install(self):
-        bdir = Path(self.build_dir) / 'build/native'
+        bdir = Path(self.config_build_dir) / 'build/native'
         if self.config.target_arch == Architecture.ARM64:
             libdir = bdir / 'arm64'
         elif self.config.target_arch == Architecture.X86_64:
