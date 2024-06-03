@@ -57,7 +57,7 @@ class Recipe(recipe.Recipe):
         # for us, but Autotools can't.
         # NOTE: Remove this when the recipe is ported to Meson.
         if self.config.platform == Platform.WINDOWS:
-            python3 = Path(self.build_dir) / 'python3'
+            python3 = Path(self.config_build_dir) / 'python3'
             with python3.open('w') as f:
                 f.write('#!/bin/sh\n"{}" "$@"'.format(self.config.python_exe))
             shell.new_call(['chmod', '+x', str(python3)])
