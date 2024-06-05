@@ -666,7 +666,7 @@ SOFTWARE LICENSE COMPLIANCE.\n\n"""
             raise RuntimeError(msg.format(self.name))
         fname = lobj.acronym + '.txt'
         dest = str(install_dir / fname)
-        src = os.path.join(self.config.data_dir, 'licenses', lobj.acronym + '.txt')
+        src = self.config.get_data_file(os.path.join('licenses', lobj.acronym + '.txt'))
         if shell.DRY_RUN:
             print('Copying {!r} to {!r}'.format(src, dest))
         else:

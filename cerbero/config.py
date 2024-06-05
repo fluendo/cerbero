@@ -20,6 +20,7 @@ import os
 import sys
 import copy
 import sysconfig
+from importlib import resources
 from functools import lru_cache
 from pathlib import PurePath, Path
 
@@ -250,7 +251,7 @@ class Config(object):
         'git_root',
         'distro',
         'target_distro',
-        'environ_dir',
+        'config_dir',
         'cache_file',
         'toolchain_prefix',
         'toolchain_version',
@@ -685,7 +686,7 @@ class Config(object):
         self.set_property('exe_suffix', self._get_exe_suffix())
         self.set_property('data_dir', self._find_data_dir())
         self.set_property('cached_sources', self._relative_path('sources'))
-        self.set_property('environ_dir', self._relative_path('config'))
+        self.set_property('config_dir', self._relative_path('config'))
         self.set_property('recipes_dir', self._relative_path('recipes'))
         self.set_property('packages_dir', self._relative_path('packages'))
         self.set_property('allow_system_libs', True)
@@ -733,6 +734,13 @@ class Config(object):
             path = os.path.abspath(os.path.expanduser(path))
             packages_dir[name] = (path, priority)
         return packages_dir
+
+    def get_data_file(self, filepath):
+        if self.uninstalled:
+            p = os.path.join(self.data_dir, filepath)
+            return os.path.abspath(p)
+        else:
+            return self.data_dir.joinpath(filepath)
 
     def recipe_commit(self, recipe_name):
         if self.force_git_commit:
@@ -961,8 +969,8 @@ class Config(object):
                         raise ConfigurationError(_('Configuration file %s or fallback %s not found') % (f, uf))
 
     def _load_platform_config(self):
-        platform_config = os.path.join(self.environ_dir, '%s.config' % self.target_platform)
-        arch_config = os.path.join(self.environ_dir, '%s_%s.config' % (self.target_platform, self.target_arch))
+        platform_config = os.path.join(self.config_dir, '%s.config' % self.target_platform)
+        arch_config = os.path.join(self.config_dir, '%s_%s.config' % (self.target_platform, self.target_arch))
 
         for config_path in [platform_config, arch_config]:
             if os.path.exists(config_path):
@@ -1029,22 +1037,15 @@ class Config(object):
         if self.uninstalled:
             self.data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
             self.data_dir = os.path.abspath(self.data_dir)
-            return
-        curdir = os.path.dirname(__file__)
-        while not os.path.exists(os.path.join(curdir, 'share', 'cerbero', 'config')):
-            curdir = os.path.abspath(os.path.join(curdir, '..'))
-            if curdir == '/' or curdir[1:] == ':/':
-                # We reached the root without finding the data dir, which
-                # shouldn't happen
-                raise FatalError('Data dir not found')
-        self.data_dir = os.path.join(curdir, 'share', 'cerbero')
+        else:
+            self.data_dir = resources.files('cerbero-share.data')
 
     def _relative_path(self, path):
-        if not self.uninstalled:
-            p = os.path.join(self.data_dir, path)
-        else:
+        if self.uninstalled:
             p = os.path.join(os.path.dirname(__file__), '..', path)
-        return os.path.abspath(p)
+            return os.path.abspath(p)
+        else:
+            return resources.files('cerbero-share').joinpath(path)
 
     def _default_home_dir(self):
         if self.uninstalled:
