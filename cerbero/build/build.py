@@ -981,7 +981,7 @@ class Meson(Build, ModifyEnvBase):
             binaries['qmake6'] = [self.config.qt6_qmake_path]
 
         # Point meson to rustc with correct arguments to ensure it's detected when cross-compiling
-        if self.config.cargo_home:
+        if self.config.variants.rust and self.config.cargo_home:
             target_triple = self.config.rust_triple(
                 self.config.target_arch, self.config.target_platform, self.using_msvc()
             )
