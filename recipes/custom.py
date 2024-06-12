@@ -74,7 +74,10 @@ class GStreamer(recipe.Recipe):
             option = plugin
         if variant is None or getattr(self.config.variants, variant):
             if dep is not None:
-                self.deps.append(dep)
+                if not isinstance(dep, list):
+                    dep = [dep]
+                for d in dep:
+                    self.deps.append(d)
             plugin = '%(libdir)s/gstreamer-1.0/libgst' + plugin
             if not hasattr(self, 'files_plugins_' + category):
                 setattr(self, 'files_plugins_' + category, [])
@@ -118,8 +121,12 @@ class GStreamer(recipe.Recipe):
     def disable_plugin(self, plugin, category, option=None, dep=None, library_name=None):
         if option is None:
             option = plugin
-        if dep is not None and dep in self.deps:
-            self.deps.remove(dep)
+        if dep is not None:
+            if not isinstance(dep, list):
+                dep = [dep]
+            for d in dep:
+                if d in self.deps:
+                    self.deps.remove(d)
         self._remove_plugin_file(plugin, category)
         if library_name is not None:
             library = 'libgst' + library_name + '-1.0'
