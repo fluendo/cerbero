@@ -352,6 +352,8 @@ class Build(object):
         # Initialize the default sources dir
         # The folder where the actual build system's sources are located
         self.config_src_dir = self.src_dir
+        if self.config.target_platform == Platform.WEB:
+            self.library_type = LibraryType.STATIC
 
     @modify_environment
     def get_env(self, var, default=None):
