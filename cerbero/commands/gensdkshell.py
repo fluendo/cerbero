@@ -89,7 +89,8 @@ class GenSdkShell(Command):
         self._putvar('LD_LIBRARY_PATH', '%s${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}' % libdir)
         self._putvar(
             'PKG_CONFIG_PATH',
-            '%s/lib/pkgconfig:%s/share/pkgconfig' '${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}' % (prefix_env, prefix_env),
+            f'{prefix_env}/lib/pkgconfig:{prefix_env}/lib/gstreamer-1.0/pkgconfig:{prefix_env}/share/pkgconfig'
+            + '${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}',
         )
         self._putvar('XDG_DATA_DIRS', '%s/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}' % prefix_env)
         self._putvar('XDG_CONFIG_DIRS', '%s/etc/xdg${XDG_CONFIG_DIRS:+:$XDG_CONFIG_DIRS}' % prefix_env)
