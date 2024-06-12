@@ -322,6 +322,8 @@ class Build(object):
 
     def __init__(self):
         self._properties_keys = []
+        if self.config.target_platform == Platform.WEB:
+            self.library_type = LibraryType.STATIC
 
     @modify_environment
     def get_env(self, var, default=None):
