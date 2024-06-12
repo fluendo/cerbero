@@ -180,5 +180,9 @@ class Recipe(custom.GStreamer):
         if self.config.target_platform == Platform.LINUX:
             self.enable_plugin('alsa', 'sys', 'alsa')
 
+        elif self.config.target_platform == Platform.WEB:
+            self.meson_options['gl_platform'] = 'egl'
+            self.meson_options['gl_winsys'] = 'egl'
+
         if self.config.variants.nodebug:
             self.append_env('CFLAGS', '-DGST_LEVEL_MAX=GST_LEVEL_FIXME')
