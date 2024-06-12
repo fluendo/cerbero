@@ -242,6 +242,18 @@ class Recipe(custom.GStreamer):
             self.meson_options['osxaudio'] = 'enabled'
         elif self.config.target_platform == Platform.LINUX:
             self.enable_plugin('jack', 'sys')
+        elif self.config.target_platform == Platform.WEB:
+            self.meson_options['nls'] = 'disabled'
+            self.disable_plugin('adaptivedemux2', 'codecs')
+            self.disable_plugin('avi', 'codecs')
+            self.disable_plugin('cairo', 'effects', dep='cairo')
+            self.disable_plugin('dv', 'codecs', dep='libdv')
+            self.disable_plugin('gdkpixbuf', 'effects', option='gdk-pixbuf', dep='gdk-pixbuf')
+            self.disable_plugin('lame', 'codecs', dep='lame')
+            self.disable_plugin('png', 'codecs', dep='libpng')
+            self.disable_plugin('soup', 'net', dep='libsoup')
+            self.disable_plugin('taglib', 'codecs', dep='taglib')
+            self.disable_plugin('wavpack', 'codecs', dep='wavpack')
 
         self.enable_plugin('video4linux2', 'capture', variant='v4l2', option='v4l2')
         self.enable_plugin('ximagesrc', 'capture', variant='x11')
