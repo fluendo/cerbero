@@ -33,6 +33,9 @@ class Recipe(recipe.Recipe):
             self.meson_options['rtcd'] = 'disabled'
             if self.using_msvc():
                 self.meson_options['intrinsics'] = 'disabled'
+        if self.config.target_platform == Platform.WEB:
+            self.meson_options['intrinsics'] = 'disabled'
+            self.meson_options['rtcd'] = 'disabled'
 
     def post_install(self):
         major, minor, micro = get_libtool_versions(self.version)
