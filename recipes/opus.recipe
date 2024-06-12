@@ -33,7 +33,7 @@ class Recipe(recipe.Recipe):
             self.meson_options['rtcd'] = 'disabled'
             if self.using_msvc():
                 self.meson_options['intrinsics'] = 'disabled'
-        elif self.config.target_arch == Architecture.RISCV64:
+        elif self.config.target_arch in (Architecture.RISCV64, Platform.WEB):
             self.meson_options['rtcd'] = 'disabled'
             self.meson_options['intrinsics'] = 'disabled'
 
