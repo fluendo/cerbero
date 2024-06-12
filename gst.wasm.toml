@@ -11,8 +11,12 @@ remote = "fluendo"
 branch = "gst.wasm"
 
 [source]
+remote = "origin"
+branch = "main"
+
+[[features]]
 remote = "fluendo"
-branch = "tests"
+name = "tests"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1471"
 status = "merging"
 
