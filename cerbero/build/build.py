@@ -322,6 +322,8 @@ class Build(object):
 
     def __init__(self):
         self._properties_keys = []
+        if self.config.target_platform == Platform.WEB:
+            self.library_type = LibraryType.STATIC
 
     @modify_environment
     def get_env(self, var, default=None):
@@ -948,7 +950,7 @@ class Meson (Build, ModifyEnvBase) :
             binaries['qmake6'] = [self.config.qt6_qmake_path]
 
         # Point meson to rustc with correct arguments to ensure it's detected when cross-compiling
-        if self.config.cargo_home:
+        if self.config.variants.rust and self.config.cargo_home:
             target_triple = self.config.rust_triple(self.config.target_arch,
                 self.config.target_platform, self.using_msvc())
             binaries['rust'] = [self.config.cargo_home + '/bin/rustc', '--target', target_triple]
