@@ -8,7 +8,7 @@ url = "https://github.com/GStreamer/cerbero.git"
 
 [target]
 remote = "fluendo"
-branch = "gst.wasm"
+branch = "gst-wasm"
 
 [source]
 remote = "origin"
@@ -18,7 +18,7 @@ branch = "main"
 remote = "fluendo"
 name = "tests"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1471"
-status = "merging"
+status = "integrated"
 
 [[features]]
 remote = "fluendo"
