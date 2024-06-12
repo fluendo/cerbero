@@ -515,7 +515,7 @@ class Recipe(custom.GStreamer):
         self.enable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
         self.meson_options['qroverlay'] = 'enabled'
 
-        if self.config.target_platform not in [Platform.IOS, Platform.ANDROID]:
+        if self.config.target_platform not in [Platform.IOS, Platform.ANDROID, Platform.WEB]:
             # These need plugins
             self.enable_plugin('frei0r', 'effects', dep='frei0r-plugins')
 
