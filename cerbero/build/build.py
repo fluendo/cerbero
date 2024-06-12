@@ -651,6 +651,13 @@ class Autotools(MakefilesBase):
             cache = os.path.join(self.config.sources, '.configure.cache')
             self.configure_tpl += ' --cache-file=%s' % cache
 
+        if self.library_type == LibraryType.BOTH:
+            self.configure_tpl += ' --enable-shared --enable-static'
+        elif self.library_type == LibraryType.SHARED:
+            self.configure_tpl += ' --enable-shared --disable-static'
+        elif self.library_type == LibraryType.STATIC:
+            self.configure_tpl += ' --disable-shared --enable-static'
+
         # Add at the very end to allow recipes to override defaults
         self.configure_tpl += '  %(options)s '
 
