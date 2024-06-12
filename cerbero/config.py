@@ -632,6 +632,7 @@ class Config(object):
         PkgConfig.set_executable(env, self)
         PkgConfig.set_default_search_dir(os.path.join(prefix, 'share', 'pkgconfig'), env, self)
         PkgConfig.add_search_dir(os.path.join(libdir, 'pkgconfig'), env, self)
+        PkgConfig.add_search_dir(os.path.join(libdir, 'gstreamer-1.0', 'pkgconfig'), env, self)
 
         # Some autotools recipes will call the native (non-cross) compiler to
         # build generators, and we don't want it to use these. We will set the
