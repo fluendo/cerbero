@@ -79,3 +79,9 @@ class Recipe(custom.GStreamer):
            self.config.target_platform not in [Platform.IOS, Platform.ANDROID]:
             self.meson_options['ptp-helper'] = 'enabled'
             self.files_misc.append('libexec/gstreamer-1.0/gst-ptp-helper%(bext)s')
+
+        if self.config.target_platform == Platform.WEB:
+            self.meson_options['nls'] = 'disabled'
+            self.meson_options['tools'] = 'disabled'
+            self.meson_options['tests'] = 'disabled'
+            self.meson_options['examples'] = 'disabled'
