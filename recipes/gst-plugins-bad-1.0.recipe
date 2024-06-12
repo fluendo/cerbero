@@ -90,7 +90,7 @@ class Recipe(custom.GStreamer):
             'libsrtp', 'libdca', 'libdvdnav', 'libnice',
             'soundtouch', 'vo-aacenc', 'openjpeg',
             'pango', 'spandsp', 'webrtc-audio-processing', 'sbc', 'ladspa',
-            'srt', 'zbar', 'libltc', 'qrencode', 'json-glib']
+            'srt', 'zbar', 'libltc']
     use_system_libs = True
 
     files_lang = ['gst-plugins-bad-1.0']
@@ -530,9 +530,11 @@ class Recipe(custom.GStreamer):
         self.enable_plugin('rsvg', 'codecs', variant='rust', dep='librsvg')
         self.enable_plugin('svtav1', 'codecs', dep='svt-av1')
 
-        self.enable_plugin('x265', 'codecs_gpl_restricted', dep='x265')
+        self.enable_plugin('x265', 'codecs', dep='x265')
+        self.enable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
+        self.meson_options['qroverlay'] = 'enabled'
 
-        if not Platform.is_mobile(self.config.target_platform):
+        if self.config.target_platform not in [Platform.IOS, Platform.ANDROID, Platform.WEB]:
             # These need plugins
             self.enable_plugin('frei0r', 'effects', dep='frei0r-plugins')
 
@@ -626,8 +628,39 @@ class Recipe(custom.GStreamer):
 
         # dtls plugin needs openssl, and we pick up the system openssl if on
         # Linux and not cross-compiling.
-        if self.config.target_platform != Platform.LINUX or self.config.cross_compiling():
+        if self.config.target_platform != Platform.WEB and \
+                (self.config.target_platform != Platform.LINUX or self.config.cross_compiling()):
             self.deps.append('openssl')
+
+        if self.config.target_platform == Platform.WEB:
+            self.disable_plugin('aes', 'effects')
+            self.disable_plugin('analyticsoverlay', 'analytics', dep='pango')
+            self.disable_plugin('assrender', 'codecs', dep='libass')
+            self.disable_plugin('closedcaption', 'effects', dep='pango')
+            self.disable_plugin('dash', 'codecs', dep='libxml2')
+            self.disable_plugin('dtsdec', 'codecs_gpl', option='dts', dep='libdca')
+            self.disable_plugin('dtls', 'net')
+            self.disable_plugin('hls', 'codecs')
+            self.disable_plugin('ladspa', 'effects', dep='ladspa')
+            self.disable_plugin('openjpeg', 'codecs', dep='openjpeg')
+            self.disable_plugin('openh264', 'codecs', dep='openh264')
+            self.disable_plugin('resindvd', 'dvd_gpl', dep='libdvdnav')
+            self.disable_plugin('rtmp', 'net_restricted', option='rtmp', dep='librtmp')
+            self.disable_plugin('sbc', 'codecs', dep='sbc')
+            self.disable_plugin('sctp', 'net')
+            self.meson_options['sctp-internal-usrsctp'] = 'disabled'
+            self.disable_plugin('soundtouch', 'effects', dep='soundtouch')
+            self.disable_plugin('spandsp', 'codecs', dep='spandsp')
+            self.disable_plugin('smoothstreaming', 'codecs', dep='libxml2')
+            self.disable_plugin('srt', 'net', dep='srt')
+            self.disable_plugin('voaacenc', 'codecs_restricted', dep='vo-aacenc')
+            self.disable_plugin('webrtc', 'net', dep='webrtc-audio-processing')
+            self.disable_plugin('webrtcdsp', 'effects', dep='libnice')
+            self.disable_plugin('x265', 'codecs', dep='x265')
+            self.disable_plugin('zbar', 'codecs', dep='zbar')
+            self.disable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
+            self.meson_options['qroverlay'] = 'disabled'
+            self.meson_options['nls'] = 'disabled'
 
         if self.using_msvc() and self.config.cross_compiling():
             # External deps that haven't been ported to MSVC
@@ -651,7 +684,7 @@ class Recipe(custom.GStreamer):
             # Needs libiconv, which uses Autotools
             self.disable_plugin('zbar', 'codecs', dep='zbar')
 
-        if self.config.target_platform != Platform.WINDOWS:
+        if self.config.target_platform not in [Platform.WINDOWS, Platform.WEB]:
             self.enable_plugin('unixfd', 'effects')
 
     def post_install(self):
