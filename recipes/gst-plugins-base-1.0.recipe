@@ -189,6 +189,7 @@ class Recipe(custom.GStreamer):
             self.meson_options['tests'] = 'disabled'
             self.meson_options['examples'] = 'disabled'
             self.meson_options['tools'] = 'disabled'
+            self.meson_options['nls'] = 'disabled'
 
         if self.config.variants.nodebug:
             self.append_env('CFLAGS', '-DGST_LEVEL_MAX=GST_LEVEL_FIXME')
