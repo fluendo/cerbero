@@ -1041,8 +1041,12 @@ class Meson(Build, ModifyEnvBase):
         for k, v in binaries.items():
             extra_binaries += '{} = {}\n'.format(k, str(v))
 
+        system = self.config.target_platform
+        if self.config.target_distro == Distro.EMSCRIPTEN:
+            system = 'emscripten'
+
         contents = MESON_FILE_TPL.format(
-            system=self.config.target_platform,
+            system=system,
             cpu=self.config.target_arch,
             cpu_family=self._get_target_cpu_family(),
             # Assume all supported target archs are little endian
