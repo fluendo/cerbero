@@ -177,6 +177,10 @@ class Recipe(custom.GStreamer):
         if self.config.target_platform == Platform.LINUX:
             self.enable_plugin('alsa', 'sys', 'alsa')
 
+        elif self.config.target_platform == Platform.WEB:
+            self.meson_options['gl_platform'] = 'egl'
+            self.meson_options['gl_winsys'] = 'egl'
+
         if self.using_uwp():
             # All these can be ported to Meson/UWP
             self.disable_plugin('ogg', 'codecs', dep='libogg')
