@@ -182,6 +182,12 @@ class Recipe(custom.GStreamer):
         elif self.config.target_platform == Platform.WEB:
             self.meson_options['gl_platform'] = 'egl'
             self.meson_options['gl_winsys'] = 'egl'
+            self.disable_plugin('pango', 'core', dep='pango')
+            self.meson_options['gl-png'] = 'disabled'
+            self.deps.remove('libpng')
+            self.meson_options['tests'] = 'disabled'
+            self.meson_options['examples'] = 'disabled'
+            self.meson_options['tools'] = 'disabled'
 
         if self.using_uwp():
             # All these can be ported to Meson/UWP
