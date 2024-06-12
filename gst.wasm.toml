@@ -1,0 +1,38 @@
+[[remotes]]
+name = "fluendo"
+url = "git@github.com:fluendo/cerbero.git"
+
+[[remotes]]
+name = "origin"
+url = "https://github.com/GStreamer/cerbero.git"
+
+[target]
+remote = "fluendo"
+branch = "gst.wasm"
+
+[source]
+remote = "fluendo"
+branch = "tests"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1471"
+status = "merging"
+
+[[features]]
+remote = "fluendo"
+name = "tests2"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1477"
+status = "pending"
+
+[[features]]
+remote = "fluendo"
+name = "tests3"
+status = "pending"
+
+[[features]]
+remote = "fluendo"
+name = "local_source"
+status = "pending"
+
+[[features]]
+remote = "fluendo"
+name = "packaging"
+status = "pending"
