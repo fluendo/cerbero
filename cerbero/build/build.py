@@ -346,7 +346,7 @@ class Build(object):
         self.config_build_dir = os.path.abspath(os.path.join(self.config.sources, self.package_name))
         # Initialize the default sources dir
         # The folder where the actual build system's sources are located
-        self.sources_dir = self.config_build_dir
+        self.sources_dir = self.config_src_dir
 
     @modify_environment
     def get_env(self, var, default=None):
@@ -1212,7 +1212,7 @@ class Meson(Build, ModifyEnvBase):
         for key, value in self.meson_options.items():
             meson_cmd += ['-D%s=%s' % (key, str(value))]
 
-        # Set the source and build and source dirs
+        # Set the source and build dirs
         meson_cmd += [self.config_build_dir, self.sources_dir]
 
         # We export the target toolchain with env vars, but that confuses Meson
