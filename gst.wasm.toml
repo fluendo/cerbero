@@ -17,26 +17,34 @@ branch = "main"
 [[features]]
 remote = "fluendo"
 name = "tests"
+summary = "Bring back tests"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1471"
 status = "integrated"
 
 [[features]]
 remote = "fluendo"
 name = "tests2"
+summary = "Update more tests. Second round"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1477"
-status = "pending"
+status = "merging"
 
 [[features]]
 remote = "fluendo"
 name = "tests3"
+summary = "Tests update final round"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1482"
 status = "pending"
 
 [[features]]
 remote = "fluendo"
 name = "local_source"
+summary = "New type of source that allows you to build a recipe without fetching or copying sources"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1483"
 status = "pending"
 
 [[features]]
 remote = "fluendo"
 name = "packaging"
+summary = "Enable installation using pip with a git-https repository"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1484"
 status = "pending"
