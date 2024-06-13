@@ -27,6 +27,7 @@ setup(
         'cerbero-share.recipes',
     ],
     package_dir={
+        'cerbero': 'cerbero',
         'cerbero-share.config': 'config',
         'cerbero-share.data': 'data',
         'cerbero-share.packages': 'packages',
