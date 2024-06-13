@@ -33,6 +33,9 @@ setup(
         'cerbero-share.packages': 'packages',
         'cerbero-share.recipes': 'recipes',
     },
+    package_data={
+        'cerbero-share.config': ['config/*'],
+    },
     long_description=read('README.md'),
     zip_safe=False,
     include_package_data=True,
