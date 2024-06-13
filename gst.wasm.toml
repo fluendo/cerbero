@@ -8,7 +8,7 @@ url = "https://github.com/GStreamer/cerbero.git"
 
 [target]
 remote = "fluendo"
-branch = "gst-wasm"
+branch = "gst.wasm"
 
 [source]
 remote = "origin"
@@ -47,4 +47,9 @@ remote = "fluendo"
 name = "packaging"
 summary = "Enable installation using pip with a git-https repository"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1484"
+status = "pending"
+
+[[features]]
+remote = "fluendo"
+name = "emscripten"
 status = "pending"
