@@ -36,7 +36,6 @@ setup(
     package_data={
         'cerbero-share.config': ['config/**/*'],
         'cerbero-share.data': ['data/**/'],
-        'cerbero-share.packages': ['packages/**/'],
         'cerbero-share.recipes': ['recipes/**/'],
     },
     long_description=read('README.md'),
