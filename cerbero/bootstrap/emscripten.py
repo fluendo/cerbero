@@ -51,7 +51,7 @@ class EmscriptenToolchainBootstrapper(BootstrapperBase):
         sdk_path_after_extract = os.path.join(self.config.home_dir, 'emsdk-' + EMSDK_VERSION)
         shutil.rmtree(self.config.toolchain_prefix)  # to be sure it's rename and not a move
         shutil.move(sdk_path_after_extract, self.config.toolchain_prefix)
-        m.message('Install Emscripten SDK...')
+        m.message(f'Install Emscripten SDK {EMSDK_VERSION}...')
         await shell.async_call_output(
             ['./emsdk', 'install', EMSDK_VERSION], cmd_dir=self.config.toolchain_prefix, cpu_bound=False
         )
