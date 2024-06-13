@@ -27,10 +27,10 @@ import os.path
 import shutil
 
 
-EMSDK_VERSION = '3.1.58'
+EMSDK_VERSION = '3.1.61'
 EMSDK_BUNDLE_EXT = '.tar.gz'
 EMSDK_BASE_URL = 'https://github.com/emscripten-core/emsdk/archive/refs/tags/%s' + EMSDK_BUNDLE_EXT
-EMSDK_CHECKSUMS = {'3.1.58' + EMSDK_BUNDLE_EXT: '6d860f7ae4bd16bfc18f732200e6608cb2aa739f2ddf9c522755cb0d4037f025'}
+EMSDK_CHECKSUMS = {'3.1.61' + EMSDK_BUNDLE_EXT: '51a4f6ec070147abe8f94546d8e18dde458d63f8c2927f94265ad49ef8431a1c'}
 
 
 class EmscriptenToolchainBootstrapper(BootstrapperBase):
