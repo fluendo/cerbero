@@ -142,6 +142,10 @@ class Oven(object):
         if self.deps_only:
             ordered_recipes = [x for x in ordered_recipes if x not in recipes]
 
+        if not ordered_recipes:
+            m.message(N_('No dependencies to build.'))
+            return
+
         m.message(N_('Building the following recipes: %s') % ' '.join([x.name for x in ordered_recipes]))
 
         steps = [step[1] for step in recipes[0].steps]
