@@ -138,6 +138,10 @@ class Oven(object):
         if self.deps_only:
             ordered_recipes = [x for x in ordered_recipes if x not in recipes]
 
+        if not ordered_recipes:
+            m.message(N_('No dependencies to build.'))
+            return []
+
         return ordered_recipes
 
     async def start_cooking(self):
