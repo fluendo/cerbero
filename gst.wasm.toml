@@ -52,4 +52,5 @@ status = "pending"
 [[features]]
 remote = "fluendo"
 name = "emscripten"
+summary = "Add support for building for wasm target with emscripten toolchain"
 status = "pending"
