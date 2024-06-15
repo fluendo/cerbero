@@ -1,6 +1,6 @@
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 from cerbero.enums import CERBERO_VERSION
 
 sys.path.insert(0, './cerbero')
@@ -20,23 +20,23 @@ setup(
     license='LGPL',
     url='http://gstreamer.freedesktop.org/',
     packages=[
-        'cerbero',
         'cerbero-share.config',
         'cerbero-share.data',
         'cerbero-share.packages',
         'cerbero-share.recipes',
-    ],
+    ]
+    + find_packages(exclude=['config', 'data', 'packages', 'recipes', 'test']),
     package_dir={
-        'cerbero': 'cerbero',
         'cerbero-share.config': 'config',
         'cerbero-share.data': 'data',
         'cerbero-share.packages': 'packages',
         'cerbero-share.recipes': 'recipes',
     },
     package_data={
-        'cerbero-share.config': ['config/**/*'],
-        'cerbero-share.data': ['data/**/'],
-        'cerbero-share.recipes': ['recipes/**/'],
+        'cerbero-share.config': ['**'],
+        'cerbero-share.data': ['**'],
+        'cerbero-share.packages': ['**'],
+        'cerbero-share.recipes': ['**'],
     },
     long_description=read('README.md'),
     zip_safe=False,
