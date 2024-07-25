@@ -1,0 +1,35 @@
+# FLUENDO S.A.
+# Copyright (C) <2024>  <support@fluendo.com>
+# GUW configuration file for fluendo-cerbero project: to use the upstream.
+# 
+
+[[remotes]]
+name = "fluendo"
+url = "git@github.com:fluendo/cerbero.git"
+
+[[remotes]]
+name = "origin"
+url = "https://github.com/GStreamer/cerbero.git"
+
+[target]
+remote = "fluendo"
+branch = "COM-10606-sync-cerbero"
+
+[source]
+remote = "origin"
+branch = "main"
+
+[[features]]
+remote = "fluendo"
+name = "COM-10816-strip-and-section-mixins"
+summary = "Make sync method in Strip class public"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1521"
+status = "integrated"
+
+[[features]]
+remote = "fluendo"
+name = "COM-10670-recipe-warn-override"
+summary = "cookbook: Warn about recipe override by name"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1497"
+status = "merging"
+
