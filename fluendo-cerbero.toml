@@ -31,5 +31,11 @@ remote = "fluendo"
 name = "COM-10670-recipe-warn-override"
 summary = "cookbook: Warn about recipe override by name"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1497"
-status = "merging"
+status = "integrated"
 
+[[features]]
+remote = "fluendo"
+name = "COM-10967-fix-wix-annotations-for-old-python"
+summary = "import annotations is missing in cerbero/packages/windows/wix_on_ninja.py"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1536"
+status = "merging"
