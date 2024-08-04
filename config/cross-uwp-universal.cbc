@@ -1,4 +1,5 @@
 from cerbero.config import Platform, Architecture
+from cerbero.utils import EnvValueArg
 
 target_platform = Platform.WINDOWS
 variants.uwp = True
@@ -11,3 +12,33 @@ universal_archs = {
     Architecture.X86:    "win32.cbc",
     Architecture.X86_64: "win64.cbc",
 }
+
+# if the platform config has been already processed
+if mingw_env_for_build_system:
+    build_system_flags = ('CPPFLAGS', 'CFLAGS', 'CXXFLAGS', 'LDFLAGS')
+    for flagsenv in build_system_flags:
+        mingw_env_for_build_system[flagsenv] = EnvValueArg([])
+        msvc_env_for_build_system[flagsenv] = EnvValueArg('/utf-8')
+    msvc_env_for_build_system['LDFLAGS'] = EnvValueArg()
+
+    # Setting WINAPI_FAMILY to APP allows us to get link-time errors for
+    # many forbidden APIs instead of having to run a packaged app through
+    # the Windows App Certification Kit
+    # -APPCONTAINER is required for compliance:
+    # https://docs.microsoft.com/en-us/previous-versions/windows/hh920280(v=win.10)#appcontainercheck
+    msvc_env_for_build_system['CFLAGS'] += ['-DWINAPI_FAMILY=WINAPI_FAMILY_APP']
+    msvc_env_for_build_system['CXXFLAGS'] += ['-DWINAPI_FAMILY=WINAPI_FAMILY_APP']
+    msvc_env_for_build_system['LDFLAGS'] += ['-APPCONTAINER', 'WindowsApp.lib']
+
+    if cross:
+        incl_dir = os.path.join(prefix, 'include')
+        for envvar in build_system_flags[:-1]:
+            mingw_env_for_build_system[envvar] += ['-I' + incl_dir]
+
+    target_winver = '0x0A00'
+    winver_flags = ['-DWINVER=' + target_winver, '-D_WIN32_WINNT=' + target_winver]
+
+    # MinGW and MSVC build system config env
+    for config_env in (mingw_env_for_build_system, msvc_env_for_build_system):
+        for envvar in build_system_flags[:-1]:
+            config_env[envvar] += winver_flags
