@@ -347,6 +347,24 @@ class Config(object):
         # which overrides the defaults
         self._load_user_config()
 
+        if not self._is_build_tools_config:
+            # guess the target from user config with the first pass
+            target_config = Config(is_build_tools_config=self._is_build_tools_config)
+            target_config.variants = Variants(variants_override)
+            target_config.load_defaults()
+            target_config._load_user_config()
+            target_config._load_cmd_config(filename)
+            for p in ('platform', 'arch', 'distro', 'distro_version'):
+                n = 'target_' + p
+                setattr(self, n, getattr(target_config, n))
+
+            # to calculate and set 'prefix' needed for some platform configs
+            target_config._load_last_defaults()
+            self.prefix = target_config.prefix
+
+        # Load the platform (and arch, if any)-specific config
+        self._load_platform_config()
+
         # Next, if a config file is provided use it to override the settings
         # again (set the target, f.ex.)
         self._load_cmd_config(filename)
@@ -383,8 +401,6 @@ class Config(object):
         # Fill the defaults in the config which depend on the configuration we
         # loaded above
         self._load_last_defaults()
-        # Load the platform-specific (linux|windows|android|darwin).config
-        self._load_platform_config()
         # And validate properties
         self._validate_properties()
         self._check_windows_is_x86_64()
