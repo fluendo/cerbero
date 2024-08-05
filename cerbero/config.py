@@ -326,6 +326,24 @@ class Config(object):
             return True
         return False
 
+    def _assign_target_properties_using_first_pass(self, filename, variants_override, base_config=None, arch=None):
+        if base_config:
+            target_config = base_config._copy(arch)
+        else:
+            target_config = Config(is_build_tools_config=self._is_build_tools_config)
+            target_config.variants = Variants(variants_override)
+            target_config.load_defaults()
+            target_config._load_user_config()
+        target_config._load_cmd_config(filename)
+        for p in ('platform', 'arch', 'distro', 'distro_version'):
+            n = 'target_' + p
+            setattr(self, n, getattr(target_config, n))
+
+        # to calculate and set 'prefix' needed for some platform configs
+        if not base_config:
+            target_config._load_last_defaults()
+            self.prefix = target_config.prefix
+
     def load(self, filename=None, variants_override=None):
         if variants_override is None:
             variants_override = []
@@ -349,18 +367,7 @@ class Config(object):
 
         if not self._is_build_tools_config:
             # guess the target from user config with the first pass
-            target_config = Config(is_build_tools_config=self._is_build_tools_config)
-            target_config.variants = Variants(variants_override)
-            target_config.load_defaults()
-            target_config._load_user_config()
-            target_config._load_cmd_config(filename)
-            for p in ('platform', 'arch', 'distro', 'distro_version'):
-                n = 'target_' + p
-                setattr(self, n, getattr(target_config, n))
-
-            # to calculate and set 'prefix' needed for some platform configs
-            target_config._load_last_defaults()
-            self.prefix = target_config.prefix
+            self._assign_target_properties_using_first_pass(filename, variants_override)
 
         # Load the platform (and arch, if any)-specific config
         self._load_platform_config()
@@ -385,6 +392,7 @@ class Config(object):
                 for arch, config_file in list(self.universal_archs.items()):
                     arch_config[arch] = self._copy(arch)
                     if config_file is not None:
+                        config = arch_config[arch]
                         # This works because the override config files are
                         # fairly light. Things break if they are more complex
                         # as load config can have side effects in global state
@@ -392,7 +400,10 @@ class Config(object):
                         for f in filename:
                             if 'universal' in f:
                                 d = os.path.dirname(f)
-                        arch_config[arch]._load_cmd_config([os.path.join(d, config_file)])
+                        config.arch_file_names = [os.path.join(d, config_file)]
+                        config._assign_target_properties_using_first_pass(
+                            config.arch_file_names, variants_override, self
+                        )
             else:
                 raise ConfigurationError('universal_archs must be a list or a dict')
 
@@ -429,8 +440,10 @@ class Config(object):
             config.set_property('qt6_qmake_path', qmake6)
             # We already called these functions on `self` above
             if config is not self:
-                config._load_last_defaults()
                 config._load_platform_config()
+                if hasattr(config, 'arch_file_names'):
+                    config._load_cmd_config(config.arch_file_names)
+                config._load_last_defaults()
                 config._validate_properties()
                 config.build_tools_config = self.build_tools_config
                 config._init_python_prefixes()
