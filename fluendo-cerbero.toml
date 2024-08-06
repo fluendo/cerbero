@@ -39,3 +39,17 @@ name = "COM-10967-fix-wix-annotations-for-old-python"
 summary = "import annotations is missing in cerbero/packages/windows/wix_on_ninja.py"
 pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1536"
 status = "merging"
+
+[[features]]
+remote = "fluendo"
+name = "COM-10979-fix-config-override"
+summary = "Fix config variants override with first option (two passes)"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1537"
+status = "merging"
+
+[[features]]
+remote = "fluendo"
+name = "COM-10979-show-config-build-tools"
+summary = "Adding more options for show-config (build tools config and universal archs)"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1538"
+status = "merging"
