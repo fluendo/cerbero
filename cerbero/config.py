@@ -315,6 +315,7 @@ class Config(object):
         # Store raw os.environ data
         self._pre_environ = os.environ.copy()
         self.config_env = os.environ.copy()
+        self.filenames = None
 
     def _copy(self, arch):
         c = copy.deepcopy(self)
@@ -326,7 +327,9 @@ class Config(object):
             return True
         return False
 
-    def _assign_target_properties_using_first_pass(self, filename, variants_override=None, base_config=None, arch=None):
+    def _assign_target_properties_using_first_pass(
+        self, filenames, variants_override=None, base_config=None, arch=None
+    ):
         if base_config:
             target_config = base_config._copy(arch)
         else:
@@ -334,7 +337,7 @@ class Config(object):
             target_config.variants = Variants(variants_override)
             target_config.load_defaults()
             target_config._load_user_config()
-        target_config._load_cmd_config(filename)
+        target_config._load_cmd_config(filenames)
         for p in ('platform', 'arch', 'distro', 'distro_version'):
             n = 'target_' + p
             setattr(self, n, getattr(target_config, n))
@@ -344,7 +347,7 @@ class Config(object):
             target_config._load_last_defaults()
             self.prefix = target_config.prefix
 
-    def load(self, filename=None, variants_override=None):
+    def load(self, filenames=None, variants_override=None):
         if variants_override is None:
             variants_override = []
 
@@ -367,14 +370,17 @@ class Config(object):
 
         if not self._is_build_tools_config:
             # guess the target from user config with the first pass
-            self._assign_target_properties_using_first_pass(filename, variants_override)
+            self._assign_target_properties_using_first_pass(filenames, variants_override)
 
         # Load the platform (and arch, if any)-specific config
         self._load_platform_config()
 
         # Next, if a config file is provided use it to override the settings
         # again (set the target, f.ex.)
-        self._load_cmd_config(filename)
+        self._load_cmd_config(filenames)
+        if self.filenames and filenames:
+            m.warning('The config from {!r} is overridden with {!r}'.format(self.filenames, filenames))
+        self.filenames = filenames
 
         # Create a copy of the config for each architecture in case we are
         # building Universal binaries
@@ -396,14 +402,12 @@ class Config(object):
                         # This works because the override config files are
                         # fairly light. Things break if they are more complex
                         # as load config can have side effects in global state
-                        d = os.path.dirname(filename[0])
-                        for f in filename:
+                        d = os.path.dirname(filenames[0])
+                        for f in filenames:
                             if 'universal' in f:
                                 d = os.path.dirname(f)
-                        config.arch_file_names = [os.path.join(d, config_file)]
-                        config._assign_target_properties_using_first_pass(
-                            config.arch_file_names, base_config=self, arch=arch
-                        )
+                        config.filenames = [os.path.join(d, config_file)]
+                        config._assign_target_properties_using_first_pass(config.filenames, base_config=self, arch=arch)
             else:
                 raise ConfigurationError('universal_archs must be a list or a dict')
 
@@ -441,8 +445,7 @@ class Config(object):
             # We already called these functions on `self` above
             if config is not self:
                 config._load_platform_config()
-                if hasattr(config, 'arch_file_names'):
-                    config._load_cmd_config(config.arch_file_names)
+                config._load_cmd_config(config.filenames)
                 config._load_last_defaults()
                 config._validate_properties()
                 config.build_tools_config = self.build_tools_config

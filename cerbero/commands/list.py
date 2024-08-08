@@ -81,6 +81,8 @@ class ShowConfig(Command):
             self._print_config(config.build_tools_config)
 
     def _print_config(self, config):
+        if config.filenames:
+            print('%25s : %s' % ('filenames', config.filenames))
         for n in config._properties:
             if n == 'variants':
                 print('%25s :' % (n))
