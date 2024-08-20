@@ -28,22 +28,36 @@ class ConfigVariantsTest(unittest.TestCase):
         self.variants = None
 
     def testReadDefaultValues(self):
-        # when nothing was done yet on the new Variants objects, let's check defaults
+        # when nothing was done yet on the new Variants object, let's check the defaults
         self.assertTrue('debug' in dir(self.variants), 'variant is an ordinary object attribute')
         self.assertFalse('nodebug' in dir(self.variants), 'only "no no-prefix" variant is set')
+        self.assertFalse(self.variants.is_set('debug'))
+        self.assertFalse(self.variants.is_set('nodebug'))
         self.assertTrue(self.variants.debug, 'Debug is enabled by default')
         self.assertFalse(self.variants.nodebug, 'Debug is enabled by default')
 
+        self.assertTrue('alsa' in dir(self.variants), 'variant is an ordinary object attribute')
+        self.assertFalse('noalsa' in dir(self.variants), 'only "no no-prefix" variant is set')
+        self.assertFalse(self.variants.is_set('alsa'))
+        self.assertFalse(self.variants.is_set('noalsa'))
         self.assertTrue('alsa' in dir(self.variants))
         self.assertFalse('noalsa' in dir(self.variants))
         self.assertFalse(self.variants.alsa, 'Alsa is disabled by default')
         self.assertTrue(self.variants.noalsa, 'Alsa is disabled by default')
         self.assertFalse(self.variants.uwp)
+        self.assertFalse(self.variants.is_set('uwp'))
         self.assertFalse(self.variants.visualstudio)
+        self.assertFalse(self.variants.is_set('visualstudio'))
         self.assertFalse(self.variants.mingw)
+        self.assertFalse(self.variants.is_set('mingw'))
         self.assertEqual(self.variants.vscrt, 'md')
+        self.assertFalse(self.variants.is_set('vscrt'))
         with self.assertRaises(AttributeError):
             self.variants.novscrt  # not bool, no no-* variant
+
+    def testIsSetNonExistant(self):
+        self.assertFalse(self.variants.is_set(1), 'not a string')
+        self.assertFalse(self.variants.is_set('abracadabra'))
 
     def testReadDefaultUnknownValues(self):
         with self.assertRaises(AttributeError):
@@ -68,9 +82,13 @@ class ConfigVariantsTest(unittest.TestCase):
         self.variants.debug = False
         self.assertFalse(self.variants.debug)
         self.assertTrue(self.variants.nodebug, 'for boolean variants it is possible to read no-* variant')
+        self.assertTrue(self.variants.is_set('debug'))
+        self.assertTrue(self.variants.is_set('nodebug'))
         setattr(self.variants, 'debug', True)
         self.assertTrue(self.variants.debug)
         self.assertFalse(self.variants.nodebug)
+        self.assertTrue(self.variants.is_set('debug'))
+        self.assertTrue(self.variants.is_set('nodebug'))
 
     def testSetStringKnownVariants(self):
         self.variants.debug = 'abc'
@@ -87,17 +105,49 @@ class ConfigVariantsTest(unittest.TestCase):
         self.assertTrue(self.variants.debug, 'is still true: nodebug being set is a different variant')
 
     def testSetUWP(self):
+        self.assertFalse(self.variants.is_set('uwp'))
+        self.assertFalse(self.variants.is_set('nouwp'))
+        self.assertFalse(self.variants.is_set('visualstudio'))
+        self.assertFalse(self.variants.is_set('novisualstudio'))
+        self.assertFalse(self.variants.is_set('mingw'))
+        self.assertFalse(self.variants.is_set('nomingw'))
+
+        # setting the same value doesn't chage the situation apart from "is set"
         self.variants.uwp = False
         self.assertFalse(self.variants.uwp)
+        self.assertTrue(self.variants.is_set('uwp'))
+        self.assertTrue(self.variants.nouwp)
+        self.assertTrue(self.variants.is_set('nouwp'))
         self.assertFalse(self.variants.visualstudio)
+        self.assertFalse(self.variants.is_set('visualstudio'))
+        self.assertTrue(self.variants.novisualstudio)
+        self.assertFalse(self.variants.is_set('novisualstudio'))
         self.assertFalse(self.variants.mingw)
+        self.assertFalse(self.variants.is_set('mingw'))
+        self.assertTrue(self.variants.nomingw)
+        self.assertFalse(self.variants.is_set('nomingw'))
+
+        # changing the value produces some implicit changes
         self.variants.uwp = True
         self.assertTrue(self.variants.uwp)
+        self.assertTrue(self.variants.is_set('uwp'))
+        self.assertFalse(self.variants.nouwp)
+        self.assertTrue(self.variants.is_set('nouwp'))
         self.assertTrue(self.variants.visualstudio)
+        self.assertTrue(self.variants.is_set('visualstudio'))
+        self.assertFalse(self.variants.novisualstudio)
+        self.assertTrue(self.variants.is_set('novisualstudio'))
         self.assertFalse(self.variants.mingw)
+        self.assertTrue(self.variants.is_set('mingw'))
+        self.assertTrue(self.variants.nomingw)
+        self.assertTrue(self.variants.is_set('nomingw'))
 
     def testSetUnknownVariants(self):
+        self.assertFalse(self.variants.is_set('n'))
+        self.assertFalse(self.variants.is_set('non'))
         self.variants.n = False
+        self.assertTrue(self.variants.is_set('n'))
+        self.assertFalse(self.variants.is_set('non'), 'starts with no, but it is not boolean')
         self.assertTrue('n' in dir(self.variants), 'after setting an unknown variant, it is an attribute')
         self.assertFalse('non' in dir(self.variants), 'only "no no-prefix" variant is set')
         self.assertFalse(self.variants.n, 'direct read of an variant')
@@ -109,32 +159,51 @@ class ConfigVariantsTest(unittest.TestCase):
             self.assertFalse(self.variants.non)
 
         # tricky: 'no'
+        self.assertFalse(self.variants.is_set('no'))
         self.variants.no = False
+        self.assertFalse(self.variants.is_set('no'), 'starts with no, but it is not boolean')
         self.assertTrue('no' in dir(self.variants))
         self.assertFalse(self.variants.no)
         with self.assertRaises(AttributeError):
             self.assertTrue(self.variants.nono)
 
+        self.assertFalse(self.variants.is_set('abracadabra'))
         self.variants.abracadabra = 'nosense'
+        self.assertTrue(self.variants.is_set('abracadabra'))
         self.assertEqual(self.variants.abracadabra, 'nosense')
         with self.assertRaises(AttributeError):
             self.assertFalse(self.variants.noabracadabra, 'for unknown attribute, the no-* variant is not possible')
 
     def testSetBoolKnownVariants(self):
+        # testSetUWP() tests is_set() before set
         self.variants.set_bool('uwp')
         self.assertTrue(self.variants.uwp)
+        self.assertTrue(self.variants.is_set('uwp'))
         self.assertFalse(self.variants.nouwp)
+        self.assertTrue(self.variants.is_set('nouwp'))
+        self.assertTrue(self.variants.visualstudio)
+        self.assertTrue(self.variants.is_set('visualstudio'))
+        self.assertFalse(self.variants.novisualstudio)
+        self.assertTrue(self.variants.is_set('novisualstudio'))
+        self.assertFalse(self.variants.mingw)
+        self.assertTrue(self.variants.is_set('mingw'))
+        self.assertTrue(self.variants.nomingw)
+        self.assertTrue(self.variants.is_set('nomingw'))
+
         self.variants.set_bool('nouwp')
         self.assertFalse(self.variants.uwp)
         self.assertTrue(self.variants.nouwp)
 
     def testSetBoolVscrtVariant(self):
         self.variants.set_bool('vscrt')
+        self.assertTrue(self.variants.is_set('vscrt'))
         self.assertEqual(self.variants.vscrt, True, 'mapping becomes boolean')
 
     def testSetBoolUnknownVariants(self):
         self.variants.set_bool('n')
         self.assertTrue(self.variants.n)
+        self.assertTrue(self.variants.is_set('n'))
+        self.assertFalse(self.variants.is_set('non'), 'starts with no, but it is not boolean')
         with self.assertRaises(AttributeError):
             self.assertFalse(self.variants.non)  # for unknown attribute, the no-* variant is not possible
         self.variants.set_bool('non')
@@ -143,7 +212,9 @@ class ConfigVariantsTest(unittest.TestCase):
     def testOverrideOneKnownVariant(self):
         self.variants.override('nodebug')
         self.assertFalse(self.variants.debug)
+        self.assertTrue(self.variants.is_set('debug'))
         self.assertTrue(self.variants.nodebug)
+        self.assertTrue(self.variants.is_set('debug'))
         self.variants.override('debug')
         self.assertTrue(self.variants.debug)
         self.assertFalse(self.variants.nodebug)
@@ -151,13 +222,18 @@ class ConfigVariantsTest(unittest.TestCase):
     def testOverrideKnownVariants(self):
         self.variants.override(['nodebug', 'alsa'])
         self.assertFalse(self.variants.debug)
+        self.assertTrue(self.variants.is_set('debug'))
         self.assertTrue(self.variants.nodebug)
+        self.assertTrue(self.variants.is_set('nodebug'))
         self.assertTrue(self.variants.alsa)
+        self.assertTrue(self.variants.is_set('alsa'))
         self.assertFalse(self.variants.noalsa)
+        self.assertTrue(self.variants.is_set('noalsa'))
 
     def testOverrideMappingVariant(self):
         # let's forgot the =value
         self.variants.override('vscrt')
+        self.assertTrue(self.variants.is_set('vscrt'))
         self.assertEqual(self.variants.vscrt, True, 'mapping becomes boolean')
         with self.assertRaises(AttributeError):
             self.assertFalse(self.variants.novscrt)  # not boolean, no no-* variant
@@ -195,9 +271,13 @@ class ConfigVariantsTest(unittest.TestCase):
     def testOverrideAliasVariants(self):
         self.variants.override('visualstudio')
         self.assertTrue(self.variants.visualstudio)
+        self.assertTrue(self.variants.is_set('visualstudio'))
         self.assertFalse(self.variants.novisualstudio)
+        self.assertTrue(self.variants.is_set('novisualstudio'))
         self.assertFalse(self.variants.mingw)
+        self.assertTrue(self.variants.is_set('mingw'))
         self.assertTrue(self.variants.nomingw)
+        self.assertTrue(self.variants.is_set('nomingw'))
 
         self.variants.override('mingw')
         self.assertFalse(self.variants.visualstudio)
@@ -223,3 +303,28 @@ class ConfigVariantsTest(unittest.TestCase):
         self.assertFalse(self.variants.novisualstudio)
         self.assertFalse(self.variants.mingw)
         self.assertTrue(self.variants.nomingw)
+
+    def testOverrideIfNotSetVariant(self):
+        # after changing the default value to the opposite, override_if_not_set() doesn't change variant
+        self.variants.debug = False
+        self.variants.override_if_not_set('debug')
+        self.assertFalse(self.variants.debug)
+
+        # after assigning the same default value, override_if_not_set() doesn't change variant
+        self.variants.alsa = False
+        self.variants.override_if_not_set('alsa')
+        self.assertFalse(self.variants.alsa)
+
+        # without previous changes, override_if_not_set() changes value
+        # and for mappings affects an other value
+        self.assertFalse(self.variants.is_set('visualstudio'))
+        self.assertFalse(self.variants.is_set('mingw'))
+        self.variants.override_if_not_set('visualstudio')
+        self.assertTrue(self.variants.visualstudio)
+        self.assertTrue(self.variants.is_set('visualstudio'))
+        self.assertFalse(self.variants.novisualstudio)
+        self.assertTrue(self.variants.is_set('novisualstudio'))
+        self.assertFalse(self.variants.mingw)
+        self.assertTrue(self.variants.is_set('mingw'))
+        self.assertTrue(self.variants.nomingw)
+        self.assertTrue(self.variants.is_set('nomingw'))

@@ -117,6 +117,8 @@ class Variants(object):
     }
 
     def __init__(self, variants):
+        # To distinguish variants set by the user and the platform/arch after
+        self.__set_variants = set()
         # Set default values
         for v in self.__enabled_variants:
             setattr(self, v, True)
@@ -125,6 +127,8 @@ class Variants(object):
         for v, choices in self.__mapping_variants.items():
             setattr(self, v, choices[0])
         self.override(variants)
+        # reset after all inits
+        self.__set_variants.clear()
 
     def set_bool(self, key):
         if key.startswith('no'):
@@ -164,10 +168,13 @@ class Variants(object):
         if '-' in attr:
             raise AssertionError("Variant name {!r} must not contain '-'".format(attr))
         super().__setattr__(attr, value)
+        self.__set_variants.add(attr)
         # UWP implies Visual Studio
         if attr == 'uwp' and value:
             self.visualstudio = True
+            self.__set_variants.add('visualstudio')
             self.mingw = False
+            self.__set_variants.add('mingw')
 
     def __getattr__(self, name):
         if name.startswith('no') and name[2:] in self.bools():
@@ -184,6 +191,22 @@ class Variants(object):
 
     def mappings(self):
         return sorted(self.__mapping_variants)
+
+    def is_set(self, variant):
+        if not isinstance(variant, str):
+            return False
+        if variant.startswith('no'):
+            real_name = variant[2:]
+            if real_name not in self.bools():
+                return False
+        else:
+            real_name = variant
+        return real_name in self.__set_variants
+
+    def override_if_not_set(self, variants):
+        if not isinstance(variants, list):
+            variants = [variants]
+        self.override([v for v in variants if not self.is_set(v)])
 
 
 class Config(object):
