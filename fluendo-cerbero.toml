@@ -49,7 +49,7 @@ status = "integrated"
 
 [[features]]
 remote = "fluendo"
-name = "COM-10979-fix-config-override"
-summary = "Fix config variants override with first option (two passes)"
-pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1537"
+name = "COM-12259-fix-variants-override"
+summary = "Cerbero configs: Fixing variants without changing the order of loading"
+pr = "https://gitlab.freedesktop.org/gstreamer/cerbero/-/merge_requests/1550"
 status = "merging"
