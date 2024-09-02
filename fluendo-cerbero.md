@@ -56,12 +56,14 @@ we need to change the git submodule, it produces a commit.
 
 [Fluendo repository](https://github.com/fluendo/flu-plugins)
 
-The main working branch (no PR) for this delivery:
-[COM-10606-sync-cerbero](https://github.com/fluendo/flu-plugins/tree/COM-10606-sync-cerbero)
+The main working branch for this delivery:
+[COM-10606-sync-cerbero](https://github.com/fluendo/flu-plugins/tree/COM-10606-sync-cerbero) /
+[PR 570](https://github.com/fluendo/flu-plugins/pull/570)
 
 The branch is needed to:
 1. have the same branch as others - this is used to run CI (fluendo-cerbero and flu-plugins must be the same)
-1. have some changes (for example, to run buildone in addition to build-deps for infrastructure-as-code)
+1. have some changes (for example, to run buildone in addition to build-deps for infrastructure-as-code, like
+[COM-12287](https://fluendo.atlassian.net/browse/COM-12287))
 
 ### infrastructure-as-code
 
