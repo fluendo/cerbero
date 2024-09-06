@@ -180,8 +180,8 @@ class Recipe(custom.GStreamer):
             self.enable_plugin('alsa', 'sys', 'alsa')
 
         elif self.config.target_platform == Platform.WEB:
-            self.meson_options['gl_platform'] = 'egl'
-            self.meson_options['gl_winsys'] = 'egl'
+            self.meson_options['gl_platform'] = 'emscripten'
+            self.meson_options['gl_winsys'] = 'canvas'
             self.disable_plugin('pango', 'core', dep='pango')
             self.meson_options['gl-png'] = 'disabled'
             self.deps.remove('libpng')
