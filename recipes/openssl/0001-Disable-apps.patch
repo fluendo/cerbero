@@ -1,0 +1,24 @@
+From 0949c6ee3cdf9aaf7938851c10e24fc567074bdf Mon Sep 17 00:00:00 2001
+From: Fabian Orccon <cfoch.fabian@gmail.com>
+Date: Mon, 16 Sep 2024 21:30:56 +0200
+Subject: [PATCH] Disable apps
+
+---
+ Configure | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Configure b/Configure
+index 4bea49d7da..b59dc32c1b 100755
+--- a/Configure
++++ b/Configure
+@@ -342,6 +342,7 @@ my @dtls = qw(dtls1 dtls1_2);
+ 
+ my @disablables = (
+     "afalgeng",
++    "apps",
+     "aria",
+     "asan",
+     "asm",
+-- 
+2.34.1
+

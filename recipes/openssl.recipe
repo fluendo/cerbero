@@ -108,6 +108,11 @@ class Recipe(recipe.Recipe):
                 if self.config.target_arch == Architecture.X86_64:
                     return 'mingw64'
             raise InvalidRecipeError(self, "Unknown Windows platform")
+        if self.config.target_platform == Platform.WEB:
+            if self.config.target_arch == Architecture.WASM32:
+                return 'linux-x86'
+            if self.config.target_arch == Architecture.WASM64:
+                return 'linux-x86_64'
         raise InvalidRecipeError(self, "Unknown target platform {}"
                                  .format(self.config.target_platform))
 
@@ -118,6 +123,9 @@ class Recipe(recipe.Recipe):
         srcdir_include = f'-I{self.config_src_dir}/include '
         cflags = srcdir_include + self.get_env('CFLAGS')
         ldflags = self.get_env('LDFLAGS')
+
+        if self.config.target_platform == Platform.WEB:
+            self.patches += ['openssl/0001-Disable-apps.patch']
 
         if self.using_msvc():
             # Gets converted to C:/MinGW/msys/1.0/utf-8 by MSYS somehow, so
@@ -195,8 +203,12 @@ class Recipe(recipe.Recipe):
             if newer is False:
                 raise FatalError('Configured Perl {!r} is {} which is too old, {}'
                                  ''.format(perl, found, m))
+        if self.config.platform != Platform.WEB:
+            configure_cmd = 'perl'
+        else:
+            configure_cmd = 'emconfigure'
         # OpenSSL guesses the libdir incorrectly on x86_64
-        config_sh = 'perl ./Configure --prefix=' + self.config.prefix + \
+        config_sh = configure_cmd + ' ./Configure --prefix=' + self.config.prefix + \
             ' --libdir=lib' + self.config.lib_suffix + '  no-makedepend no-unit-test '
         if self.config.target_platform == Platform.IOS:
             # Note: disable 'no-devcryptoeng' when we finally target the
@@ -205,6 +217,10 @@ class Recipe(recipe.Recipe):
             # Undefined symbols in aesni_* in libcrypto.a only on x86_64
             if self.config.target_arch == Architecture.X86_64:
                 config_sh += ' no-asm '
+        elif self.config.target_platform == Platform.WEB:
+            config_sh += ' no-shared no-asm '
+            # config_sh += ' no-dso no-async no-devcryptoeng '
+            config_sh += ' -no-afalgeng -no-apps '
         else:
             config_sh += ' shared '
 
