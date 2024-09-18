@@ -1,11 +1,13 @@
 # -*- Mode: Python -*- vi:si:et:sw=4:sts=4:ts=4:syntax=python
 import os
 from collections import defaultdict
+from gettext import gettext as _
 
 from cerbero.build import recipe
 from cerbero.build.source import SourceType
 from cerbero.build.cookbook import CookBook
 from cerbero.enums import License, FatalError
+from cerbero.utils import messages as m
 
 
 def running_on_cerbero_ci():
@@ -69,12 +71,15 @@ class GStreamer(recipe.Recipe):
             # disable the submodule to avoid to download more than 500MB of test medias.
             self.use_submodules = False
 
-    def enable_plugin(self, plugin, category, variant=None, option=None, dep=None):
+    def enable_plugin(self, plugin, category, variant=None, option=None, dep=None, deps=None):
         if option is None:
             option = plugin
         if variant is None or getattr(self.config.variants, variant):
             if dep is not None:
+                m.warning(_('dep argument is deprecated. Use deps.'))
                 self.deps.append(dep)
+            if deps is not None:
+                self.deps += deps
             plugin = '%(libdir)s/gstreamer-1.0/libgst' + plugin
             if not hasattr(self, 'files_plugins_' + category):
                 setattr(self, 'files_plugins_' + category, [])
