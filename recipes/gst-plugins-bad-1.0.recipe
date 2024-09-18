@@ -614,7 +614,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('closedcaption', 'effects', dep='pango')
             self.disable_plugin('dash', 'codecs', dep='libxml2')
             self.disable_plugin('dtsdec', 'codecs_restricted', option='dts', dep='libdca')
-            self.disable_plugin('dtls', 'net')
+            self.enable_plugin('dtls', 'net')
             self.disable_plugin('hls', 'codecs')
             self.disable_plugin('isac', 'effects')
             self.disable_plugin('ladspa', 'effects', dep='ladspa')
@@ -623,15 +623,15 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('resindvd', 'dvd', dep='libdvdnav')
             self.disable_plugin('rtmp', 'net_restricted', option='rtmp', dep='librtmp')
             self.disable_plugin('sbc', 'codecs', dep='sbc')
-            self.disable_plugin('sctp', 'net')
-            self.meson_options['sctp-internal-usrsctp'] = 'disabled'
+            self.enable_plugin('sctp', 'net')
+            self.meson_options['sctp-internal-usrsctp'] = 'enabled'
             self.disable_plugin('soundtouch', 'effects', dep='soundtouch')
             self.disable_plugin('spandsp', 'codecs', dep='spandsp')
             self.disable_plugin('smoothstreaming', 'codecs', dep='libxml2')
             self.disable_plugin('srt', 'net', dep='srt')
             self.disable_plugin('rsvg', 'codecs', dep='librsvg')
             self.disable_plugin('voaacenc', 'codecs_restricted', dep='vo-aacenc')
-            self.disable_plugin('webrtc', 'net', dep='webrtc-audio-processing')
+            self.enable_plugin('webrtc', 'net', deps=['webrtc-audio-processing', 'libnice'])
             self.disable_plugin('webrtcdsp', 'effects', dep='libnice')
             self.disable_plugin('zbar', 'codecs', dep='zbar')
             self.meson_options['nls'] = 'disabled'
