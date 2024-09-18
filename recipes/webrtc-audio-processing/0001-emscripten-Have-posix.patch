@@ -1,0 +1,25 @@
+From dd590c78eedd195e96424a21d610f0adfb0c9e90 Mon Sep 17 00:00:00 2001
+From: Fabian Orccon <cfoch.fabian@gmail.com>
+Date: Tue, 17 Sep 2024 15:40:50 +0200
+Subject: [PATCH] emscripten: Have posix
+
+---
+ meson.build | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index 3843e92..8136ebd 100644
+--- a/meson.build
++++ b/meson.build
+@@ -101,6 +101,8 @@ elif host_system == 'windows'
+   platform_cflags += ['-D_USE_MATH_DEFINES']
+   os_deps += [cc.find_library('winmm')]
+   have_win = true
++elif host_system == 'emscripten'
++  have_posix = true
+ endif
+ 
+ if have_posix
+-- 
+2.34.1
+

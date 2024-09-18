@@ -24,6 +24,9 @@ class Recipe(recipe.Recipe):
         '%(libdir)s/pkgconfig/webrtc-audio-coding-1.pc',
         '%(libdir)s/pkgconfig/webrtc-audio-processing-1.pc',
     ]
+    patches = [
+        'webrtc-audio-processing/0001-emscripten-Have-posix.patch',
+    ]
 
     def prepare(self):
         if self.config.target_platform == Platform.ANDROID:
