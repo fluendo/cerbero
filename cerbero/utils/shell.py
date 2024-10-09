@@ -251,6 +251,7 @@ async def async_call(cmd, cmd_dir='.', fail=True, logfile=None, env=None):
     if proc.returncode != 0 and fail:
         raise FatalError('Running {!r}, returncode {}'.format(cmd, proc.returncode))
 
+    return proc.returncode
 
 async def async_check_output(cmd, cmd_dir=None, logfile=None, env=None):
     '''
