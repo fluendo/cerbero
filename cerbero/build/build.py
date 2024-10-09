@@ -872,7 +872,9 @@ class Meson (Build, ModifyEnvBase) :
         if self.library_type == LibraryType.NONE:
             raise RuntimeException("meson recipes cannot be LibraryType.NONE")
 
-        meson_cmd = [self.meson_sh, '--prefix=' + self.config.prefix,
+        meson_cmd = [self.meson_sh,
+            'setup',
+            '--prefix=' + self.config.prefix,
             '--libdir=lib' + self.config.lib_suffix,
             '--default-library=' + self.library_type, '--buildtype=' + buildtype,
             '--backend=' + self.meson_backend, '--wrap-mode=nodownload']
