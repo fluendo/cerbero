@@ -665,6 +665,9 @@ class CMake (MakefilesBase):
         if self.config.distro == Distro.MSYS2:
             # We do not want the MSYS2 CMake because it doesn't support MSVC
             self.config_sh = shutil.which('cmake', path=shell.get_path_minus_msys(self.env['PATH']))
+        elif self.config.target_platform == Platform.WEB:
+            self.configure_tpl = 'emcmake ' + self.configure_tpl
+
 
     @modify_environment
     async def configure(self):
@@ -709,6 +712,8 @@ class CMake (MakefilesBase):
             system_name = 'Darwin'
         elif self.config.target_platform == Platform.IOS:
             system_name = 'iOS'
+        elif self.config.target_platform == Platform.WEB:
+            system_name = 'Emscripten'
 
         if self.config.cross_compiling() or self.config.target_platform == Platform.WINDOWS:
             self.configure_options += [f'-DCMAKE_SYSTEM_NAME={system_name}']
