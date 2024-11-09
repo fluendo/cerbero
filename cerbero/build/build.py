@@ -344,6 +344,8 @@ class Build(object):
         # Initialize the default build dir
         # The folder where the build artifacts will be generated
         self.config_build_dir = os.path.abspath(os.path.join(self.config.sources, self.package_name))
+        # The build dir might be different than the theoretical source dir
+        Path(self.config_build_dir).mkdir(parents=True, exist_ok=True)
         # Initialize the default sources dir
         # The folder where the actual build system's sources are located
         self.sources_dir = self.config_src_dir
