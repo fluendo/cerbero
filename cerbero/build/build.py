@@ -745,6 +745,8 @@ class CMake(MakefilesBase):
             system_name = 'iOS'
         elif self.config.target_platform == Platform.TVOS:
             system_name = 'tvOS'
+        elif self.config.target_platform == Platform.WEB:
+            system_name = 'Emscripten'
 
         if Platform.is_apple(self.config.target_platform):
             self.configure_options += ['-DCMAKE_OSX_ARCHITECTURES=' + self.config.target_arch]
