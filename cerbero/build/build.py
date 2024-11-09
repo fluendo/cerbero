@@ -767,6 +767,8 @@ class CMake(MakefilesBase):
             system_name = 'Darwin'
         elif self.config.target_platform == Platform.IOS:
             system_name = 'iOS'
+        elif self.config.target_platform == Platform.WEB:
+            system_name = 'Emscripten'
 
         if self.config.target_platform in (Platform.DARWIN, Platform.IOS):
             self.configure_options += ['-DCMAKE_OSX_ARCHITECTURES=' + self.config.target_arch]
