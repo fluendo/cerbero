@@ -63,6 +63,7 @@ RUST_TRIPLE_MAPPING = {
     (Platform.WINDOWS, Architecture.ARM64, 'msvc'): 'aarch64-pc-windows-msvc',
     (Platform.WINDOWS, Architecture.X86, 'gnu'): 'i686-pc-windows-gnu',
     (Platform.WINDOWS, Architecture.X86, 'msvc'): 'i686-pc-windows-msvc',
+    (Platform.WEB, Architecture.WASM32): 'wasm32-unknown-emscripten',
 }
 
 
