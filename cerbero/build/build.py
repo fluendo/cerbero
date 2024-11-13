@@ -886,7 +886,7 @@ class Meson(Build, ModifyEnvBase):
         if not os.path.isdir(self.config_build_dir):
             raise FatalError('Build directory doesn\'t exist yet?')
         # Check if the option exists, and if so, what the type is
-        meson_options = os.path.join(self.config_build_dir, 'meson_options.txt')
+        meson_options = os.path.join(self.sources_dir, 'meson_options.txt')
         if not os.path.isfile(meson_options):
             return
         opt_name = None
