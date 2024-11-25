@@ -40,7 +40,7 @@ class EmscriptenToolchainBootstrapper(BootstrapperBase):
     """
 
     def __init__(self, config, offline, assume_yes):
-        super().__init__(config, offline)
+        super().__init__(config, offline, 'emscripten')
         url = EMSDK_BASE_URL % (EMSDK_VERSION)
         bundle_name = 'emsdk-' + EMSDK_VERSION + EMSDK_BUNDLE_EXT
         urls = (url, bundle_name, EMSDK_CHECKSUMS[os.path.basename(url)])
