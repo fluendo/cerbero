@@ -182,6 +182,8 @@ class Recipe(custom.GStreamer):
             self.meson_options['gl_winsys'] = 'egl'
             self.disable_plugin('pango', 'core', dep='pango')
             self.meson_options['gl-png'] = 'disabled'
+            self.meson_options['gl-jpeg'] = 'disabled'
+            self.deps.remove('libjpeg-turbo')
             self.deps.remove('libpng')
             self.meson_options['tests'] = 'disabled'
             self.meson_options['examples'] = 'disabled'

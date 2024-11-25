@@ -642,6 +642,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
             self.meson_options['qroverlay'] = 'disabled'
             self.meson_options['nls'] = 'disabled'
+            self.disable_plugin('x265', 'codecs', dep='x265')
 
         if self.using_uwp():
             # Uses unavailable APIs

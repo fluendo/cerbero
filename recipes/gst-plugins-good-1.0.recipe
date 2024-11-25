@@ -249,6 +249,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('cairo', 'effects', dep='cairo')
             self.disable_plugin('dv', 'codecs', dep='libdv')
             self.disable_plugin('gdkpixbuf', 'effects', option='gdk-pixbuf', dep='gdk-pixbuf')
+            self.disable_plugin('jpeg', 'codecs', dep='libjpeg-turbo')
             self.disable_plugin('lame', 'codecs', dep='lame')
             self.disable_plugin('png', 'codecs', dep='libpng')
             self.disable_plugin('soup', 'net', dep='libsoup')
