@@ -739,6 +739,8 @@ class CMake(MakefilesBase):
         if self.config.distro == Distro.MSYS2:
             # We do not want the MSYS2 CMake because it doesn't support MSVC
             self.config_sh = shutil.which('cmake', path=shell.get_path_minus_msys(self.env['PATH']))
+        elif self.config.target_platform == Platform.WEB:
+            self.configure_tpl = 'emcmake ' + self.configure_tpl
 
     @modify_environment
     async def configure(self):
@@ -808,7 +810,8 @@ class CMake(MakefilesBase):
                 f.write(f'set(CMAKE_SYSTEM_PROCESSOR {self.config.target_arch})\n')
                 if self.config.variants.mingw:
                     f.write(f'set(CMAKE_SYSROOT {self.config.toolchain_prefix}/x86_64-w64-mingw32/sysroot)\n')
-            self.configure_options += [f'-DCMAKE_TOOLCHAIN_FILE={self.src_dir}/toolchain.cmake']
+            if self.config.target_platform != Platform.WEB:
+                self.configure_options += [f'-DCMAKE_TOOLCHAIN_FILE={self.src_dir}/toolchain.cmake']
         elif self.config.target_platform == Platform.WINDOWS:
             self.configure_options += [
                 f'-DCMAKE_SYSTEM_NAME={system_name}',
