@@ -638,6 +638,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('voaacenc', 'codecs_restricted', dep='vo-aacenc')
             self.disable_plugin('webrtc', 'net', dep='webrtc-audio-processing')
             self.disable_plugin('webrtcdsp', 'effects', dep='libnice')
+            self.disable_plugin('x265', 'codecs', dep='x265')
             self.disable_plugin('zbar', 'codecs', dep='zbar')
             self.disable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
             self.meson_options['qroverlay'] = 'disabled'
