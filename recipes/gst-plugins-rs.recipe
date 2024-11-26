@@ -78,8 +78,7 @@ class Recipe(recipe.Recipe):
 
     # Needed for openssl
     use_system_libs = True
-    deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'pango', 'cairo',
-        'gst-plugins-bad-1.0', 'dav1d']
+    deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'gst-plugins-bad-1.0']
 
     def enable_plugin(self, name, category):
         if self.library_type in (LibraryType.SHARED, LibraryType.BOTH):
@@ -108,6 +107,13 @@ class Recipe(recipe.Recipe):
         if self.config.target_platform != Platform.LINUX or self.config.cross_compiling():
             self.deps.append('openssl')
 
+        if 'dav1d' in self.cargo_packages:
+            self.deps.append('dav1d')
+
+        if 'onvif' in self.cargo_packages or 'closedcaption' in self.cargo_packages:
+            self.deps.append('pango')
+            self.deps.append('cairo')
+
         plugin_files = {
             'core': ['fallbackswitch', 'livesync', 'rsinter', 'rstracers',
                      'threadshare', 'togglerecord'],
@@ -121,19 +127,26 @@ class Recipe(recipe.Recipe):
         }
         for category, names in plugin_files.items():
             for name in names:
-                self.enable_plugin(name, category)
+                package_name = name if name[0:2] != 'rs' else name[2:]
+                if package_name in self.cargo_packages:
+                    self.enable_plugin(name, category)
 
         self.cargo_packages = [f'gst-plugin-{pkg}' for pkg in self.cargo_packages]
         # Build with Cerbero's latest glib version as minimum version
-        self.cargo_features += ['glib/v2_74', 'gio/v2_74']
-        # Enable assembly optimizations via nasm
-        self.cargo_features.append('gst-plugin-rav1e/asm')
+        if 'gst-plugin-gtk4' in self.cargo_packages:
+            self.cargo_features += ['glib/v2_74', 'gio/v2_74']
+        if 'gst-plugin-rav1e' in self.cargo_packages:
+            # Enable assembly optimizations via nasm
+            self.cargo_features.append('gst-plugin-rav1e/asm')
         # Build with the current GStreamer version as minimum version
         components = ('', '-app', '-audio', '-base', '-check', '-net', '-pbutils',
-                      '-plugin-tracers', '-rtp', '-sdp', '-utils', '-video', '-webrtc')
+                      '-rtp', '-sdp', '-utils', '-video', '-webrtc')
         for each in components:
             self.cargo_features.append(f'gst{each}/v1_22')
-        self.cargo_features.append('gst-plugin-webrtc/v1_22')
+        if 'gst-plugin-tracers' in self.cargo_packages:
+            self.cargo_features.append('gst-plugin-tracers/v1_22')
+        if 'gst-plugin-webrtc' in self.cargo_packages:
+            self.cargo_features.append('gst-plugin-webrtc/v1_22')
 
         # The LIBRARY_PATH setting affects all invocations of GCC underneath
         # Cargo, in particular those that link build scripts (that are meant to
@@ -282,7 +295,7 @@ class Recipe(recipe.Recipe):
 
                         # With the stripping done, all files now need to be rearchived
                         dest = Path(tmp) / source.name
-                        m.log(f"Repacking library to {dest.absolute()}", self.logfile) 
+                        m.log(f"Repacking library to {dest.absolute()}", self.logfile)
 
                         libtool = shutil.which("libtool")
 
@@ -302,7 +315,7 @@ class Recipe(recipe.Recipe):
 
                         # And now we paper over
                         os.replace(dest.absolute(), source.absolute())
-                elif self.config.target_platform in (Platform.LINUX, Platform.ANDROID): 
+                elif self.config.target_platform in (Platform.LINUX, Platform.ANDROID):
                     # This is a very similar approach, however Clang
                     # will itself do a really bad job if one supplies
                     # a LD version script -- that'll suppress 99% of
