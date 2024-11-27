@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - gha_rust_test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Bootstrap
+        run: |
+          pip install distro
+          ./cerbero-uninstalled bootstrap --assume-yes
+      - name: Build gst-plugins
+        run: |
+          ./cerbero-uninstalled build gst-plugins-base-1.0
+          ./cerbero-uninstalled build gst-plugins-good-1.0
+          ./cerbero-uninstalled build gst-plugins-ugly-1.0
+          ./cerbero-uninstalled build gst-plugins-bad-1.0
+          ./cerbero-uninstalled build gst-plugins-rs
