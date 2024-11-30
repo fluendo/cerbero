@@ -28,9 +28,19 @@ jobs:
           pip install distro
           ./cerbero-uninstalled bootstrap --assume-yes
       - name: Build gst-plugins
+        if: false
         run: |
+          set -x
           ./cerbero-uninstalled build gst-plugins-base-1.0
           ./cerbero-uninstalled build gst-plugins-good-1.0
           ./cerbero-uninstalled build gst-plugins-ugly-1.0
           ./cerbero-uninstalled build gst-plugins-bad-1.0
-          ./cerbero-uninstalled build gst-plugins-rs
+      - name: Build deps gst-plugins-rs
+        run: |
+          set -x
+          sed -i "s#'--release',##" cerbero/build/build.py
+          ./cerbero-uninstalled build-deps gst-plugins-rs
+      - name: Build gst-plugins-rs
+        run: |
+          set -x
+          ./cerbero-uninstalled buildone gst-plugins-rs

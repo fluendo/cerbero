@@ -49,6 +49,9 @@ class Recipe(recipe.Recipe):
     use_system_libs = True
     deps = ['gstreamer-1.0', 'gst-plugins-base-1.0', 'gst-plugins-bad-1.0']
 
+    def num_of_cpus(self):
+        return 1
+
     def enable_plugin(self, name, category):
         if self.library_type in (LibraryType.SHARED, LibraryType.BOTH):
             attr = f'files_plugins_{category}'
@@ -68,6 +71,7 @@ class Recipe(recipe.Recipe):
             ]
 
     def prepare(self):
+        self.append_env('CARGO_BUILD_JOBS', '1')
         if self.config.target_platform in (Platform.IOS, Platform.ANDROID):
             self.library_type = LibraryType.STATIC
         else:
