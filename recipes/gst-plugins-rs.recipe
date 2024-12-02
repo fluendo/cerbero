@@ -120,6 +120,7 @@ class Recipe(recipe.Recipe):
             self.cargo_features.append('gst-plugin-tracers/v1_22')
         if 'gst-plugin-webrtc' in self.cargo_packages:
             self.cargo_features.append('gst-plugin-webrtc/v1_22')
+            self.cargo_features.append('gst-plugin-webrtc/whip')
 
         # The LIBRARY_PATH setting affects all invocations of GCC underneath
         # Cargo, in particular those that link build scripts (that are meant to

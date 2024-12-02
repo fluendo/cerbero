@@ -1305,6 +1305,7 @@ class Cargo(Build, ModifyEnvBase):
     def get_cargo_args(self):
         args = self.cargo_args[:]
         if self.cargo_features:
+            args += ['--no-default-features']
             args += ['--features=' + ','.join(self.cargo_features)]
         for package in self.cargo_packages:
             args += ['-p', package]
