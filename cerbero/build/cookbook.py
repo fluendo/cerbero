@@ -19,7 +19,7 @@
 from collections import defaultdict
 import os
 import pickle
-import imp
+import importlib as imp
 import traceback
 import shutil
 

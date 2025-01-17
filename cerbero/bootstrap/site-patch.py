@@ -25,7 +25,7 @@ def __boot():
                 break
         else:
             try:
-                import imp  # Avoid import loop in Python 3
+                import importlib as imp  # Avoid import loop in Python 3
                 stream, path, descr = imp.find_module('site', [item])
             except ImportError:
                 continue

@@ -17,7 +17,7 @@
 # Boston, MA 02111-1307, USA.
 
 import os
-import imp
+import importlib as imp
 import traceback
 from collections import defaultdict
 
