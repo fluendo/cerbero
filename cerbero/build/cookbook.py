@@ -19,7 +19,6 @@
 from collections import defaultdict
 import os
 import pickle
-import imp
 import traceback
 import shutil
 
@@ -28,7 +27,7 @@ from cerbero.config import CONFIG_DIR, Platform, Architecture, Distro,\
 from cerbero.build.build import BuildType
 from cerbero.build.source import SourceType
 from cerbero.errors import FatalError, RecipeNotFoundError, InvalidRecipeError
-from cerbero.utils import _, shell, parse_file, run_until_complete
+from cerbero.utils import _, shell, parse_file, run_until_complete, imp_load_source
 from cerbero.utils import messages as m
 from cerbero.utils.manifest import Manifest
 from cerbero.build import recipe as crecipe
@@ -498,7 +497,7 @@ class CookBook (object):
         custom = None
         m_path = os.path.join(repo, 'custom.py')
         if os.path.exists(m_path):
-            custom = imp.load_source('custom', m_path)
+            custom = imp_load_source('custom', m_path)
             custom.GStreamer.using_manifest_force_git = self._config.manifest is not None
         for f in recipes_files:
             # Try to load the custom.py module located in the recipes dir

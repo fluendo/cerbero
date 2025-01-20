@@ -25,15 +25,15 @@ def __boot():
                 break
         else:
             try:
-                import imp  # Avoid import loop in Python 3
-                stream, path, descr = imp.find_module('site', [item])
+                from cerbero.utils import _, imp_find_module, imp_load_module  # Avoid import loop in Python 3
+                stream, path, descr = imp_find_module('site', [item])
             except ImportError:
                 continue
             if stream is None:
                 continue
             try:
                 # This should actually reload the current module
-                imp.load_module('site', stream, path, descr)
+                imp_load_module('site', stream, path, descr)
             finally:
                 stream.close()
             break
