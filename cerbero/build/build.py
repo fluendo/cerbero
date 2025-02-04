@@ -671,7 +671,7 @@ class Meson (Build, ModifyEnvBase) :
         if not self.make:
             self.make = 'ninja -v -d keeprsp'
         if not self.make_install:
-            self.make_install = self.make + ' install --skip-subprojects'
+            self.make_install = self.make + ' install'
         if not self.make_uninstall:
             self.make_uninstall = self.make + ' uninstall'
         if not self.make_check:
