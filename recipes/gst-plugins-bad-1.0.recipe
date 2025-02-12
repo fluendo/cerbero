@@ -620,7 +620,6 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('dtsdec', 'codecs_restricted', option='dts', dep='libdca')
             self.disable_plugin('dtls', 'net')
             self.disable_plugin('hls', 'codecs')
-            self.disable_plugin('isac', 'effects')
             self.disable_plugin('ladspa', 'effects', dep='ladspa')
             self.disable_plugin('openjpeg', 'codecs', dep='openjpeg')
             self.disable_plugin('openh264', 'codecs', dep='openh264')
