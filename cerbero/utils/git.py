@@ -234,7 +234,7 @@ async def async_get_hash(config, git_dir, commit, remotes=None):
                 return commit
         else:
             raise Exception('Cannot retrieve hash of a commit without cloning or knowing the remote')
-    output = await shell.async_check_output('%s rev-parse %s' %
+    output = await shell.async_check_output('%s rev-parse -- %s' %
                             (GIT, commit), git_dir, env=env)
     return output.rstrip()
 
