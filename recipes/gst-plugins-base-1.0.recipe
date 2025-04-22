@@ -190,6 +190,17 @@ class Recipe(custom.GStreamer):
             self.meson_options['tools'] = 'disabled'
             self.meson_options['nls'] = 'disabled'
 
+            if self.config.variants.hbbtv:
+                self.deps.remove('orc')
+                self.meson_options['debug'] = 'false'
+                self.meson_options['optimization'] = 's'
+                self.meson_options['glib_assert'] = 'disabled'
+                self.meson_options['glib_checks'] = 'disabled'
+                self.meson_options['glib_debug'] = 'disabled'
+                self.meson_options['orc'] = 'disabled'
+                self.meson_options['gobject-cast-checks'] = 'disabled'
+                self.meson_options['gobject-cast-checks'] = 'disabled'
+
         if self.using_uwp():
             # All these can be ported to Meson/UWP
             self.disable_plugin('ogg', 'codecs', dep='libogg')
