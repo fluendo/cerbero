@@ -107,6 +107,7 @@ class Variants(object):
         'vaapi',
         'rust',
         'qt6',
+        'hbbtv'
     ]
     __enabled_variants = ['debug', 'optimization', 'testspackage', 'assert', 'checks']
     __bool_variants = __enabled_variants + __disabled_variants
