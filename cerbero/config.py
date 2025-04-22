@@ -112,6 +112,7 @@ class Variants(object):
         'rust',
         'qt6',
         'gtk',
+        'hbbtv'
     ]
     __enabled_variants = ['debug', 'optimization', 'testspackage', 'assert', 'checks']
     __bool_variants = __enabled_variants + __disabled_variants
