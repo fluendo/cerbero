@@ -17,3 +17,7 @@ class Recipe(custom.GStreamer):
             self.append_env('CFLAGS', '-Wno-deprecated-declarations')
         if self.config.variants.nodebug:
             self.append_env('CFLAGS', '-DGST_LEVEL_MAX=GST_LEVEL_FIXME')
+
+        if self.config.variants.hbbtv and self.config.target_platform == Platform.WEB:
+            self.meson_options['debug'] = 'false'
+            self.meson_options['optimization'] = 's'

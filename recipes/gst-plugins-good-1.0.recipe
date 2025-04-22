@@ -254,6 +254,16 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('soup', 'net', dep='libsoup')
             self.disable_plugin('taglib', 'codecs', dep='taglib')
             self.disable_plugin('wavpack', 'codecs', dep='wavpack')
+            if self.config.variants.hbbtv:
+                self.deps.remove('orc')
+                self.meson_options['orc'] = 'disabled'
+                self.meson_options['debug'] = 'false'
+                self.meson_options['optimization'] = 's'
+                self.meson_options['glib_assert'] = 'disabled'
+                self.meson_options['glib_checks'] = 'disabled'
+                self.meson_options['glib_debug'] = 'disabled'
+                self.meson_options['gobject-cast-checks'] = 'disabled'
+                self.meson_options['gobject-cast-checks'] = 'disabled'
 
         self.enable_plugin('video4linux2', 'capture', variant='v4l2', option='v4l2')
         self.enable_plugin('ximagesrc', 'capture', variant='x11')
