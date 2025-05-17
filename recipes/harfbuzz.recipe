@@ -28,6 +28,8 @@ class Recipe(recipe.Recipe):
     files_typelibs = ['HarfBuzz-0.0']
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         if self.config.target_platform == Platform.DARWIN:
             self.meson_options['coretext'] = 'enabled'
 

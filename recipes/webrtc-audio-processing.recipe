@@ -24,6 +24,8 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         if self.config.target_platform == Platform.ANDROID:
             # TODO add --enable-neon=runtime, there is a conflict with cerbero
             # that defines -mfpu=vfp... plus webrtc-audio-processing build

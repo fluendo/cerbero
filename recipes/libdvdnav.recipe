@@ -16,3 +16,7 @@ class Recipe(recipe.Recipe):
 
     files_libs = ['libdvdnav']
     files_devel = ['include/dvdnav', '%(libdir)s/pkgconfig/dvdnav.pc']
+
+    def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')

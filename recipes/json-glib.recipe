@@ -20,6 +20,8 @@ class Recipe(recipe.Recipe):
     patches = []
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         if self.config.platform == Platform.WINDOWS:
             # COPYING is a symlink
             self.force_tarfile = True
