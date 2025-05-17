@@ -12,6 +12,10 @@ class Recipe(recipe.Recipe):
     files_libs = ['libffi']
     files_devel = ['include/ffi*.h', '%(libdir)s/pkgconfig/libffi.pc']
 
+    def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Invalid platform')
+
     def post_install(self):
         libtool_la = LibtoolLibrary('ffi', 7, None, None, self.config.libdir,
                 self.config.target_platform)
