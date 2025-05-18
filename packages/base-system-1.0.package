@@ -26,6 +26,14 @@ class Package(custom.GStreamer, package.Package):
         }
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            self.files.remove('cairo:libs')
+            self.files.remove('fontconfig:libs:etc')
+            self.files.remove('gdk-pixbuf:bins:libs:modules:lang')
+            self.files.remove('harfbuzz:libs')
+            self.files.remove('json-glib:bins:libs')
+            self.files.remove('pango:libs:modules')
+
         if self.config.variants.gi:
             self.files.append('gobject-introspection:libs:typelibs')
 
