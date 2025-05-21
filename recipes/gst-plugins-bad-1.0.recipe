@@ -616,7 +616,6 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('aes', 'effects')
             self.disable_plugin('assrender', 'codecs', dep='libass')
             self.disable_plugin('closedcaption', 'effects', dep='pango')
-            self.disable_plugin('dash', 'codecs', dep='libxml2')
             self.disable_plugin('dtsdec', 'codecs_restricted', option='dts', dep='libdca')
             self.disable_plugin('dtls', 'net')
             self.disable_plugin('hls', 'codecs')
@@ -630,7 +629,7 @@ class Recipe(custom.GStreamer):
             self.meson_options['sctp-internal-usrsctp'] = 'disabled'
             self.disable_plugin('soundtouch', 'effects', dep='soundtouch')
             self.disable_plugin('spandsp', 'codecs', dep='spandsp')
-            self.disable_plugin('smoothstreaming', 'codecs', dep='libxml2')
+            self.disable_plugin('smoothstreaming', 'codecs')
             self.disable_plugin('srt', 'net', dep='srt')
             self.disable_plugin('voaacenc', 'codecs_restricted', dep='vo-aacenc')
             self.disable_plugin('webrtc', 'net', dep='webrtc-audio-processing')
