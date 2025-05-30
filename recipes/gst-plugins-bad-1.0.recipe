@@ -638,6 +638,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('x265', 'codecs', dep='x265')
             self.disable_plugin('zbar', 'codecs', dep='zbar')
             self.disable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
+            self.enable_plugin('lcevcdecoder', 'codecs', dep=['lcevc_dec'])
             self.meson_options['qroverlay'] = 'disabled'
             self.meson_options['nls'] = 'disabled'
 
