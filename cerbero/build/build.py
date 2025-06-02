@@ -1049,6 +1049,7 @@ class Meson(Build, ModifyEnvBase):
         system = self.config.target_platform
         if self.config.target_distro == Distro.EMSCRIPTEN:
             system = 'emscripten'
+            extra_binaries += "exe_wrapper = ['node']\n"
 
         contents = MESON_FILE_TPL.format(
             system=system,
