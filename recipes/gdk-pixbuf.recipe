@@ -24,6 +24,8 @@ class Recipe(recipe.Recipe):
     files_typelibs = ['GdkPixbuf-2.0']
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         if self.config.platform == Platform.WINDOWS:
             # tar and bstar fail extracting files with symbolic links for this
             # file when running on Windows

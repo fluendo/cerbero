@@ -24,6 +24,8 @@ class Recipe(recipe.Recipe):
     files_devel = []
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         # Glib doesn't support static libraries on Windows yet
         if self.config.target_platform == Platform.WINDOWS:
             self.library_type = LibraryType.SHARED

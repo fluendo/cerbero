@@ -40,6 +40,8 @@ class Recipe(recipe.Recipe):
     }
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         # extra flags needed for gcc 4.9
         if self.config.target_distro == Distro.ARCH:
             self.append_env('CFLAGS', '-fno-lto')

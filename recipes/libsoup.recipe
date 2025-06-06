@@ -27,6 +27,10 @@ class Recipe(recipe.Recipe):
     files_devel = ['include/libsoup-3.0', '%(libdir)s/pkgconfig/libsoup-3.0.pc']
     files_typelibs = ['Soup-3.0']
 
+    def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
+
     def post_install(self):
         soup_deps = ['gio-2.0', 'gmodule-2.0', 'gobject-2.0', 'glib-2.0',
                      'ffi', 'xml2', 'psl', 'z', 'nghttp2']

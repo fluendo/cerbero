@@ -34,6 +34,9 @@ class Recipe(recipe.Recipe):
     ]
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
+
         if self.config.target_platform == Platform.WINDOWS:
             # Allow using Win10 APIs if dwrite_3.h is found
             self.append_env('CFLAGS', '-U_WIN32_WINNT')

@@ -27,6 +27,11 @@ class Package(custom.GStreamer, package.Package):
             'gst-plugins-bad-1.0:plugins_effects_devel']
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            self.files.remove('json-glib:libs')
+            self.files.remove('soundtouch:libs')
+            self.files.remove('webrtc-audio-processing:libs')
+
         if self.config.variants.uwp:
             self.files.remove('ladspa:libs')
 
@@ -34,5 +39,5 @@ class Package(custom.GStreamer, package.Package):
             self.files.append('gst-plugins-rs:plugins_effects')
             self.files_devel.append('gst-plugins-rs:plugins_effects_devel')
 
-        if self.config.target_platform not in [Platform.IOS, Platform.ANDROID]:
+        if self.config.target_platform not in [Platform.IOS, Platform.ANDROID, Platform.WEB]:
             self.files.append('frei0r-plugins:plugins')

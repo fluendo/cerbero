@@ -36,6 +36,8 @@ class Recipe(recipe.Recipe):
     files_devel = ['include/libproxy', '%(libdir)s/pkgconfig/libproxy-1.0.pc']
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
         if self.config.target_platform == Platform.IOS:
             # https://github.com/libproxy/libproxy/pull/284
             self.meson_options['config-osx'] = 'false'
@@ -44,4 +46,3 @@ class Recipe(recipe.Recipe):
         LibtoolLibrary('libproxy', None, None, None, self.config.libdir,
                 self.config.target_platform).save()
         super().post_install()
-

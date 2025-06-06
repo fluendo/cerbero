@@ -27,6 +27,9 @@ class Recipe(custom.GStreamer):
     ]
 
     def prepare(self):
+        if self.config.target_platform == Platform.WEB:
+            raise InvalidRecipeError(self, 'Web platform not supported')
+
         if self.config.target_platform == Platform.LINUX:
             self.files_libs.append("libgstvalidate-default-overrides-1.0")
 
