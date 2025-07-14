@@ -603,7 +603,7 @@ class Recipe(custom.GStreamer):
                 '%(libdir)s/pkgconfig/gstreamer-cuda-1.0.pc',
             ]
 
-        if not Platform.is_mobile(self.config.target_platform):
+        if not Platform.is_mobile(self.config.target_platform) and self.config.target_platform != Platform.WEB:
             if self.config.target_platform == Platform.LINUX and not self.config.cross_compiling():
                 self.enable_plugin('curl', 'net')
             else:
