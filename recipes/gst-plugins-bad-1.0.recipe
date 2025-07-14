@@ -628,7 +628,7 @@ class Recipe(custom.GStreamer):
                 'GstHipGL-1.0',
             ]
 
-        if not Platform.is_app_platform(self.config.target_platform):
+        if not Platform.is_app_platform(self.config.target_platform) and self.config.target_platform != Platform.WEB:
             self.enable_plugin('curl', 'net', dep='curl')
 
         if self.config.target_platform not in (Platform.ANDROID, Platform.WINDOWS):
