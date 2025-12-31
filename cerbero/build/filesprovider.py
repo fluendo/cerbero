@@ -217,6 +217,7 @@ class FilesProvider(object):
             'smext': '.a',
             'pext': '.so',
             'srext': '.dylib',
+            'debugext': None,
         },
     }
 
