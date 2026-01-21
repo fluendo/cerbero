@@ -26,11 +26,10 @@ from cerbero.utils import shell
 import os.path
 import shutil
 
-EMSDK_VERSION = '4.0.6'
+EMSDK_VERSION = '4.0.22'
 EMSDK_BUNDLE_EXT = '.tar.gz'
 EMSDK_BASE_URL = 'https://github.com/emscripten-core/emsdk/archive/refs/tags/%s' + EMSDK_BUNDLE_EXT
-EMSDK_CHECKSUMS = {'4.0.6' + EMSDK_BUNDLE_EXT: '2d3292d508b4f5477f490b080b38a34aaefed43e85258a1de72cb8dde3f8f3af'}
-
+EMSDK_CHECKSUMS = {'4.0.22' + EMSDK_BUNDLE_EXT: '8f5e26de5c103c41ae04411e1be1ffc17983fb368343b15102a1859b3aa64626'}
 
 class EmscriptenToolchainBootstrapper(BootstrapperBase):
     """
