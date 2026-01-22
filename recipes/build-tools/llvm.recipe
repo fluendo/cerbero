@@ -1,0 +1,11 @@
+class Recipe(recipe.Recipe):
+    # This custom recipe fetches pre-built binaries from the gst.wasm/emsdk/4.0.22 branch, containing:
+    # - https://github.com/llvm/llvm-project at 4.0.22 tag, plus
+    # - commits in https://github.com/llvm/llvm-project/pull/153168
+    name = 'llvm'
+    btype = BuildType.CUSTOM
+    url = 'https://drive.usercontent.google.com/download?id=1UnsTddyyrHE4DD6vPmwCeGq8wLquNFY2&confirm=t'
+    tarball_name = "llvm.zip"
+    tarball_checksum = '1d47cc22bf2f00480cd7ec2e782c00fad9480c0fd844610951b827eb408f3ec2'
+    tarball_is_bomb = True
+    version = '0'
