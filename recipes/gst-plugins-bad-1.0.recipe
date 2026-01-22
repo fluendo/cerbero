@@ -684,6 +684,7 @@ class Recipe(custom.GStreamer):
             self.disable_plugin('zbar', 'codecs', dep='zbar')
             self.disable_plugin('qroverlay', 'effects', dep=['qrencode', 'json-glib'])
             self.meson_options['qroverlay'] = 'disabled'
+            self.meson_options['mse'] = 'disabled'
             self.meson_options['nls'] = 'disabled'
 
         if self.using_msvc() and self.config.cross_compiling():
