@@ -77,6 +77,8 @@ class BuildTools(BootstrapperBase, Fetch):
             self.BUILD_TOOLS.append('glib-tools')
         if self.config.target_platform == Platform.WINDOWS and self.config.platform == Platform.LINUX:
             self.BUILD_TOOLS.append('wix')
+        if self.config.target_platform == Platform.WEB:
+            self.BUILD_TOOLS.append('llvm')
 
         if self.config.variants.rust:
             self.BUILD_TOOLS.append('dragonfire')
