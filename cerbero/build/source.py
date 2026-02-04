@@ -153,20 +153,37 @@ class Source(object):
     def parse_wrap(self, wrap_file):
         # TODO: Switch this to the tomllib module when we require Python 3.11
         items = {}
+        wrap_type = None
         with open(wrap_file, 'r') as f:
             line = f.readline()
-            if not line.startswith('[wrap-file]'):
-                raise FatalError('Only wrap-file meson wraps are supported at present')
+            if line.startswith('[wrap-file]'):
+                wrap_type = 'file'
+            elif line.startswith('[wrap-git]'):
+                wrap_type = 'git'
+            else:
+                raise FatalError(f'Unsupported wrap type in {wrap_file}. Only wrap-file and wrap-git are supported.')
             line = f.readline().rstrip()
             while line:
+                # Skip empty lines and section headers
+                if not line or line.startswith('['):
+                    line = f.readline().rstrip()
+                    continue
                 # Just enforce a whitespace style for wraps for now
+                if ' = ' not in line:
+                    line = f.readline().rstrip()
+                    continue
                 key, value = line.split(' = ', maxsplit=1)
                 items[key] = value
                 line = f.readline().rstrip()
-        assert items['directory']
-        assert items['source_url']
-        assert items['source_filename']
-        assert items['source_hash']
+        items['wrap_type'] = wrap_type
+        if wrap_type == 'file':
+            assert items.get('directory')
+            assert items.get('source_url')
+            assert items.get('source_filename')
+            assert items.get('source_hash')
+        elif wrap_type == 'git':
+            assert items.get('url')
+            assert items.get('revision')
         return items
 
     async def meson_subprojects_download(self, downloads, logfile):
@@ -184,59 +201,112 @@ class Source(object):
             )
             self.verify(fpath, fhash)
 
+    async def meson_subprojects_git_fetch(self, git_subprojects, logfile):
+        """
+        Fetch git-based meson subprojects
+        
+        @param git_subprojects: list of tuples (subproj_name, url, revision, depth, directory)
+        @param logfile: logfile for logging
+        """
+        subprojects = []
+        for subproj_name, _, _, _, _ in git_subprojects:
+            subprojects.append(subproj_name)
+        m.log(f'Fetching git meson subprojects: {", ".join(subprojects)}', logfile=logfile)
+        
+        subproj_dir = os.path.join(self.src_dir, 'subprojects')
+        for subproj_name, url, revision, depth, directory in git_subprojects:
+            # Use directory name if specified, otherwise use subproject name
+            checkout_dir = os.path.join(subproj_dir, directory if directory else subproj_name)
+            
+            # If directory already exists and is a git repo, skip
+            if os.path.exists(checkout_dir) and os.path.exists(os.path.join(checkout_dir, '.git')):
+                m.log(f'Git subproject {subproj_name} already exists at {checkout_dir}', logfile=logfile)
+                continue
+                
+            # Clone the repository
+            m.log(f'Cloning {url} to {checkout_dir}', logfile=logfile)
+            git_args = ['clone']
+            if depth:
+                git_args.extend(['--depth', str(depth)])
+            git_args.extend([url, checkout_dir])
+            
+            await shell.async_call(['git'] + git_args, logfile=logfile)
+            
+            # Checkout the specified revision
+            if revision and revision != 'HEAD':
+                m.log(f'Checking out revision {revision} for {subproj_name}', logfile=logfile)
+                await git.checkout(checkout_dir, revision, logfile=logfile)
+
+
     async def meson_subprojects_extract(self, offline):
         logfile = get_logfile(self)
         subproj_dir = os.path.join(self.src_dir, 'subprojects')
         # subproj_name: (url, filepath, directory, filehash)
         downloads = []
+        git_subprojects = []
         for subproj_name in self.meson_subprojects:
             wrap_file = os.path.join(subproj_dir, f'{subproj_name}.wrap')
             m.log(f'Parsing wrap file {wrap_file}', logfile=logfile)
             items = self.parse_wrap(wrap_file)
-            fpath = self._get_download_path(items['source_filename'])
-            downloads.append(
-                (
-                    subproj_name,
-                    (
-                        (items['source_url'], items.get('source_fallback_url', None)),
-                        fpath,
-                        items['source_hash'],
-                    ),
-                )
-            )
-            if 'patch_url' in items:
-                fpath = self._get_download_path(items['patch_filename'])
+            
+            if items['wrap_type'] == 'file':
+                # Handle wrap-file type
+                fpath = self._get_download_path(items['source_filename'])
                 downloads.append(
                     (
                         subproj_name,
                         (
-                            (items['patch_url'], None),
+                            (items['source_url'], items.get('source_fallback_url', None)),
                             fpath,
-                            items['patch_hash'],
+                            items['source_hash'],
                         ),
                     )
                 )
+                if 'patch_url' in items:
+                    fpath = self._get_download_path(items['patch_filename'])
+                    downloads.append(
+                        (
+                            subproj_name,
+                            (
+                                (items['patch_url'], None),
+                                fpath,
+                                items['patch_hash'],
+                            ),
+                        )
+                    )
+            elif items['wrap_type'] == 'git':
+                # Handle wrap-git type
+                url = items['url']
+                revision = items['revision']
+                depth = items.get('depth', None)
+                directory = items.get('directory', None)
+                git_subprojects.append((subproj_name, url, revision, depth, directory))
 
-        # Download, if not running in offline mode (or if we're fetching)
-        if not offline:
+        # Download file-based subprojects, if not running in offline mode (or if we're fetching)
+        if downloads and not offline:
             await self.meson_subprojects_download(downloads, logfile)
 
-        # Provide the subproject downloads, via symlink or a file copy
-        subprojects = []
-        for subproj_name, _ in downloads:
-            subprojects.append(subproj_name)
-        m.log(f'Providing meson subprojects: {", ".join(subprojects)}', logfile=logfile)
-        subproj_pkg_cache = os.path.join(subproj_dir, 'packagecache')
-        os.makedirs(subproj_pkg_cache, exist_ok=True)
-        for _, ((url, _), fpath, _) in downloads:
-            if not os.path.isfile(fpath):
-                raise FatalError(f"{url} is required and hasn't been downloaded yet")
-            fname = os.path.basename(fpath)
-            dst = os.path.join(subproj_pkg_cache, fname)
-            if self.config.platform != Platform.WINDOWS:
-                os.symlink(fpath, dst)
-            else:
-                shutil.copy(fpath, dst)
+        # Clone git-based subprojects, if not running in offline mode (or if we're fetching)
+        if git_subprojects and not offline:
+            await self.meson_subprojects_git_fetch(git_subprojects, logfile)
+
+        # Provide the file-based subproject downloads, via symlink or a file copy
+        if downloads:
+            subprojects = []
+            for subproj_name, _ in downloads:
+                subprojects.append(subproj_name)
+            m.log(f'Providing meson subprojects: {", ".join(subprojects)}', logfile=logfile)
+            subproj_pkg_cache = os.path.join(subproj_dir, 'packagecache')
+            os.makedirs(subproj_pkg_cache, exist_ok=True)
+            for _, ((url, _), fpath, _) in downloads:
+                if not os.path.isfile(fpath):
+                    raise FatalError(f"{url} is required and hasn't been downloaded yet")
+                fname = os.path.basename(fpath)
+                dst = os.path.join(subproj_pkg_cache, fname)
+                if self.config.platform != Platform.WINDOWS:
+                    os.symlink(fpath, dst)
+                else:
+                    shutil.copy(fpath, dst)
 
     def expand_url_template(self, s):
         """
