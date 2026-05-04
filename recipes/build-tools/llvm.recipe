@@ -3,6 +3,7 @@ class Recipe(recipe.Recipe):
     # - https://github.com/llvm/llvm-project at 4.0.22 tag, plus
     # - commits in https://github.com/llvm/llvm-project/pull/153168
     name = 'llvm'
+    stype = SourceType.TARBALL
     btype = BuildType.CUSTOM
     url = 'https://drive.usercontent.google.com/download?id=1UnsTddyyrHE4DD6vPmwCeGq8wLquNFY2&confirm=t'
     tarball_name = "llvm.zip"
