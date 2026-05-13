@@ -645,7 +645,7 @@ class Recipe(custom.GStreamer):
                 self.append_env('CFLAGS', '-Wno-deprecated-declarations')
 
         # TODO: Vulkan support on Linux and Windows
-        if self.config.target_platform in (Platform.LINUX, Platform.WINDOWS):
+        if self.config.target_platform in (Platform.LINUX, Platform.WINDOWS, Platform.WEB):
             self.disable_plugin('vulkan', 'sys', library_name='vulkan')
 
         if Platform.is_app_platform(self.config.target_platform):
