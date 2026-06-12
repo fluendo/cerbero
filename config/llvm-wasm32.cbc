@@ -1,0 +1,7 @@
+import os
+from cerbero.config import Platform, Architecture, Distro, DistroVersion
+
+cache_file='llvm-wasm32'
+prefix=os.path.expanduser('~/llvm-wasm32/')
+sources=os.path.join(home_dir, 'sources', 'llvm-wasm32')
+recipes_dir = os.path.join(recipes_dir, '..', 'recipes-toolchain-wasm')

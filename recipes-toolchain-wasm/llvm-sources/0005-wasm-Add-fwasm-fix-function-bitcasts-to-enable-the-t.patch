@@ -1,0 +1,120 @@
+From dd8c3c20ccb8f6e8278f06c6d333167875ea3cc2 Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Wed, 3 Sep 2025 17:14:02 +0200
+Subject: [PATCH 5/7] [wasm] Add -fwasm-fix-function-bitcasts to enable the
+ thunk generation
+
+---
+ clang/include/clang/Basic/LangOptions.def              | 2 ++
+ clang/include/clang/Options/Options.td                 | 6 ++++++
+ clang/lib/CodeGen/CGCall.cpp                           | 3 ++-
+ clang/lib/CodeGen/CGExprConstant.cpp                   | 4 +++-
+ clang/lib/Driver/ToolChains/WebAssembly.cpp            | 4 ++++
+ clang/test/CodeGenWebAssembly/function-pointer-arg.c   | 2 +-
+ clang/test/CodeGenWebAssembly/function-pointer-field.c | 2 +-
+ 7 files changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/clang/include/clang/Basic/LangOptions.def b/clang/include/clang/Basic/LangOptions.def
+index 8cba1dbaee24..f866743a406e 100644
+--- a/clang/include/clang/Basic/LangOptions.def
++++ b/clang/include/clang/Basic/LangOptions.def
+@@ -507,6 +507,8 @@ LANGOPT(EnableLifetimeSafetyInference, 1, 0, NotCompatible, "Experimental lifeti
+ 
+ LANGOPT(PreserveVec3Type, 1, 0, NotCompatible, "Preserve 3-component vector type")
+ 
++LANGOPT(WasmFixFunctionBitcasts, 1, 0, Compatible, "Enable auto-generation of thunks for mismatched function pointer casts in WebAssembly")
++
+ #undef LANGOPT
+ #undef ENUM_LANGOPT
+ #undef VALUE_LANGOPT
+diff --git a/clang/include/clang/Options/Options.td b/clang/include/clang/Options/Options.td
+index c7caad8da1fd..8abb7d3ea6c8 100644
+--- a/clang/include/clang/Options/Options.td
++++ b/clang/include/clang/Options/Options.td
+@@ -9757,6 +9757,7 @@ def fhlsl_spv_enable_maximal_reconvergence
+                "well-defined merge points as defined by the Vulkan spec.">,
+       MarshallingInfoFlag<LangOpts<"HLSLSpvEnableMaximalReconvergence">>;
+ 
++// WebAssembly-only Options
+ def no_wasm_opt : Flag<["--"], "no-wasm-opt">,
+   Group<m_Group>,
+   HelpText<"Disable the wasm-opt optimizer">,
+@@ -9765,3 +9766,8 @@ def wasm_opt : Flag<["--"], "wasm-opt">,
+   Group<m_Group>,
+   HelpText<"Enable the wasm-opt optimizer (default)">,
+   MarshallingInfoNegativeFlag<LangOpts<"NoWasmOpt">>;
++def fwasm_fix_function_bitcasts : Flag<["-"], "fwasm-fix-function-bitcasts">,
++  Group<f_Group>,
++  HelpText<"Enable auto-generation of thunks for mismatched function pointer casts in WebAssembly">,
++  Visibility<[ClangOption, CC1Option]>,
++  MarshallingInfoFlag<LangOpts<"WasmFixFunctionBitcasts">>;
+\ No newline at end of file
+diff --git a/clang/lib/CodeGen/CGCall.cpp b/clang/lib/CodeGen/CGCall.cpp
+index 1e2ebc207d75..b411ac5e8950 100644
+--- a/clang/lib/CodeGen/CGCall.cpp
++++ b/clang/lib/CodeGen/CGCall.cpp
+@@ -4964,7 +4964,8 @@ void CodeGenFunction::EmitCallArg(CallArgList &args, const Expr *E,
+   // to properly handle function pointers args with a different signature.
+   // Due to opaque pointers, this can not be handled in LLVM
+   // (WebAssemblyFixFunctionBitcast) anymore
+-  if (CGM.getTriple().isWasm() && type->isFunctionPointerType()) {
++  if (CGM.getTriple().isWasm() && CGM.getLangOpts().WasmFixFunctionBitcasts &&
++      type->isFunctionPointerType()) {
+     if (const DeclRefExpr *DRE =
+             CGM.getTargetCodeGenInfo().getWasmFunctionDeclRefExpr(
+                 E, CGM.getContext())) {
+diff --git a/clang/lib/CodeGen/CGExprConstant.cpp b/clang/lib/CodeGen/CGExprConstant.cpp
+index 6b2e71da26d5..3a711f355d62 100644
+--- a/clang/lib/CodeGen/CGExprConstant.cpp
++++ b/clang/lib/CodeGen/CGExprConstant.cpp
+@@ -2242,7 +2242,9 @@ ConstantLValueEmitter::tryEmitBase(const APValue::LValueBase &base) {
+       // to properly handle function pointers args with a different signature
+       // Due to opaque pointers, this can not be handled in LLVM
+       // (WebAssemblyFixFunctionBitcast) anymore
+-      if (CGM.getTriple().isWasm() && DestType->isFunctionPointerType()) {
++      if (CGM.getTriple().isWasm() &&
++        CGM.getLangOpts().WasmFixFunctionBitcasts &&
++        DestType->isFunctionPointerType()) {
+         llvm::Function *Thunk =
+             CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
+                 CGM, C, D->getType(), DestType);
+diff --git a/clang/lib/Driver/ToolChains/WebAssembly.cpp b/clang/lib/Driver/ToolChains/WebAssembly.cpp
+index 15c6f19e87fe..6265a2d303dc 100644
+--- a/clang/lib/Driver/ToolChains/WebAssembly.cpp
++++ b/clang/lib/Driver/ToolChains/WebAssembly.cpp
+@@ -412,6 +412,10 @@ void WebAssembly::addClangTargetOptions(const ArgList &DriverArgs,
+     CC1Args.push_back("-wasm-enable-eh");
+   }
+ 
++  if (DriverArgs.getLastArg(options::OPT_fwasm_fix_function_bitcasts)) {
++    CC1Args.push_back("-fwasm-fix-function-bitcasts");
++  }
++
+   for (const Arg *A : DriverArgs.filtered(options::OPT_mllvm)) {
+     StringRef Opt = A->getValue(0);
+     if (Opt.starts_with("-emscripten-cxx-exceptions-allowed")) {
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-arg.c b/clang/test/CodeGenWebAssembly/function-pointer-arg.c
+index ff7b4186bbf7..4ca85f11fe15 100644
+--- a/clang/test/CodeGenWebAssembly/function-pointer-arg.c
++++ b/clang/test/CodeGenWebAssembly/function-pointer-arg.c
+@@ -1,5 +1,5 @@
+ // REQUIRES: webassembly-registered-target
+-// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -o - %s | FileCheck %s
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -fwasm-fix-function-bitcasts -o - %s | FileCheck %s
+ 
+ // Test of function pointer bitcast in a function argument with different argument number in wasm32
+ 
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-field.c b/clang/test/CodeGenWebAssembly/function-pointer-field.c
+index 103a265ebf5f..8c8424dc922e 100644
+--- a/clang/test/CodeGenWebAssembly/function-pointer-field.c
++++ b/clang/test/CodeGenWebAssembly/function-pointer-field.c
+@@ -1,5 +1,5 @@
+ // REQUIRES: webassembly-registered-target
+-// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -o - %s | FileCheck %s
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -fwasm-fix-function-bitcasts -o - %s | FileCheck %s
+ 
+ // Test of function pointer bitcast in a struct field with different argument number in wasm32
+ 
+-- 
+2.43.0
+

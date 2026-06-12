@@ -1,0 +1,6 @@
+class Recipe(recipe.Recipe):
+    name = 'toolchain'
+    version = '22.0.0'
+    stype = SourceType.CUSTOM
+    btype = BuildType.CUSTOM
+    deps = ['llvm']
