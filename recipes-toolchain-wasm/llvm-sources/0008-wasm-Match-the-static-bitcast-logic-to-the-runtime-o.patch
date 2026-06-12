@@ -1,0 +1,51 @@
+From 7827a3f29e22f0f3b8d79335c8cd45e41d68a88b Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Tue, 16 Jun 2026 22:24:40 +0200
+Subject: [PATCH 8/9] [wasm] Match the static bitcast logic to the runtime one
+
+---
+ clang/lib/CodeGen/Targets/WebAssembly.cpp | 21 ++++++++++++++++++---
+ 1 file changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/clang/lib/CodeGen/Targets/WebAssembly.cpp b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+index b685056f9a3d..8d24c16bb7f0 100644
+--- a/clang/lib/CodeGen/Targets/WebAssembly.cpp
++++ b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+@@ -140,8 +140,23 @@ public:
+                                                 ->getPointeeType()
+                                                 ->getAs<FunctionProtoType>();
+ 
+-    // This should only work for different number of arguments
+-    if (DstProtoType->getNumParams() <= SrcProtoType->getNumParams())
++    // Check parameter counts: source must have same or fewer params than destination
++    unsigned SrcParams = SrcProtoType->getNumParams();
++    unsigned DstParams = DstProtoType->getNumParams();
++
++    if (SrcParams > DstParams)
++      return nullptr;  // Can't remove parameters
++
++    // Check return types: we can discard a return value but cannot invent one
++    QualType SrcRetTy = SrcProtoType->getReturnType();
++    QualType DstRetTy = DstProtoType->getReturnType();
++    bool sameReturnType = CGM.getContext().hasSameType(SrcRetTy, DstRetTy);
++
++    if (!DstRetTy->isVoidType() && !sameReturnType)
++      return nullptr;  // Can't invent return values
++
++    // Reject if signatures are identical (no adaptation needed)
++    if (SrcParams == DstParams && sameReturnType)
+       return nullptr;
+ 
+     // Get the llvm function types
+@@ -193,7 +208,7 @@ public:
+     } else {
+       llvm::Value *Ret = Call;
+       if (Ret->getType() != ThunkRetTy)
+-        Ret = Builder.CreateBitCast(Ret, ThunkRetTy);
++        Ret = Builder.CreateBitOrPointerCast(Ret, ThunkRetTy);
+       Builder.CreateRet(Ret);
+     }
+     LLVM_DEBUG(llvm::dbgs() << "getOrCreateWasmFunctionPointerThunk:"
+-- 
+2.43.0
+

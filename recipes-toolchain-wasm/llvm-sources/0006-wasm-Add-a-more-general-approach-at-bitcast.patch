@@ -1,0 +1,210 @@
+From 00b342ed457e0ebdde3070ea3dae0a47545a199e Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Tue, 7 Apr 2026 01:52:05 +0200
+Subject: [PATCH 6/9] [wasm] Add a more general approach at bitcast
+
+---
+ clang/lib/CodeGen/CGCall.cpp                  | 21 ----------
+ clang/lib/CodeGen/CGExprScalar.cpp            | 21 ++++++++++
+ clang/lib/CodeGen/Targets/WebAssembly.cpp     | 38 ++++++++++---------
+ .../function-pointer-local.c                  | 28 ++++++++++++++
+ .../function-pointer-void-assign.c            | 24 ++++++++++++
+ 5 files changed, 93 insertions(+), 39 deletions(-)
+ create mode 100644 clang/test/CodeGenWebAssembly/function-pointer-local.c
+ create mode 100644 clang/test/CodeGenWebAssembly/function-pointer-void-assign.c
+
+diff --git a/clang/lib/CodeGen/CGCall.cpp b/clang/lib/CodeGen/CGCall.cpp
+index b411ac5e8950..4a9025b6e0b0 100644
+--- a/clang/lib/CodeGen/CGCall.cpp
++++ b/clang/lib/CodeGen/CGCall.cpp
+@@ -4960,27 +4960,6 @@ void CodeGenFunction::EmitCallArg(CallArgList &args, const Expr *E,
+     return;
+   }
+ 
+-  // For WebAssembly target we need to create thunk functions
+-  // to properly handle function pointers args with a different signature.
+-  // Due to opaque pointers, this can not be handled in LLVM
+-  // (WebAssemblyFixFunctionBitcast) anymore
+-  if (CGM.getTriple().isWasm() && CGM.getLangOpts().WasmFixFunctionBitcasts &&
+-      type->isFunctionPointerType()) {
+-    if (const DeclRefExpr *DRE =
+-            CGM.getTargetCodeGenInfo().getWasmFunctionDeclRefExpr(
+-                E, CGM.getContext())) {
+-      llvm::Value *V = EmitLValue(DRE).getPointer(*this);
+-      llvm::Function *Thunk =
+-          CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
+-              CGM, V, DRE->getDecl()->getType(), type);
+-      if (Thunk) {
+-        RValue R = RValue::get(Thunk);
+-        args.add(R, type);
+-        return;
+-      }
+-    }
+-  }
+-
+   args.add(EmitAnyExprToTemp(E), type);
+ }
+ 
+diff --git a/clang/lib/CodeGen/CGExprScalar.cpp b/clang/lib/CodeGen/CGExprScalar.cpp
+index b4daaef95bb8..f36440a6b57c 100644
+--- a/clang/lib/CodeGen/CGExprScalar.cpp
++++ b/clang/lib/CodeGen/CGExprScalar.cpp
+@@ -2502,6 +2502,27 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
+   case CK_BlockPointerToObjCPointerCast:
+   case CK_AnyPointerToBlockPointerCast:
+   case CK_BitCast: {
++    // For WebAssembly, intercept function pointer bitcasts to a type with a
++    // different number of arguments and generate a thunk instead.  This is
++    // necessary because WebAssembly enforces strict call-site/callee signature
++    // matching at runtime.  The fix is gated on -fwasm-fix-function-bitcasts
++    // and only triggers when the source expression can be statically traced
++    // back to a concrete function declaration.
++    if (CGF.CGM.getTriple().isWasm() &&
++        CGF.CGM.getLangOpts().WasmFixFunctionBitcasts &&
++        DestTy->isFunctionPointerType()) {
++      if (const DeclRefExpr *DRE =
++              CGF.CGM.getTargetCodeGenInfo().getWasmFunctionDeclRefExpr(
++                  E, CGF.CGM.getContext())) {
++        llvm::Value *V = EmitLValue(DRE).getPointer(CGF);
++        llvm::Function *Thunk =
++            CGF.CGM.getTargetCodeGenInfo().getOrCreateWasmFunctionPointerThunk(
++                CGF.CGM, V, DRE->getDecl()->getType(), DestTy);
++        if (Thunk)
++          return Thunk;
++      }
++    }
++
+     Value *Src = Visit(E);
+     llvm::Type *SrcTy = Src->getType();
+     llvm::Type *DstTy = ConvertType(DestTy);
+diff --git a/clang/lib/CodeGen/Targets/WebAssembly.cpp b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+index 1bbc9ba4311f..3fc2693a11e1 100644
+--- a/clang/lib/CodeGen/Targets/WebAssembly.cpp
++++ b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+@@ -374,18 +374,21 @@ const DeclRefExpr *WebAssemblyTargetCodeGenInfo::findDeclRefExprForVarDown(
+   if (!Parent)
+     return nullptr;
+ 
+-  // Find down every assignment of V
+-  // FIXME we need to stop before the expression where V is used
++  // Find down every assignment of V.
++  // Standalone expression statements appear as Expr nodes directly under the
++  // CompoundStmt, so cast each child to Expr (if possible) and check for
++  // a BinaryOperator assignment.
+   const BinaryOperator *A = nullptr;
+   for (const Stmt *Child : Parent->children()) {
+-    if (const auto *BO = dyn_cast_or_null<BinaryOperator>(Child)) {
+-      if (!BO->isAssignmentOp())
+-        continue;
+-      auto *LHS = llvm::dyn_cast<DeclRefExpr>(BO->getLHS());
+-      if (LHS && LHS->getDecl() == V) {
+-        A = BO;
+-      }
+-    }
++    const auto *BO = dyn_cast_or_null<BinaryOperator>(Child);
++    if (!BO)
++      if (const auto *E = dyn_cast_or_null<Expr>(Child))
++        BO = dyn_cast<BinaryOperator>(E->IgnoreParenCasts());
++    if (!BO || !BO->isAssignmentOp())
++      continue;
++    auto *LHS = llvm::dyn_cast<DeclRefExpr>(BO->getLHS());
++    if (LHS && LHS->getDecl() == V)
++      A = BO;
+   }
+ 
+   // We have an assignment of the Var, recurse in it
+@@ -398,20 +401,19 @@ const DeclRefExpr *WebAssemblyTargetCodeGenInfo::findDeclRefExprForVarDown(
+ 
+ const DeclRefExpr *WebAssemblyTargetCodeGenInfo::findDeclRefExprForVarUp(
+     const Expr *E, const VarDecl *V, ASTContext &Ctx) const {
+-  const clang::Stmt *cur = E;
+-  while (cur) {
+-    auto parents = Ctx.getParentMapContext().getParents(*cur);
++  // Use a DynTypedNode to walk parents, since a Stmt may be parented by a Decl
++  // (e.g. a VarDecl initializer) and get<Stmt>() would return nullptr there.
++  auto cur = clang::DynTypedNode::create(*E);
++  while (true) {
++    auto parents = Ctx.getParentMapContext().getParents(cur);
+     if (parents.empty())
+       break;
+-    const clang::Stmt *parentStmt = parents[0].get<clang::Stmt>();
+-    if (!parentStmt)
+-      break;
+-    if (const auto *CS = dyn_cast<clang::CompoundStmt>(parentStmt)) {
++    cur = parents[0];
++    if (const auto *CS = cur.get<clang::CompoundStmt>()) {
+       const DeclRefExpr *DRE = findDeclRefExprForVarDown(CS, V, Ctx);
+       if (DRE)
+         return DRE;
+     }
+-    cur = parentStmt;
+   }
+   return nullptr;
+ }
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-local.c b/clang/test/CodeGenWebAssembly/function-pointer-local.c
+new file mode 100644
+index 000000000000..6320832abd19
+--- /dev/null
++++ b/clang/test/CodeGenWebAssembly/function-pointer-local.c
+@@ -0,0 +1,28 @@
++// REQUIRES: webassembly-registered-target
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -fwasm-fix-function-bitcasts -o - %s | FileCheck %s
++
++// Test of function pointer bitcast stored in a local variable with different
++// argument number in wasm32. The cast happens via a CK_BitCast in the scalar
++// expression path (local variable assignment), which is intercepted in
++// CGExprScalar.cpp to generate a thunk — the same mechanism used for
++// function-argument and struct-field cases.
++
++#define FUNCTION_POINTER(f) ((FunctionPointer)(f))
++typedef int (*FunctionPointer)(int a, int b);
++
++int fp_less(int a) {
++  return a;
++}
++
++// CHECK-LABEL: @test
++// CHECK: store ptr @__fp_less_iii, ptr %fp
++// CHECK: %[[FP:.*]] = load ptr, ptr %fp
++// CHECK: call i32 %[[FP]](i32 noundef 10, i32 noundef 20)
++void test() {
++  FunctionPointer fp = FUNCTION_POINTER(fp_less);
++  fp(10, 20);
++}
++
++// CHECK: define internal i32 @__fp_less_iii(i32 %0, i32 %1)
++// CHECK: %2 = call i32 @fp_less(i32 %0)
++// CHECK: ret i32 %2
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-void-assign.c b/clang/test/CodeGenWebAssembly/function-pointer-void-assign.c
+new file mode 100644
+index 000000000000..640f84a33d12
+--- /dev/null
++++ b/clang/test/CodeGenWebAssembly/function-pointer-void-assign.c
+@@ -0,0 +1,24 @@
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 \
++// RUN:   -fwasm-fix-function-bitcasts -o - %s | FileCheck %s
++
++// Test that a function pointer stored via a bare assignment into a void*
++// variable is correctly wrapped in a thunk when later cast to a different
++// function pointer type with more parameters.
++
++typedef int (*FP)(int, int);
++
++static int fp_one(int a) { return a < 0; }
++
++void test_void_ptr_bare_assign() {
++  // Bare assignment (no initializer) into void* — not via VD->hasInit()
++  void *p;
++  p = (void *)fp_one;
++  FP fp = (FP)p;
++  fp(10, 20);
++}
++
++// CHECK-LABEL: define void @test_void_ptr_bare_assign
++// CHECK:         store ptr @__fp_one_iii, ptr %fp
++// CHECK:       define internal i32 @__fp_one_iii(i32 %0, i32 %1)
++// CHECK-NEXT:  entry:
++// CHECK-NEXT:    %2 = call i32 @fp_one(i32 %0)
+-- 
+2.43.0
+

@@ -1,0 +1,23 @@
+from cerbero.utils import shell
+
+
+class Recipe(recipe.Recipe):
+    name = 'llvm-sources'
+    version = '22.0.0'
+    # This LLVM commit is used by emcsripten 5.0.7
+    commit = 'c7706d9472fe880ba1d3418919ad4185710c9559'
+    url = f'https://github.com/llvm/llvm-project/archive/{commit}.zip'
+    tarball_checksum = '486d8b33ecae28d63e4cebb02d63bb83c0885d7f91a4c6cf6f074709954e5d82'
+    stype = SourceType.TARBALL
+    btype = BuildType.CUSTOM
+    tarball_name = f'llvm-{version}-{commit}.zip'
+    tarball_dirname = f'llvm-project-{commit}'
+    patches = [
+        f'{name}/0001-wasm-Support-different-signature-function-pointers.patch',
+        f'{name}/0002-Prefer-use-of-Wasm-signatures-when-building-the-thun.patch',
+        f'{name}/0003-wasm-Add-a-thunk-cache.patch',
+        f'{name}/0004-wasm-Add-function-pointer-thunk-tests.patch',
+        f'{name}/0005-wasm-Add-fwasm-fix-function-bitcasts-to-enable-the-t.patch',
+        f'{name}/0006-wasm-Add-a-more-general-approach-at-bitcast.patch',
+        f'{name}/0007-wasm-Add-runtime-wrapper-for-function-pointer-casts.patch',
+    ]

@@ -1,0 +1,959 @@
+From 51b7aa3570500b29f9a5b4d5196a9542f8a7e58f Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Fri, 19 Jun 2026 14:14:59 +0200
+Subject: [PATCH 9/9] wasm: Improve the runtime casts
+
+Use a direct wrapper for immediate casts and a set of wrappers
+for saved casted function pointers. Include a cache mechamism
+and a documentation for the whole approach.
+---
+ clang/docs/WebAssemblyFunctionBitcasts.rst    | 334 ++++++++++++++++
+ clang/lib/CodeGen/CGExprScalar.cpp            |  17 +-
+ clang/lib/CodeGen/TargetInfo.h                |   2 +-
+ clang/lib/CodeGen/Targets/WebAssembly.cpp     | 377 ++++++++++++++----
+ .../function-pointer-runtime-cast.c           |  63 +--
+ 5 files changed, 687 insertions(+), 106 deletions(-)
+ create mode 100644 clang/docs/WebAssemblyFunctionBitcasts.rst
+
+diff --git a/clang/docs/WebAssemblyFunctionBitcasts.rst b/clang/docs/WebAssemblyFunctionBitcasts.rst
+new file mode 100644
+index 000000000000..19c3116fd28f
+--- /dev/null
++++ b/clang/docs/WebAssemblyFunctionBitcasts.rst
+@@ -0,0 +1,334 @@
++==========================================
++WebAssembly Function Pointer Bitcast Fix
++==========================================
++
++.. contents::
++   :local:
++
++Overview
++========
++
++WebAssembly enforces strict function signature matching at ``call_indirect``
++sites. Native platforms silently allow calling a function through a pointer
++with a different signature (e.g., passing a 2-parameter function where a
++3-parameter function is expected). On WebAssembly, this causes a
++``RuntimeError: function signature mismatch``.
++
++The ``-fwasm-fix-function-bitcasts`` flag generates adapter thunks to bridge
++incompatible signatures at function pointer cast sites.
++
++**Constraints**:
++
++- ``SrcParams > DstParams`` → rejected (can't remove parameters — can't
++  invent values the caller didn't provide)
++- ``DstReturn != void && DstReturn != SrcReturn`` → rejected (can't invent
++  return values)
++- Identical signatures → skipped (no adaptation needed)
++
++1. Static Casts
++===============
++
++**What they are**: A cast from one function pointer type to another where the
++compiler can statically trace the original function. The function name is a
++compile-time constant.
++
++**C code example**:
++
++.. code-block:: c
++
++    typedef void (*OneArg)(void*);
++    typedef void (*TwoArg)(void*, void*);
++
++    void my_func(void *p) { }
++
++    void caller() {
++        TwoArg f = (TwoArg)my_func;   // my_func is known at compile time
++        f(data, NULL);
++    }
++
++**Solution**: One thunk function per (``original_function``,
++``dest_signature``) pair, cached by name. The thunk receives dest params, calls
++the original with src params.
++
++**Generated code**:
++
++.. code-block:: llvm
++
++    ; Thunk: __my_func_vii
++    define internal void @__my_func_vii(ptr %0, ptr %1) {
++        call void @my_func(ptr %0)    ; drops 2nd param
++        ret void
++    }
++
++**Cache**: ``ThunkCache`` — ``StringMap<Function*>`` keyed by
++``__<name>_<dest_sig>``.
++
++2. Runtime Casts
++================
++
++**What they are**: A cast where the source function pointer is a runtime value
++(function parameter, loaded from memory, etc.), not a compile-time constant.
++
++**C code example**:
++
++.. code-block:: c
++
++    void caller(OneArg fp) {
++        TwoArg f = (TwoArg)fp;        // fp is unknown at compile time
++        f(data, NULL);
++    }
++
++Runtime casts are split into two sub-cases based on usage pattern:
++
++2.1 Immediate Calls
++-------------------
++
++**What they are**: The cast result is immediately called (the cast expression is
++the callee of a ``CallExpr``). The wrapper is used and discarded within the same
++expression — no other code can observe the adapted pointer.
++
++**Detection**: The cast ``Expr``'s parent is a ``CallExpr`` and the cast is the
++callee.
++
++**C code example**:
++
++.. code-block:: c
++
++    void caller(OneArg fp, void *data) {
++        ((TwoArg)fp)(data, NULL);     // cast + immediate call
++    }
++
++**Solution**: One TLS slot + one wrapper function per signature pair per
++translation unit. The slot is thread-local — no races across threads.
++
++**Generated code**:
++
++.. code-block:: llvm
++
++    ; One TLS slot per signature pair per TU:
++    @__wasm_runtime_pool___wasm_runtime_wrapper_iii_to_iiii____source_c_immediate_slot
++        = internal thread_local global ptr null
++
++    ; One wrapper, loads from TLS slot:
++    define internal void @__wasm_runtime_wrapper_iii_to_iiii____source_c_immediate(ptr %0, ptr %1) {
++        %fp = load ptr, ptr @__wasm_runtime_pool___wasm_runtime_wrapper_iii_to_iiii____source_c_immediate_slot
++        br %fp != null → call_bb, null_bb
++      call_bb:
++        call i32 %fp(ptr %0, ptr %1)   ; call source with adapted args
++        unreachable                     ; dest returns void, discard result
++      null_bb:
++        ret void                        ; defensive null return
++    }
++
++**Runtime (at each cast site)**:
++
++.. code-block:: llvm
++
++    br %fn_ptr == null → null_cont, not_null
++
++  not_null:
++    store ptr %fn_ptr, ptr @__wasm_runtime_pool___wasm_runtime_wrapper_iii_to_iiii____source_c_immediate_slot
++    br null_cont
++
++  null_cont:
++    %w = phi [ @__wasm_runtime_wrapper_iii_to_iiii____source_c_immediate, not_null ],
++             [ null, null_cont ]
++
++**Characteristics**:
++
++- 1 TLS slot, 1 wrapper per signature pair per TU
++- No counter, no atomics
++- Thread-safe via TLS
++- Reused every call — never runs out
++
++2.2 Store-For-Later (Closures)
++------------------------------
++
++**What they are**: The cast result is assigned to a variable, stored in a struct
++field, or passed to another function — the adapted pointer persists beyond the
++current expression. Multiple such stores may be active simultaneously.
++
++**Detection**: The cast ``Expr`` is NOT the callee of a ``CallExpr`` — this
++includes assignments, function arguments, initializers, struct field stores, and
++return statements.
++
++**C code example**:
++
++.. code-block:: c
++
++    // Closure pattern: multiple marshals stored in struct field
++    typedef void (*GMarshal)(void*, void*, void*, void*, void*, void*);
++
++    struct Closure {
++        GMarshal marshal;   // stored for later invocation
++    };
++
++    void set_closure(Closure *c, void (*notify)(void*, void*)) {
++        c->marshal = (GMarshal)notify;    // cast + store in struct
++    }
++
++**Corner cases — syntactically "store" but semantically "immediate"**:
++
++Some patterns look like "store-for-later" at the syntax level but are actually
++immediate calls from a single-threaded perspective. These are treated as
++store-for-later for safety:
++
++1. **Assign to local variable, then call**:
++
++   .. code-block:: c
++
++       TwoArg f = (TwoArg)fp;   // assignment → classified as store-for-later
++       f(a, b);                 // immediately called, but we can't track this
++
++   The cast is in an assignment, not a call callee. Our AST-level detection
++   sees this as a store. We conservatively treat it as store-for-later.
++
++2. **Pass cast result as function argument**:
++
++   .. code-block:: c
++
++       other_func((TwoArg)fp);  // passed as parameter → store-for-later
++
++   The cast result is passed to another function. We cannot know what
++   ``other_func`` does with it — it might call it immediately, store it in a
++   global, or pass it to another thread. We conservatively use the pool.
++
++**Solution**: Pre-allocated pool of 64 wrappers + 64 non-TLS slots + 8-entry
++direct-mapped cache + atomic counter per signature pair per translation unit.
++
++**Generated code (pool setup, once per TU per signature pair)**:
++
++.. code-block:: llvm
++
++    ; 64 wrapper functions, each loading from its dedicated slot:
++    ; Wrapper 0:
++    define internal void @__wasm_runtime_wrapper_vii_to_viiiiii____gobject_gclosure_c_0(
++        ptr %0, ptr %1, ptr %2, ptr %3, ptr %4, ptr %5) {
++        %fp = load ptr, ptr getelementptr(ptr, @slots, i32 0)
++        br %fp != null → call_bb, null_bb
++      call_bb:
++        call void %fp(ptr %0, ptr %1)    ; source: 2 params
++        ret void
++      null_bb:
++        ret void
++    }
++    ; Wrappers 1-63: same pattern, each loads slots[1] through slots[63]
++
++    ; Pool globals:
++    @counter  = internal thread_local global i32 0
++    @slots    = internal global [64 x ptr] zeroinitializer
++    @wrappers = internal constant [64 x ptr] [ @wrapper_0, ..., @wrapper_63 ]
++
++    ; 8-entry direct-mapped cache:
++    @cache_keys     = internal global [8 x ptr] zeroinitializer
++    @cache_wrappers = internal global [8 x ptr] zeroinitializer
++
++**Runtime flow (at each cast site)**:
++
++1. **Cache lookup** — O(1): hash fn_ptr, check cache. Hit → return cached wrapper.
++2. **Pool scan** — O(64): linear scan of slots. Found → update cache, return wrapper.
++3. **Allocate** — O(1): atomic increment counter, check overflow, store fn_ptr + update cache.
++
++Overflow (>64 unique fn_ptrs) traps via ``llvm.trap``.
++
++**Deduplication**: Cache + pool scan ensures each fn_ptr maps to exactly one
++wrapper, even across cache evictions. Same fn_ptr always returns same wrapper.
++
++**Characteristics**:
++
++- 64 wrappers + 64 non-TLS slots + 8-entry cache per signature pair per TU
++- Deterministic: same fn_ptr always returns same wrapper (no duplicate allocation)
++- O(1) cache hit, O(64) scan on first miss, O(1) atomic on allocation
++- Atomic counter (TLS), shared slots + cache (non-TLS)
++- Traps if >64 **unique** fn_ptrs cast in store-for-later context
++- Each wrapper has a null check for defensive safety
++
++3. Non-Supported Cases and Limitations
++======================================
++
++3.1 Standard Compliance
++-----------------------
++
++The C and C++ standards specify exactly one guarantee for function pointer
++casts:
++
++    Converting a prvalue of type "pointer to ``T1``" to the type "pointer to
++    ``T2``" (where ``T1`` and ``T2`` are function types) and back to its
++    original type yields the original pointer value.
++
++Our adapter thunks violate this guarantee. Each cast returns a **different**
++pointer — the wrapper function's address:
++
++.. code-block:: c
++
++    typedef void (*OneArg)(void*);
++    typedef void (*TwoArg)(void*, void*);
++
++    OneArg f = my_func;
++    TwoArg g = (TwoArg)f;     // returns wrapper function pointer, NOT f
++    OneArg h = (OneArg)g;     // returns another wrapper, NOT f
++    // h != f  ← violates round-trip guarantee
++
++This is an accepted deviation: WebAssembly's type system cannot express the
++standard's semantics. The alternative is a runtime crash on ``call_indirect``.
++
++3.2 Chained Casts Through Memory
++--------------------------------
++
++When a function pointer is cast, stored in a struct field, loaded back, and
++cast again, the chain of casts cannot be tracked at compile time. Each cast
++sees only the **declared** type of the source expression, not the **actual**
++type of the function that was originally stored.
++
++**Real-world example — gstreamer ``gstutils.c``**:
++
++.. code-block:: c
++
++    // Type definitions:
++    typedef void (*GFunc)(gpointer, gpointer);              // vii
++    typedef void (*GstCallAsyncFunc)(gpointer);              // vi
++    typedef void (*GstObjectCallAsyncFunc)(GstObject*, gpointer); // vii
++
++    struct GstCallAsyncData {
++        GstObject *object;
++        GstCallAsyncFunc func;   // declared as vi (1 param)
++        gpointer user_data;
++    };
++
++    // Store: vii → vi → REJECTED (can't remove params) → raw bitcast
++    data->func = (GstCallAsyncFunc)vii_func;
++
++    // Load: vi → vii → looks valid, wraps. But stored func is actually vii.
++    // Wrapper calls it as vi (1 param), but it's vii (2 params) → MISMATCH.
++    GstObjectCallAsyncFunc func = (GstObjectCallAsyncFunc)data->func;
++    (*func)(data->object, data->user_data);
++
++**Why it fails**: The struct field is declared as ``vi`` but sometimes stores a
++``vii`` function. Our code sees ``vi → vii`` at the load site (valid) but the
++actual function in memory is ``vii`` (from a rejected store). This is a
++pre-existing source bug — the struct field type doesn't match what's actually
++stored there.
++
++**General rule**: When a struct field holds multiple function types through
++different code paths, our per-cast-site adaptation cannot determine the correct
++runtime type. The fix belongs in the source code (use ``gpointer`` for the
++field, or a union, or ensure consistent types).
++
++3.3 Other Limitations
++---------------------
++
++- **Source params > Dest params**: Cannot remove parameters — we can't invent
++  values the caller didn't provide. Falls through to raw bitcast (wasm crash).
++- **Dest returns non-void and doesn't match source return**: Cannot invent
++  return values. Falls through to raw bitcast (wasm crash).
++- **Identical signatures**: No adaptation needed. Skipped.
++- **Null function pointers**: Skipped — falls through to raw bitcast (wasm
++  would crash on null call regardless).
++
++Key Source Files
++================
++
++- ``clang/lib/CodeGen/Targets/WebAssembly.cpp`` — thunk/wrapper generation
++- ``clang/lib/CodeGen/CGExprScalar.cpp`` — cast site detection and dispatch
++- ``clang/lib/CodeGen/TargetInfo.h`` — virtual interface
++- ``clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c`` — LLVM IR tests
+diff --git a/clang/lib/CodeGen/CGExprScalar.cpp b/clang/lib/CodeGen/CGExprScalar.cpp
+index 1e4a2ab83b2f..140455465038 100644
+--- a/clang/lib/CodeGen/CGExprScalar.cpp
++++ b/clang/lib/CodeGen/CGExprScalar.cpp
+@@ -2527,9 +2527,24 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
+       // If not statically traceable, use runtime binding for non-constant values
+       Value *Src = Visit(E);
+       if (!isa<llvm::Constant>(Src)) {
++        // Detect call-immediately vs store-for-later pattern.
++        // Call-immediately: the cast result is the callee of a CallExpr
++        //   -> use 1 TLS slot, no pool needed
++        // Store-for-later: the cast result is assigned/saved
++        //   -> use pool with 64 slots for closure support
++        bool IsImmediate = false;
++        auto parents = CGF.getContext().getParentMapContext().getParents(*E);
++        for (auto &parent : parents) {
++          if (auto *Call = parent.get<CallExpr>()) {
++            if (Call->getCallee()->IgnoreParens() == E) {
++              IsImmediate = true;
++              break;
++            }
++          }
++        }
+         llvm::Value *RuntimeThunk =
+             CGF.CGM.getTargetCodeGenInfo().emitWasmRuntimeFunctionPointerBinding(
+-                CGF, Src, CE->getSubExpr()->getType(), DestTy);
++                CGF, Src, CE->getSubExpr()->getType(), DestTy, IsImmediate);
+         if (RuntimeThunk)
+           return RuntimeThunk;
+       }
+diff --git a/clang/lib/CodeGen/TargetInfo.h b/clang/lib/CodeGen/TargetInfo.h
+index e0557bd7747f..06d8fc42d16c 100644
+--- a/clang/lib/CodeGen/TargetInfo.h
++++ b/clang/lib/CodeGen/TargetInfo.h
+@@ -439,7 +439,7 @@ public:
+   /// that need signature adaptation.
+   virtual llvm::Value *emitWasmRuntimeFunctionPointerBinding(
+       CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
+-      QualType DstType) const {
++      QualType DstType, bool IsImmediate) const {
+     return nullptr;
+   }
+ 
+diff --git a/clang/lib/CodeGen/Targets/WebAssembly.cpp b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+index 8d24c16bb7f0..1184785fed1e 100644
+--- a/clang/lib/CodeGen/Targets/WebAssembly.cpp
++++ b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+@@ -9,6 +9,7 @@
+ #include "ABIInfoImpl.h"
+ #include "TargetInfo.h"
+ #include "llvm/ADT/StringMap.h"
++#include "llvm/IR/Intrinsics.h"
+ 
+ #include "clang/AST/ParentMapContext.h"
+ 
+@@ -147,12 +148,14 @@ public:
+     if (SrcParams > DstParams)
+       return nullptr;  // Can't remove parameters
+ 
+-    // Check return types: we can discard a return value but cannot invent one
++    // Check return types: compare LLVM types, not C types.
+     QualType SrcRetTy = SrcProtoType->getReturnType();
+     QualType DstRetTy = DstProtoType->getReturnType();
+-    bool sameReturnType = CGM.getContext().hasSameType(SrcRetTy, DstRetTy);
++    llvm::Type *SrcRetLLVMTy = CGM.getTypes().ConvertType(SrcRetTy);
++    llvm::Type *DstRetLLVMTy = CGM.getTypes().ConvertType(DstRetTy);
++    bool sameReturnType = SrcRetLLVMTy == DstRetLLVMTy;
+ 
+-    if (!DstRetTy->isVoidType() && !sameReturnType)
++    if (!DstProtoType->getReturnType()->isVoidType() && !sameReturnType)
+       return nullptr;  // Can't invent return values
+ 
+     // Reject if signatures are identical (no adaptation needed)
+@@ -221,7 +224,7 @@ public:
+ 
+   llvm::Value *emitWasmRuntimeFunctionPointerBinding(
+       CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
+-      QualType DstType) const override;
++      QualType DstType, bool IsImmediate) const override;
+ 
+ private:
+   // The thunk cache for compile-time thunks
+@@ -359,7 +362,7 @@ std::string WebAssemblyTargetCodeGenInfo::getRuntimeWrapperName(
+ // needs to be cast from fewer params to more params
+ llvm::Value *WebAssemblyTargetCodeGenInfo::emitWasmRuntimeFunctionPointerBinding(
+     CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
+-    QualType DstType) const {
++    QualType DstType, bool IsImmediate) const {
+ 
+   const FunctionProtoType *SrcProto =
+       SrcType->getPointeeType()->getAs<FunctionProtoType>();
+@@ -378,12 +381,13 @@ llvm::Value *WebAssemblyTargetCodeGenInfo::emitWasmRuntimeFunctionPointerBinding
+   if (SrcParams > DstParams)
+     return nullptr;  // Can't remove parameters
+ 
+-  // Check return types: we can discard a return value but cannot invent one
+-  // Allow: int -> void (discard return), int -> int (pass through), void -> void
+-  // Reject: void -> int (can't invent return value)
++  // Check return types: we can discard a return value but cannot invent one.
++  // Compare LLVM types (not C types) since wasm only cares about i32/i64/f32/f64.
+   QualType SrcRetTy = SrcProto->getReturnType();
+   QualType DstRetTy = DstProto->getReturnType();
+-  bool sameReturnType = CGF.getContext().hasSameType(SrcRetTy, DstRetTy);
++  llvm::Type *SrcRetLLVMTy = CGF.CGM.getTypes().ConvertType(SrcRetTy);
++  llvm::Type *DstRetLLVMTy = CGF.CGM.getTypes().ConvertType(DstRetTy);
++  bool sameReturnType = SrcRetLLVMTy == DstRetLLVMTy;
+ 
+   if (!DstRetTy->isVoidType() && !sameReturnType)
+     return nullptr;  // Can't invent return values
+@@ -392,98 +396,309 @@ llvm::Value *WebAssemblyTargetCodeGenInfo::emitWasmRuntimeFunctionPointerBinding
+   if (SrcParams == DstParams && sameReturnType)
+     return nullptr;
+ 
++  // A null function pointer needs no wrapper — fall through to bitcast
++  if (isa<llvm::ConstantPointerNull>(FnPtr))
++    return nullptr;
++
+   LLVM_DEBUG(llvm::dbgs() << "emitWasmRuntimeFunctionPointerBinding: "
+                           << "src params=" << SrcParams
+                           << " dst params=" << DstParams << "\n");
+ 
+-  auto Key = std::make_pair(SrcProto, DstProto);
+-  auto It = RuntimeWrapperCache.find(Key);
+-
+   llvm::Module &M = CGF.CGM.getModule();
+   llvm::LLVMContext &Context = M.getContext();
+-  llvm::Type *PtrTy = llvm::PointerType::getUnqual(Context);
++  llvm::PointerType *PtrTy = llvm::PointerType::getUnqual(Context);
++  llvm::Type *I32Ty = llvm::IntegerType::getInt32Ty(Context);
+ 
+-  std::string WrapperName = getRuntimeWrapperName(SrcProto, DstProto, CGF.CGM.getContext());
+-  std::string GlobalName = WrapperName + "_fptr";
+-
+-  // Get or create the global variable for storing the function pointer
+-  // Use LinkOnceODRLinkage to match the wrapper function, allowing the linker
+-  // to merge globals across translation units into a single shared variable
+-  llvm::GlobalVariable *FnPtrGlobal = M.getNamedGlobal(GlobalName);
+-  if (!FnPtrGlobal) {
+-    FnPtrGlobal = new llvm::GlobalVariable(
+-        M, PtrTy, /*isConstant=*/false, llvm::GlobalValue::LinkOnceODRLinkage,
+-        llvm::Constant::getNullValue(PtrTy), GlobalName);
+-    // Make it thread-local to support WebAssembly threads
+-    FnPtrGlobal->setThreadLocalMode(llvm::GlobalValue::GeneralDynamicTLSModel);
+-  }
++  // Pre-allocated pool: N wrapper functions + N TLS slots per signature pair.
++  // Each runtime invocation atomically claims a slot. This supports both
++  // "call immediately" and "store for later" patterns without overwrites.
++  static const unsigned POOL_SIZE = 64;
+ 
+-  llvm::Function *Wrapper;
+-  if (It != RuntimeWrapperCache.end()) {
+-    Wrapper = It->second;
+-  } else {
+-    // Create a new wrapper function that takes a function pointer
+-    // and returns a thunk with the destination signature
++  std::string WrapperName = getRuntimeWrapperName(SrcProto, DstProto, CGF.CGM.getContext());
+ 
+-    llvm::FunctionType *SrcFnType = llvm::cast<llvm::FunctionType>(
++  std::string SourceId = M.getSourceFileName();
++  if (SourceId.empty())
++    SourceId = M.getName();
++  for (char &C : SourceId)
++    if (!isalnum(C) && C != '_')
++      C = '_';
++  WrapperName += "_" + SourceId;
++
++  std::string PoolName = "__wasm_runtime_pool_" + WrapperName;
++
++  // Get or create pool globals (once per module per signature pair)
++  llvm::GlobalVariable *Counter = M.getNamedGlobal(PoolName + "_counter");
++  llvm::GlobalVariable *ImmediateSlot = M.getNamedGlobal(PoolName + "_immediate_slot");
++  llvm::Function *ImmediateWrapper = M.getFunction(WrapperName + "_immediate");
++  llvm::ArrayType *SlotArrayTy = llvm::ArrayType::get(PtrTy, POOL_SIZE);
++  llvm::GlobalVariable *Slots = nullptr;
++  llvm::GlobalVariable *WrapperTable = nullptr;
++  llvm::FunctionType *SrcFnType = nullptr;
++  llvm::FunctionType *DstFnType = nullptr;
++
++  if (!Counter) {
++    SrcFnType = llvm::cast<llvm::FunctionType>(
+         CGF.CGM.getTypes().ConvertType(QualType(SrcProto, 0)));
+-    llvm::FunctionType *DstFnType = llvm::cast<llvm::FunctionType>(
++    DstFnType = llvm::cast<llvm::FunctionType>(
+         CGF.CGM.getTypes().ConvertType(QualType(DstProto, 0)));
+ 
+-    // Wrapper signature: takes src function pointer, has dst signature
+-    // Use LinkOnceODRLinkage to:
+-    // 1. Prevent dead argument elimination (optimizer can't see all callers)
+-    // 2. Allow linker to merge duplicates across modules (no symbol collisions)
+-    // 3. Preserve exact signature required by WebAssembly type checking
+-    Wrapper = llvm::Function::Create(
+-        DstFnType, llvm::GlobalValue::LinkOnceODRLinkage, WrapperName, M);
+-
+-    // Mark as noinline to prevent inlining that would expose unused parameters
+-    Wrapper->addFnAttr(llvm::Attribute::NoInline);
+-    Wrapper->addFnAttr(llvm::Attribute::NoUnwind);
+-
+-    // Build wrapper body
+-    llvm::BasicBlock *EntryBB = llvm::BasicBlock::Create(Context, "entry", Wrapper);
+-    llvm::IRBuilder<> Builder(EntryBB);
+-
+-    // Load the stored function pointer
+-    llvm::Value *StoredFnPtr = Builder.CreateLoad(PtrTy, FnPtrGlobal);
+-
+-    // Prepare arguments for the call (only pass what the source function expects)
+-    llvm::SmallVector<llvm::Value *, 8> CallArgs;
+-    auto ArgIt = Wrapper->arg_begin();
+-    for (unsigned i = 0; i < SrcParams && ArgIt != Wrapper->arg_end(); ++i, ++ArgIt) {
+-      llvm::Value *A = &*ArgIt;
+-      if (A->getType() != SrcFnType->getParamType(i))
+-        A = Builder.CreateBitOrPointerCast(A, SrcFnType->getParamType(i));
+-      CallArgs.push_back(A);
++    Counter = new llvm::GlobalVariable(
++        M, I32Ty, false, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantInt::get(I32Ty, 0), PoolName + "_counter");
++    Counter->setThreadLocalMode(llvm::GlobalValue::GeneralDynamicTLSModel);
++
++    // Immediate-call TLS slot: per-thread, no races, reused every call
++    ImmediateSlot = new llvm::GlobalVariable(
++        M, PtrTy, false, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantPointerNull::get(PtrTy), PoolName + "_immediate_slot");
++    ImmediateSlot->setThreadLocalMode(llvm::GlobalValue::GeneralDynamicTLSModel);
++
++    // Immediate wrapper: loads from TLS slot, calls with adapted signature
++    ImmediateWrapper = llvm::Function::Create(
++        DstFnType, llvm::GlobalValue::InternalLinkage,
++        WrapperName + "_immediate", M);
++    ImmediateWrapper->addFnAttr(llvm::Attribute::NoInline);
++    ImmediateWrapper->addFnAttr(llvm::Attribute::NoUnwind);
++    {
++      llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", ImmediateWrapper);
++      llvm::IRBuilder<> B(BB);
++      llvm::Value *FP = B.CreateLoad(PtrTy, ImmediateSlot);
++      llvm::BasicBlock *CallBB = llvm::BasicBlock::Create(Context, "call", ImmediateWrapper);
++      llvm::BasicBlock *NullBB = llvm::BasicBlock::Create(Context, "nullslot", ImmediateWrapper);
++      B.CreateCondBr(B.CreateIsNotNull(FP), CallBB, NullBB);
++      B.SetInsertPoint(CallBB);
++      llvm::SmallVector<llvm::Value *, 8> ImmArgs;
++      auto AI = ImmediateWrapper->arg_begin();
++      for (unsigned J = 0; J < SrcParams && AI != ImmediateWrapper->arg_end(); ++J, ++AI) {
++        llvm::Value *A = &*AI;
++        if (A->getType() != SrcFnType->getParamType(J))
++          A = B.CreateBitOrPointerCast(A, SrcFnType->getParamType(J));
++        ImmArgs.push_back(A);
++      }
++      llvm::CallInst *ImmCall = B.CreateCall(SrcFnType, FP, ImmArgs);
++      if (DstFnType->getReturnType()->isVoidTy()) {
++        B.CreateRetVoid(); B.SetInsertPoint(NullBB); B.CreateRetVoid();
++      } else {
++        llvm::Value *R = ImmCall;
++        if (R->getType() != DstFnType->getReturnType())
++          R = B.CreateBitOrPointerCast(R, DstFnType->getReturnType());
++        B.CreateRet(R);
++        B.SetInsertPoint(NullBB);
++        B.CreateRet(llvm::Constant::getNullValue(DstFnType->getReturnType()));
++      }
+     }
+ 
+-    // Call the source function
+-    llvm::CallInst *Call = Builder.CreateCall(SrcFnType, StoredFnPtr, CallArgs);
++    Slots = new llvm::GlobalVariable(
++        M, SlotArrayTy, false, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantAggregateZero::get(SlotArrayTy), PoolName + "_slots");
++
++    // 8-entry direct-mapped cache: avoids pool allocation for repeated fn_ptrs
++    static const unsigned CACHE_SIZE = 8;
++    llvm::ArrayType *CacheTy = llvm::ArrayType::get(PtrTy, CACHE_SIZE);
++    new llvm::GlobalVariable(
++        M, CacheTy, false, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantAggregateZero::get(CacheTy), PoolName + "_cache_keys");
++    new llvm::GlobalVariable(
++        M, CacheTy, false, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantAggregateZero::get(CacheTy), PoolName + "_cache_wrappers");
++
++    // Pre-generate POOL_SIZE wrapper functions + build lookup table
++    llvm::SmallVector<llvm::Constant *, 64> WrappersConst;
++    for (unsigned I = 0; I < POOL_SIZE; ++I) {
++      std::string InstName = WrapperName + "_" + std::to_string(I);
++      llvm::Function *W = llvm::Function::Create(
++          DstFnType, llvm::GlobalValue::InternalLinkage, InstName, M);
++      W->addFnAttr(llvm::Attribute::NoInline);
++      W->addFnAttr(llvm::Attribute::NoUnwind);
++
++      llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", W);
++      llvm::IRBuilder<> B(BB);
++
++      llvm::Value *SlotPtr = B.CreateConstInBoundsGEP1_32(PtrTy, Slots, I);
++      llvm::Value *FP = B.CreateLoad(PtrTy, SlotPtr);
++
++      // Defensive null check: if slot was never written, skip call
++      llvm::BasicBlock *CallBB = llvm::BasicBlock::Create(Context, "call", W);
++      llvm::BasicBlock *NullBB = llvm::BasicBlock::Create(Context, "nullslot", W);
++      llvm::Value *IsNotNull = B.CreateIsNotNull(FP);
++      B.CreateCondBr(IsNotNull, CallBB, NullBB);
++
++      B.SetInsertPoint(CallBB);
++      llvm::SmallVector<llvm::Value *, 8> CallArgs;
++      auto ArgIt = W->arg_begin();
++      for (unsigned J = 0; J < SrcParams && ArgIt != W->arg_end(); ++J, ++ArgIt) {
++        llvm::Value *A = &*ArgIt;
++        if (A->getType() != SrcFnType->getParamType(J))
++          A = B.CreateBitOrPointerCast(A, SrcFnType->getParamType(J));
++        CallArgs.push_back(A);
++      }
++      llvm::CallInst *Call = B.CreateCall(SrcFnType, FP, CallArgs);
++
++      if (DstFnType->getReturnType()->isVoidTy()) {
++        B.CreateRetVoid();
++        B.SetInsertPoint(NullBB);
++        B.CreateRetVoid();
++      } else {
++        llvm::Value *Ret = Call;
++        if (Ret->getType() != DstFnType->getReturnType())
++          Ret = B.CreateBitOrPointerCast(Ret, DstFnType->getReturnType());
++        B.CreateRet(Ret);
++        B.SetInsertPoint(NullBB);
++        B.CreateRet(llvm::Constant::getNullValue(DstFnType->getReturnType()));
++      }
+ 
+-    // Return the result
+-    if (DstFnType->getReturnType()->isVoidTy()) {
+-      Builder.CreateRetVoid();
+-    } else {
+-      llvm::Value *Ret = Call;
+-      if (Ret->getType() != DstFnType->getReturnType())
+-        Ret = Builder.CreateBitOrPointerCast(Ret, DstFnType->getReturnType());
+-      Builder.CreateRet(Ret);
++      WrappersConst.push_back(llvm::ConstantExpr::getBitCast(W, PtrTy));
+     }
+ 
+-    RuntimeWrapperCache[Key] = Wrapper;
++    // Create constant lookup table (not TLS — read-only function pointers)
++    llvm::ArrayType *WrapTblTy = llvm::ArrayType::get(PtrTy, POOL_SIZE);
++    WrapperTable = new llvm::GlobalVariable(
++        M, WrapTblTy, true, llvm::GlobalValue::InternalLinkage,
++        llvm::ConstantArray::get(WrapTblTy, WrappersConst),
++        PoolName + "_wrappers");
++    WrapperTable->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
++  } else {
++    Slots = M.getNamedGlobal(PoolName + "_slots");
++    WrapperTable = M.getNamedGlobal(PoolName + "_wrappers");
++    SrcFnType = llvm::cast<llvm::FunctionType>(
++        CGF.CGM.getTypes().ConvertType(QualType(SrcProto, 0)));
+   }
+ 
+-  // Store the function pointer in the global variable
+-  CharUnits Alignment = CGF.CGM.getPointerAlign();
+-  Address GlobalAddr(FnPtrGlobal, PtrTy, Alignment);
+-
+-  // Store the function pointer to be used by the wrapper
+-  CGF.Builder.CreateStore(FnPtr, GlobalAddr);
++  // Runtime null check
++  llvm::Value *IsNull = CGF.Builder.CreateIsNull(FnPtr);
++  llvm::BasicBlock *NullContBB = llvm::BasicBlock::Create(Context, "nullcont", CGF.CurFn);
++  llvm::BasicBlock *NotNullBB = llvm::BasicBlock::Create(Context, "notnull", CGF.CurFn);
++  CharUnits PtrAlign = CGF.CGM.getPointerAlign();
++
++  if (IsImmediate) {
++    // === Immediate call: 1 TLS slot + 1 wrapper, no branches after null check ===
++    CGF.Builder.CreateCondBr(IsNull, NullContBB, NotNullBB);
++
++    CGF.Builder.SetInsertPoint(NotNullBB);
++    CGF.Builder.CreateStore(FnPtr, Address(ImmediateSlot, PtrTy, PtrAlign));
++    CGF.Builder.CreateBr(NullContBB);
++
++    CGF.Builder.SetInsertPoint(NullContBB);
++    llvm::PHINode *PHI = CGF.Builder.CreatePHI(PtrTy, 2);
++    PHI->addIncoming(llvm::ConstantExpr::getBitCast(ImmediateWrapper, PtrTy), NotNullBB);
++    PHI->addIncoming(llvm::ConstantPointerNull::get(PtrTy), NullContBB);
++    return PHI;
++  }
+ 
+-  // Return the wrapper function
+-  return Wrapper;
++  // === Store-for-later: pool with 64 slots + 8-entry cache + atomic counter ===
++  CGF.Builder.CreateCondBr(IsNull, NullContBB, NotNullBB);
++
++  CGF.Builder.SetInsertPoint(NotNullBB);
++  llvm::ArrayType *WrapTblTy = llvm::ArrayType::get(PtrTy, POOL_SIZE);
++  static const unsigned CACHE_SIZE = 8;
++  llvm::ArrayType *CacheTy = llvm::ArrayType::get(PtrTy, CACHE_SIZE);
++  llvm::GlobalVariable *CacheKeys = M.getNamedGlobal(PoolName + "_cache_keys");
++  llvm::GlobalVariable *CacheWrappers = M.getNamedGlobal(PoolName + "_cache_wrappers");
++  llvm::BasicBlock *CacheHitBB = llvm::BasicBlock::Create(Context, "cachehit", CGF.CurFn);
++  llvm::BasicBlock *CacheMissBB = llvm::BasicBlock::Create(Context, "cachemiss", CGF.CurFn);
++  llvm::BasicBlock *ScanBB = llvm::BasicBlock::Create(Context, "scan", CGF.CurFn);
++  llvm::BasicBlock *ScanFoundBB = llvm::BasicBlock::Create(Context, "scanfnd", CGF.CurFn);
++  llvm::BasicBlock *ScanNextBB = llvm::BasicBlock::Create(Context, "scannxt", CGF.CurFn);
++  llvm::BasicBlock *AllocCheckBB = llvm::BasicBlock::Create(Context, "allocchk", CGF.CurFn);
++  llvm::BasicBlock *AllocStoreBB = llvm::BasicBlock::Create(Context, "allocstr", CGF.CurFn);
++  llvm::BasicBlock *OverflowBB = llvm::BasicBlock::Create(Context, "overflow", CGF.CurFn);
++  llvm::BasicBlock *ContBB = llvm::BasicBlock::Create(Context, "cont", CGF.CurFn);
++
++  // Cache lookup: idx = (fn_ptr >> 2) & 7
++  llvm::Value *CacheIdx = CGF.Builder.CreateAnd(
++      CGF.Builder.CreateLShr(
++          CGF.Builder.CreatePtrToInt(FnPtr, I32Ty),
++          llvm::ConstantInt::get(I32Ty, 2)),
++      llvm::ConstantInt::get(I32Ty, CACHE_SIZE - 1));
++  llvm::Value *CacheKeyGEP = CGF.Builder.CreateInBoundsGEP(
++      CacheTy, CacheKeys, {llvm::ConstantInt::get(I32Ty, 0), CacheIdx});
++  Address CacheKeyAddr(CacheKeyGEP, PtrTy, PtrAlign);
++  llvm::Value *CachedFn = CGF.Builder.CreateLoad(CacheKeyAddr);
++  llvm::Value *CacheHit = CGF.Builder.CreateICmpEQ(CachedFn, FnPtr);
++  llvm::Value *CacheWrapGEP = CGF.Builder.CreateInBoundsGEP(
++      CacheTy, CacheWrappers, {llvm::ConstantInt::get(I32Ty, 0), CacheIdx});
++  Address CacheWrapAddr(CacheWrapGEP, PtrTy, PtrAlign);
++
++  CGF.Builder.CreateCondBr(CacheHit, CacheHitBB, CacheMissBB);
++
++  // Cache hit: load cached wrapper, branch to cont
++  CGF.Builder.SetInsertPoint(CacheHitBB);
++  llvm::Value *CacheHitW = CGF.Builder.CreateLoad(CacheWrapAddr);
++  CGF.Builder.CreateBr(ContBB);
++
++  // Cache miss: scan pool for existing mapping
++  CGF.Builder.SetInsertPoint(CacheMissBB);
++  CGF.Builder.CreateBr(ScanBB);
++
++  // Scan loop: find fn_ptr in slots[0..POOL_SIZE-1]
++  CGF.Builder.SetInsertPoint(ScanBB);
++  llvm::PHINode *ScanIdx = CGF.Builder.CreatePHI(I32Ty, 2);
++  ScanIdx->addIncoming(llvm::ConstantInt::get(I32Ty, 0), CacheMissBB);
++  llvm::Value *ScanSlotGEP = CGF.Builder.CreateInBoundsGEP(
++      SlotArrayTy, Slots, {llvm::ConstantInt::get(I32Ty, 0), ScanIdx});
++  llvm::Value *ScanFn = CGF.Builder.CreateLoad(Address(ScanSlotGEP, PtrTy, PtrAlign));
++  llvm::Value *ScanMatch = CGF.Builder.CreateICmpEQ(ScanFn, FnPtr);
++  CGF.Builder.CreateCondBr(ScanMatch, ScanFoundBB, ScanNextBB);
++
++  // Found existing slot: update cache, return existing wrapper
++  CGF.Builder.SetInsertPoint(ScanFoundBB);
++  CGF.Builder.CreateStore(FnPtr, CacheKeyAddr);
++  llvm::Value *FoundWrapGEP = CGF.Builder.CreateInBoundsGEP(
++      WrapTblTy, WrapperTable, {llvm::ConstantInt::get(I32Ty, 0), ScanIdx});
++  llvm::Value *FoundW = CGF.Builder.CreateLoad(Address(FoundWrapGEP, PtrTy, PtrAlign));
++  CGF.Builder.CreateStore(FoundW, CacheWrapAddr);
++  CGF.Builder.CreateBr(ContBB);
++
++  // Advance scan
++  CGF.Builder.SetInsertPoint(ScanNextBB);
++  llvm::Value *NextIdx = CGF.Builder.CreateAdd(
++      ScanIdx, llvm::ConstantInt::get(I32Ty, 1));
++  llvm::Value *ScanEnd = CGF.Builder.CreateICmpUGE(
++      NextIdx, llvm::ConstantInt::get(I32Ty, POOL_SIZE));
++  ScanIdx->addIncoming(NextIdx, ScanNextBB);
++  CGF.Builder.CreateCondBr(ScanEnd, AllocCheckBB, ScanBB);
++
++  // Allocate new slot: atomic counter increment
++  CGF.Builder.SetInsertPoint(AllocCheckBB);
++  Address CounterAddr(Counter, I32Ty, PtrAlign);
++  llvm::Value *Slot = CGF.Builder.CreateAtomicRMW(
++      llvm::AtomicRMWInst::Add, CounterAddr,
++      llvm::ConstantInt::get(I32Ty, 1), llvm::AtomicOrdering::Monotonic);
++  llvm::Value *InBounds = CGF.Builder.CreateICmpULT(
++      Slot, llvm::ConstantInt::get(I32Ty, POOL_SIZE));
++  CGF.Builder.CreateCondBr(InBounds, AllocStoreBB, OverflowBB);
++
++  // Overflow
++  CGF.Builder.SetInsertPoint(OverflowBB);
++  CGF.Builder.CreateCall(llvm::Intrinsic::getOrInsertDeclaration(
++      &M, llvm::Intrinsic::trap));
++  CGF.Builder.CreateUnreachable();
++
++  // Store in pool + update cache
++  CGF.Builder.SetInsertPoint(AllocStoreBB);
++  llvm::Value *SlotIdx[] = {llvm::ConstantInt::get(I32Ty, 0), Slot};
++  llvm::Value *SlotGEP = CGF.Builder.CreateInBoundsGEP(
++      SlotArrayTy, Slots, SlotIdx);
++  CGF.Builder.CreateStore(FnPtr, Address(SlotGEP, PtrTy, PtrAlign));
++  llvm::Value *WrapGEP = CGF.Builder.CreateInBoundsGEP(
++      WrapTblTy, WrapperTable, SlotIdx);
++  llvm::Value *W = CGF.Builder.CreateLoad(Address(WrapGEP, PtrTy, PtrAlign));
++  CGF.Builder.CreateStore(FnPtr, CacheKeyAddr);
++  CGF.Builder.CreateStore(W, CacheWrapAddr);
++  CGF.Builder.CreateBr(ContBB);
++
++  // Null path
++  CGF.Builder.SetInsertPoint(NullContBB);
++  CGF.Builder.CreateBr(ContBB);
++
++  // ContBB: PHI for result
++  CGF.Builder.SetInsertPoint(ContBB);
++  llvm::PHINode *PHI = CGF.Builder.CreatePHI(PtrTy, 4);
++  PHI->addIncoming(CacheHitW, CacheHitBB);
++  PHI->addIncoming(FoundW, ScanFoundBB);
++  PHI->addIncoming(W, AllocStoreBB);
++  PHI->addIncoming(llvm::ConstantPointerNull::get(PtrTy), NullContBB);
++  return PHI;
+ }
+ 
+ std::unique_ptr<TargetCodeGenInfo>
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c b/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
+index d41a10cf248c..890d8c805894 100644
+--- a/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
++++ b/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
+@@ -8,9 +8,9 @@
+ typedef void (*OneArgFunc)(void *);
+ typedef void (*TwoArgFunc)(void *, void *);
+ 
+-// Check for both TLS globals at the top of the output
+-// CHECK: @__wasm_runtime_wrapper_vi_to_vii_fptr = linkonce_odr thread_local global ptr null
+-// CHECK: @__wasm_runtime_wrapper_iii_to_vii_fptr = linkonce_odr thread_local global ptr null
++// Pool counters
++// CHECK: @__wasm_runtime_pool___wasm_runtime_wrapper_vi_to_vii{{.*}}_counter = internal thread_local global i32 0
++// CHECK: @__wasm_runtime_pool___wasm_runtime_wrapper_iii_to_vii{{.*}}_counter = internal thread_local global i32 0
+ 
+ // A function with one argument
+ void my_one_arg_func(void *ptr) {
+@@ -20,15 +20,20 @@ void my_one_arg_func(void *ptr) {
+ // Test case 1: Direct call of casted runtime function pointer
+ // CHECK-LABEL: @runtime_cast_caller
+ void runtime_cast_caller(OneArgFunc fp, void *data) {
+-  // Cast the runtime parameter from 1-arg to 2-arg signature and call directly
+-  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
+-  // CHECK: call void @__wasm_runtime_wrapper_vi_to_vii(ptr
++  // CHECK: atomicrmw add ptr @__wasm_runtime_pool___wasm_runtime_wrapper_vi_to_vii{{.*}}_counter, i32 1
++  // CHECK: store ptr %{{.*}}, ptr %
++  // CHECK: load ptr, ptr %
+   ((TwoArgFunc)fp)(data, (void*)0);
+ }
+ 
+-// The runtime wrapper should be generated once and shared by both cases
+-// CHECK-LABEL: define linkonce_odr void @__wasm_runtime_wrapper_vi_to_vii(ptr %0, ptr %1)
+-// CHECK: %{{.*}} = load ptr, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
++// Pool wrapper functions (internal linkage, one per slot)
++// CHECK-LABEL: define internal void @__wasm_runtime_wrapper_vi_to_vii{{.*}}_0(ptr %0, ptr %1)
++// CHECK: load ptr, ptr
++// CHECK: call void %{{.*}}(ptr %0)
++// CHECK: ret void
++
++// CHECK-LABEL: define internal void @__wasm_runtime_wrapper_vi_to_vii{{.*}}_1(ptr %0, ptr %1)
++// CHECK: load ptr, ptr
+ // CHECK: call void %{{.*}}(ptr %0)
+ // CHECK: ret void
+ 
+@@ -43,8 +48,7 @@ void library_function(TwoArgFunc func, void *data) {
+ // CHECK-LABEL: @indirect_caller
+ void indirect_caller(OneArgFunc fp, void *data) {
+   // Cast and pass to another function (like g_list_free_full does)
+-  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
+-  // CHECK: call void @library_function(ptr noundef @__wasm_runtime_wrapper_vi_to_vii
++  // CHECK: atomicrmw add ptr @__wasm_runtime_pool___wasm_runtime_wrapper_vi_to_vii{{.*}}_counter, i32 1
+   library_function((TwoArgFunc)fp, data);
+ }
+ 
+@@ -54,28 +58,41 @@ int my_compare_func(void *a, void *b) {
+ }
+ 
+ // Test case 3: Same param count, return type coercion (int -> void)
+-// This simulates g_slist_sort where int compare(void*, void*) is cast to void func(void*, void*)
+-// Use a typedef to create a function pointer type with int return
+ typedef int (*CompareFunc)(void *, void *);
+ 
+ // CHECK-LABEL: @test_return_coercion
+-void test_return_coercion(CompareFunc fp, void *data) {
+-  // Cast int(void*, void*) -> void(void*, void*) on a runtime parameter
+-  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_iii_to_vii_fptr
+-  // CHECK: call void @library_function(ptr noundef @__wasm_runtime_wrapper_iii_to_vii
++void test_return_coercion(void *opaque_fp, void *data) {
++  // Load through void* to prevent static thunk tracing
++  // CHECK: atomicrmw add ptr @__wasm_runtime_pool___wasm_runtime_wrapper_iii_to_vii{{.*}}_counter, i32 1
++  CompareFunc fp = (CompareFunc)(__typeof__(CompareFunc))opaque_fp;
+   library_function((TwoArgFunc)fp, data);
+ }
+ 
+-// The runtime wrapper for int->void coercion with same param count
+-// CHECK-LABEL: define linkonce_odr void @__wasm_runtime_wrapper_iii_to_vii(ptr %0, ptr %1)
+-// CHECK: %{{.*}} = load ptr, ptr @__wasm_runtime_wrapper_iii_to_vii_fptr
+-// CHECK: %{{.*}} = call i32 %{{.*}}(ptr %0, ptr %1)
++// Pool wrapper for int->void coercion
++// CHECK-LABEL: define internal void @__wasm_runtime_wrapper_iii_to_vii{{.*}}_0(ptr %0, ptr %1)
++// CHECK: load ptr, ptr
++// CHECK: call i32 %{{.*}}(ptr %0, ptr %1)
+ // CHECK: ret void
+ 
++// Store a casted function pointer for later. This simulates the closure
++// pattern where multiple closures store different marshals via the same
++// cast expression.
++TwoArgFunc saved1;
++TwoArgFunc saved2;
++
++// CHECK-LABEL: @test_store_for_later
++void test_store_for_later(OneArgFunc fp1, OneArgFunc fp2) {
++  // Each store claims a different pool slot
++  // CHECK: atomicrmw add ptr @__wasm_runtime_pool___wasm_runtime_wrapper_vi_to_vii{{.*}}_counter, i32 1
++  saved1 = (TwoArgFunc)fp1;
++  // CHECK: atomicrmw add ptr @__wasm_runtime_pool___wasm_runtime_wrapper_vi_to_vii{{.*}}_counter, i32 1
++  saved2 = (TwoArgFunc)fp2;
++}
++
+ // CHECK-LABEL: @test
+ void test() {
+-  // Test both scenarios
+   runtime_cast_caller(my_one_arg_func, (void*)0);
+   indirect_caller(my_one_arg_func, (void*)0);
+-  test_return_coercion(my_compare_func, (void*)0);
++  test_return_coercion((void*)my_compare_func, (void*)0);
++  test_store_for_later(my_one_arg_func, my_one_arg_func);
+ }
+-- 
+2.43.0
+

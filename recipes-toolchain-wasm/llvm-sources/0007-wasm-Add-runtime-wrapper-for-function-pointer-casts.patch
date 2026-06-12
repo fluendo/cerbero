@@ -1,0 +1,368 @@
+From 210768ca3688d53b825620e29f7afeec31aad864 Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Thu, 11 Jun 2026 12:20:23 +0200
+Subject: [PATCH 7/9] [wasm] Add runtime wrapper for function pointer casts
+
+This complements the existing compile-time thunk generation for statically
+traceable function references.
+---
+ clang/lib/CodeGen/CGExprScalar.cpp            |  19 +-
+ clang/lib/CodeGen/TargetInfo.h                |   9 +
+ clang/lib/CodeGen/Targets/WebAssembly.cpp     | 180 +++++++++++++++++-
+ .../function-pointer-runtime-cast.c           |  81 ++++++++
+ 4 files changed, 285 insertions(+), 4 deletions(-)
+ create mode 100644 clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
+
+diff --git a/clang/lib/CodeGen/CGExprScalar.cpp b/clang/lib/CodeGen/CGExprScalar.cpp
+index f36440a6b57c..1e4a2ab83b2f 100644
+--- a/clang/lib/CodeGen/CGExprScalar.cpp
++++ b/clang/lib/CodeGen/CGExprScalar.cpp
+@@ -2506,11 +2506,13 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
+     // different number of arguments and generate a thunk instead.  This is
+     // necessary because WebAssembly enforces strict call-site/callee signature
+     // matching at runtime.  The fix is gated on -fwasm-fix-function-bitcasts
+-    // and only triggers when the source expression can be statically traced
+-    // back to a concrete function declaration.
++    // and handles both compile-time (static) and runtime function pointer casts.
+     if (CGF.CGM.getTriple().isWasm() &&
+         CGF.CGM.getLangOpts().WasmFixFunctionBitcasts &&
+-        DestTy->isFunctionPointerType()) {
++        DestTy->isFunctionPointerType() &&
++        CE->getSubExpr()->getType()->isFunctionPointerType()) {
++
++      // Try compile-time thunk first (for statically traceable function refs)
+       if (const DeclRefExpr *DRE =
+               CGF.CGM.getTargetCodeGenInfo().getWasmFunctionDeclRefExpr(
+                   E, CGF.CGM.getContext())) {
+@@ -2521,6 +2523,17 @@ Value *ScalarExprEmitter::VisitCastExpr(CastExpr *CE) {
+         if (Thunk)
+           return Thunk;
+       }
++
++      // If not statically traceable, use runtime binding for non-constant values
++      Value *Src = Visit(E);
++      if (!isa<llvm::Constant>(Src)) {
++        llvm::Value *RuntimeThunk =
++            CGF.CGM.getTargetCodeGenInfo().emitWasmRuntimeFunctionPointerBinding(
++                CGF, Src, CE->getSubExpr()->getType(), DestTy);
++        if (RuntimeThunk)
++          return RuntimeThunk;
++      }
++      // Fall through to normal bitcast if runtime binding returns nullptr
+     }
+ 
+     Value *Src = Visit(E);
+diff --git a/clang/lib/CodeGen/TargetInfo.h b/clang/lib/CodeGen/TargetInfo.h
+index e4ab298923bc..e0557bd7747f 100644
+--- a/clang/lib/CodeGen/TargetInfo.h
++++ b/clang/lib/CodeGen/TargetInfo.h
+@@ -434,6 +434,15 @@ public:
+     return nullptr;
+   }
+ 
++  /// Emit runtime binding for WebAssembly function pointer casts.
++  /// This handles runtime function pointer values (not compile-time constants)
++  /// that need signature adaptation.
++  virtual llvm::Value *emitWasmRuntimeFunctionPointerBinding(
++      CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
++      QualType DstType) const {
++    return nullptr;
++  }
++
+   /// Emit the device-side copy of the builtin surface type.
+   virtual bool emitCUDADeviceBuiltinSurfaceDeviceCopy(CodeGenFunction &CGF,
+                                                       LValue Dst,
+diff --git a/clang/lib/CodeGen/Targets/WebAssembly.cpp b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+index 3fc2693a11e1..b685056f9a3d 100644
+--- a/clang/lib/CodeGen/Targets/WebAssembly.cpp
++++ b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+@@ -204,13 +204,26 @@ public:
+     return Thunk;
+   }
+ 
++  llvm::Value *emitWasmRuntimeFunctionPointerBinding(
++      CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
++      QualType DstType) const override;
++
+ private:
+-  // The thunk cache
++  // The thunk cache for compile-time thunks
+   mutable llvm::StringMap<llvm::Function *> ThunkCache;
++
++  // Runtime thunk cache: maps (SrcSig, DstSig) -> wrapper function
++  // The wrapper takes a function pointer and returns a thunk for it
++  mutable llvm::DenseMap<std::pair<const FunctionProtoType*, const FunctionProtoType*>,
++                         llvm::Function*> RuntimeWrapperCache;
++
+   // Build the thunk name: "%s_{OrigName}_{WasmSig}"
+   std::string getThunkName(std::string OrigName,
+                            const FunctionProtoType *DstProto,
+                            const ASTContext &Ctx) const;
++  std::string getRuntimeWrapperName(const FunctionProtoType *SrcProto,
++                                   const FunctionProtoType *DstProto,
++                                   const ASTContext &Ctx) const;
+   char getTypeSig(const QualType &Ty, const ASTContext &Ctx) const;
+   std::string sanitizeTypeString(const std::string &typeStr) const;
+   std::string getTypeName(const QualType &qt, const ASTContext &Ctx) const;
+@@ -293,6 +306,171 @@ RValue WebAssemblyABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
+                           /*AllowHigherAlign=*/true, Slot);
+ }
+ 
++// Generate wrapper name for runtime function pointer binding
++std::string WebAssemblyTargetCodeGenInfo::getRuntimeWrapperName(
++    const FunctionProtoType *SrcProto, const FunctionProtoType *DstProto,
++    const ASTContext &Ctx) const {
++  std::string Name = "__wasm_runtime_wrapper_";
++
++  // Encode source signature
++  QualType SrcRetTy = SrcProto->getReturnType();
++  if (SrcRetTy->isVoidType()) {
++    Name += 'v';
++  } else {
++    Name += getTypeSig(SrcRetTy, Ctx);
++  }
++  for (QualType ParamType : SrcProto->param_types()) {
++    Name += getTypeSig(ParamType, Ctx);
++  }
++
++  Name += "_to_";
++
++  // Encode destination signature
++  QualType DstRetTy = DstProto->getReturnType();
++  if (DstRetTy->isVoidType()) {
++    Name += 'v';
++  } else {
++    Name += getTypeSig(DstRetTy, Ctx);
++  }
++  for (QualType ParamType : DstProto->param_types()) {
++    Name += getTypeSig(ParamType, Ctx);
++  }
++
++  return Name;
++}
++
++// Emit runtime binding for function pointer cast
++// This handles cases like g_list_free_full where a runtime parameter
++// needs to be cast from fewer params to more params
++llvm::Value *WebAssemblyTargetCodeGenInfo::emitWasmRuntimeFunctionPointerBinding(
++    CodeGenFunction &CGF, llvm::Value *FnPtr, QualType SrcType,
++    QualType DstType) const {
++
++  const FunctionProtoType *SrcProto =
++      SrcType->getPointeeType()->getAs<FunctionProtoType>();
++  const FunctionProtoType *DstProto =
++      DstType->getPointeeType()->getAs<FunctionProtoType>();
++
++  if (!SrcProto || !DstProto)
++    return nullptr;
++
++  // Check parameter counts: source must have same or fewer params than destination
++  // We can add parameters (caller provides them, we ignore extras when calling source)
++  // We cannot remove parameters (caller doesn't provide them, we can't invent values)
++  unsigned SrcParams = SrcProto->getNumParams();
++  unsigned DstParams = DstProto->getNumParams();
++
++  if (SrcParams > DstParams)
++    return nullptr;  // Can't remove parameters
++
++  // Check return types: we can discard a return value but cannot invent one
++  // Allow: int -> void (discard return), int -> int (pass through), void -> void
++  // Reject: void -> int (can't invent return value)
++  QualType SrcRetTy = SrcProto->getReturnType();
++  QualType DstRetTy = DstProto->getReturnType();
++  bool sameReturnType = CGF.getContext().hasSameType(SrcRetTy, DstRetTy);
++
++  if (!DstRetTy->isVoidType() && !sameReturnType)
++    return nullptr;  // Can't invent return values
++
++  // Reject if signatures are identical (no adaptation needed)
++  if (SrcParams == DstParams && sameReturnType)
++    return nullptr;
++
++  LLVM_DEBUG(llvm::dbgs() << "emitWasmRuntimeFunctionPointerBinding: "
++                          << "src params=" << SrcParams
++                          << " dst params=" << DstParams << "\n");
++
++  auto Key = std::make_pair(SrcProto, DstProto);
++  auto It = RuntimeWrapperCache.find(Key);
++
++  llvm::Module &M = CGF.CGM.getModule();
++  llvm::LLVMContext &Context = M.getContext();
++  llvm::Type *PtrTy = llvm::PointerType::getUnqual(Context);
++
++  std::string WrapperName = getRuntimeWrapperName(SrcProto, DstProto, CGF.CGM.getContext());
++  std::string GlobalName = WrapperName + "_fptr";
++
++  // Get or create the global variable for storing the function pointer
++  // Use LinkOnceODRLinkage to match the wrapper function, allowing the linker
++  // to merge globals across translation units into a single shared variable
++  llvm::GlobalVariable *FnPtrGlobal = M.getNamedGlobal(GlobalName);
++  if (!FnPtrGlobal) {
++    FnPtrGlobal = new llvm::GlobalVariable(
++        M, PtrTy, /*isConstant=*/false, llvm::GlobalValue::LinkOnceODRLinkage,
++        llvm::Constant::getNullValue(PtrTy), GlobalName);
++    // Make it thread-local to support WebAssembly threads
++    FnPtrGlobal->setThreadLocalMode(llvm::GlobalValue::GeneralDynamicTLSModel);
++  }
++
++  llvm::Function *Wrapper;
++  if (It != RuntimeWrapperCache.end()) {
++    Wrapper = It->second;
++  } else {
++    // Create a new wrapper function that takes a function pointer
++    // and returns a thunk with the destination signature
++
++    llvm::FunctionType *SrcFnType = llvm::cast<llvm::FunctionType>(
++        CGF.CGM.getTypes().ConvertType(QualType(SrcProto, 0)));
++    llvm::FunctionType *DstFnType = llvm::cast<llvm::FunctionType>(
++        CGF.CGM.getTypes().ConvertType(QualType(DstProto, 0)));
++
++    // Wrapper signature: takes src function pointer, has dst signature
++    // Use LinkOnceODRLinkage to:
++    // 1. Prevent dead argument elimination (optimizer can't see all callers)
++    // 2. Allow linker to merge duplicates across modules (no symbol collisions)
++    // 3. Preserve exact signature required by WebAssembly type checking
++    Wrapper = llvm::Function::Create(
++        DstFnType, llvm::GlobalValue::LinkOnceODRLinkage, WrapperName, M);
++
++    // Mark as noinline to prevent inlining that would expose unused parameters
++    Wrapper->addFnAttr(llvm::Attribute::NoInline);
++    Wrapper->addFnAttr(llvm::Attribute::NoUnwind);
++
++    // Build wrapper body
++    llvm::BasicBlock *EntryBB = llvm::BasicBlock::Create(Context, "entry", Wrapper);
++    llvm::IRBuilder<> Builder(EntryBB);
++
++    // Load the stored function pointer
++    llvm::Value *StoredFnPtr = Builder.CreateLoad(PtrTy, FnPtrGlobal);
++
++    // Prepare arguments for the call (only pass what the source function expects)
++    llvm::SmallVector<llvm::Value *, 8> CallArgs;
++    auto ArgIt = Wrapper->arg_begin();
++    for (unsigned i = 0; i < SrcParams && ArgIt != Wrapper->arg_end(); ++i, ++ArgIt) {
++      llvm::Value *A = &*ArgIt;
++      if (A->getType() != SrcFnType->getParamType(i))
++        A = Builder.CreateBitOrPointerCast(A, SrcFnType->getParamType(i));
++      CallArgs.push_back(A);
++    }
++
++    // Call the source function
++    llvm::CallInst *Call = Builder.CreateCall(SrcFnType, StoredFnPtr, CallArgs);
++
++    // Return the result
++    if (DstFnType->getReturnType()->isVoidTy()) {
++      Builder.CreateRetVoid();
++    } else {
++      llvm::Value *Ret = Call;
++      if (Ret->getType() != DstFnType->getReturnType())
++        Ret = Builder.CreateBitOrPointerCast(Ret, DstFnType->getReturnType());
++      Builder.CreateRet(Ret);
++    }
++
++    RuntimeWrapperCache[Key] = Wrapper;
++  }
++
++  // Store the function pointer in the global variable
++  CharUnits Alignment = CGF.CGM.getPointerAlign();
++  Address GlobalAddr(FnPtrGlobal, PtrTy, Alignment);
++
++  // Store the function pointer to be used by the wrapper
++  CGF.Builder.CreateStore(FnPtr, GlobalAddr);
++
++  // Return the wrapper function
++  return Wrapper;
++}
++
+ std::unique_ptr<TargetCodeGenInfo>
+ CodeGen::createWebAssemblyTargetCodeGenInfo(CodeGenModule &CGM,
+                                             WebAssemblyABIKind K) {
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c b/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
+new file mode 100644
+index 000000000000..d41a10cf248c
+--- /dev/null
++++ b/clang/test/CodeGenWebAssembly/function-pointer-runtime-cast.c
+@@ -0,0 +1,81 @@
++// REQUIRES: webassembly-registered-target
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -fwasm-fix-function-bitcasts -o - %s | FileCheck %s
++
++// Test runtime function pointer cast with different argument counts
++// This simulates cases like g_list_free_full where a function pointer parameter
++// is cast from fewer params to more params
++
++typedef void (*OneArgFunc)(void *);
++typedef void (*TwoArgFunc)(void *, void *);
++
++// Check for both TLS globals at the top of the output
++// CHECK: @__wasm_runtime_wrapper_vi_to_vii_fptr = linkonce_odr thread_local global ptr null
++// CHECK: @__wasm_runtime_wrapper_iii_to_vii_fptr = linkonce_odr thread_local global ptr null
++
++// A function with one argument
++void my_one_arg_func(void *ptr) {
++  // Do something
++}
++
++// Test case 1: Direct call of casted runtime function pointer
++// CHECK-LABEL: @runtime_cast_caller
++void runtime_cast_caller(OneArgFunc fp, void *data) {
++  // Cast the runtime parameter from 1-arg to 2-arg signature and call directly
++  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
++  // CHECK: call void @__wasm_runtime_wrapper_vi_to_vii(ptr
++  ((TwoArgFunc)fp)(data, (void*)0);
++}
++
++// The runtime wrapper should be generated once and shared by both cases
++// CHECK-LABEL: define linkonce_odr void @__wasm_runtime_wrapper_vi_to_vii(ptr %0, ptr %1)
++// CHECK: %{{.*}} = load ptr, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
++// CHECK: call void %{{.*}}(ptr %0)
++// CHECK: ret void
++
++// Test case 2: Pass casted runtime function pointer to another function
++// This is closer to the real g_list_free_full scenario
++// CHECK-LABEL: @library_function
++void library_function(TwoArgFunc func, void *data) {
++  // CHECK: call void %{{.*}}(ptr noundef %{{.*}}, ptr noundef null)
++  func(data, (void*)0);
++}
++
++// CHECK-LABEL: @indirect_caller
++void indirect_caller(OneArgFunc fp, void *data) {
++  // Cast and pass to another function (like g_list_free_full does)
++  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_vi_to_vii_fptr
++  // CHECK: call void @library_function(ptr noundef @__wasm_runtime_wrapper_vi_to_vii
++  library_function((TwoArgFunc)fp, data);
++}
++
++// A function with two arguments that returns int (like a comparator)
++int my_compare_func(void *a, void *b) {
++  return 0;
++}
++
++// Test case 3: Same param count, return type coercion (int -> void)
++// This simulates g_slist_sort where int compare(void*, void*) is cast to void func(void*, void*)
++// Use a typedef to create a function pointer type with int return
++typedef int (*CompareFunc)(void *, void *);
++
++// CHECK-LABEL: @test_return_coercion
++void test_return_coercion(CompareFunc fp, void *data) {
++  // Cast int(void*, void*) -> void(void*, void*) on a runtime parameter
++  // CHECK: store ptr %{{.*}}, ptr @__wasm_runtime_wrapper_iii_to_vii_fptr
++  // CHECK: call void @library_function(ptr noundef @__wasm_runtime_wrapper_iii_to_vii
++  library_function((TwoArgFunc)fp, data);
++}
++
++// The runtime wrapper for int->void coercion with same param count
++// CHECK-LABEL: define linkonce_odr void @__wasm_runtime_wrapper_iii_to_vii(ptr %0, ptr %1)
++// CHECK: %{{.*}} = load ptr, ptr @__wasm_runtime_wrapper_iii_to_vii_fptr
++// CHECK: %{{.*}} = call i32 %{{.*}}(ptr %0, ptr %1)
++// CHECK: ret void
++
++// CHECK-LABEL: @test
++void test() {
++  // Test both scenarios
++  runtime_cast_caller(my_one_arg_func, (void*)0);
++  indirect_caller(my_one_arg_func, (void*)0);
++  test_return_coercion(my_compare_func, (void*)0);
++}
+-- 
+2.43.0
+

@@ -1,0 +1,64 @@
+From 570973bc44430c8da21cad745d59d97ae6033b75 Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Mon, 11 Aug 2025 16:31:04 +0200
+Subject: [PATCH 3/9] [wasm] Add a thunk cache
+
+---
+ clang/lib/CodeGen/Targets/WebAssembly.cpp | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/clang/lib/CodeGen/Targets/WebAssembly.cpp b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+index 983f550d4834..1bbc9ba4311f 100644
+--- a/clang/lib/CodeGen/Targets/WebAssembly.cpp
++++ b/clang/lib/CodeGen/Targets/WebAssembly.cpp
+@@ -8,6 +8,7 @@
+ 
+ #include "ABIInfoImpl.h"
+ #include "TargetInfo.h"
++#include "llvm/ADT/StringMap.h"
+ 
+ #include "clang/AST/ParentMapContext.h"
+ 
+@@ -56,6 +57,7 @@ public:
+       : TargetCodeGenInfo(std::make_unique<WebAssemblyABIInfo>(CGT, K)) {
+     SwiftInfo =
+         std::make_unique<SwiftABIInfo>(CGT, /*SwiftErrorInRegister=*/false);
++    ThunkCache = llvm::StringMap<llvm::Function *>();
+   }
+ 
+   void setTargetAttributes(const Decl *D, llvm::GlobalValue *GV,
+@@ -151,6 +153,16 @@ public:
+     // Construct the Thunk function with the Target (destination) signature
+     std::string ThunkName = getThunkName(OriginalFnPtr->getName().str(),
+                                          DstProtoType, CGM.getContext());
++    // Check if we already have a thunk for this function
++    if (auto It = ThunkCache.find(ThunkName); It != ThunkCache.end()) {
++      LLVM_DEBUG(llvm::dbgs() << "getOrCreateWasmFunctionPointerThunk: "
++                              << "found existing thunk for "
++                              << OriginalFnPtr->getName().str() << " as "
++                              << ThunkName << "\n");
++      return It->second;
++    }
++
++    // Create the thunk function
+     llvm::Module &M = CGM.getModule();
+     llvm::Function *Thunk = llvm::Function::Create(
+         DstFunctionType, llvm::Function::InternalLinkage, ThunkName, M);
+@@ -187,10 +199,14 @@ public:
+     LLVM_DEBUG(llvm::dbgs() << "getOrCreateWasmFunctionPointerThunk:"
+                             << " from " << OriginalFnPtr->getName().str()
+                             << " to " << ThunkName << "\n");
++    // Cache the thunk
++    ThunkCache[ThunkName] = Thunk;
+     return Thunk;
+   }
+ 
+ private:
++  // The thunk cache
++  mutable llvm::StringMap<llvm::Function *> ThunkCache;
+   // Build the thunk name: "%s_{OrigName}_{WasmSig}"
+   std::string getThunkName(std::string OrigName,
+                            const FunctionProtoType *DstProto,
+-- 
+2.43.0
+

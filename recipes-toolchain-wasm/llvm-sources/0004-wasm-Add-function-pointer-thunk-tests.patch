@@ -1,0 +1,83 @@
+From 4d4c3bbf7b1ddb4045925940e438ca415dd793a6 Mon Sep 17 00:00:00 2001
+From: Jorge Zapata <jorgeluis.zapata@gmail.com>
+Date: Tue, 12 Aug 2025 12:02:29 +0200
+Subject: [PATCH 4/9] [wasm] Add function pointer thunk tests
+
+---
+ .../CodeGenWebAssembly/function-pointer-arg.c | 25 ++++++++++++++++
+ .../function-pointer-field.c                  | 30 +++++++++++++++++++
+ 2 files changed, 55 insertions(+)
+ create mode 100644 clang/test/CodeGenWebAssembly/function-pointer-arg.c
+ create mode 100644 clang/test/CodeGenWebAssembly/function-pointer-field.c
+
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-arg.c b/clang/test/CodeGenWebAssembly/function-pointer-arg.c
+new file mode 100644
+index 000000000000..ff7b4186bbf7
+--- /dev/null
++++ b/clang/test/CodeGenWebAssembly/function-pointer-arg.c
+@@ -0,0 +1,25 @@
++// REQUIRES: webassembly-registered-target
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -o - %s | FileCheck %s
++
++// Test of function pointer bitcast in a function argument with different argument number in wasm32
++
++#define FUNCTION_POINTER(f) ((FunctionPointer)(f))
++typedef int (*FunctionPointer)(int a, int b);
++
++int fp_as_arg(FunctionPointer fp, int a, int b) {
++  return fp(a, b);
++}
++
++int fp_less(int a) {
++  return a;
++}
++
++// CHECK-LABEL: @test
++// CHECK: call i32 @fp_as_arg(ptr noundef @__fp_less_iii, i32 noundef 10, i32 noundef 20)
++void test() {
++  fp_as_arg(FUNCTION_POINTER(fp_less), 10, 20);
++}
++
++// CHECK: define internal i32 @__fp_less_iii(i32 %0, i32 %1)
++// CHECK: %2 = call i32 @fp_less(i32 %0)
++// CHECK: ret i32 %2
+\ No newline at end of file
+diff --git a/clang/test/CodeGenWebAssembly/function-pointer-field.c b/clang/test/CodeGenWebAssembly/function-pointer-field.c
+new file mode 100644
+index 000000000000..103a265ebf5f
+--- /dev/null
++++ b/clang/test/CodeGenWebAssembly/function-pointer-field.c
+@@ -0,0 +1,30 @@
++// REQUIRES: webassembly-registered-target
++// RUN: %clang_cc1 -triple wasm32-unknown-unknown -emit-llvm -O0 -o - %s | FileCheck %s
++
++// Test of function pointer bitcast in a struct field with different argument number in wasm32
++
++#define FUNCTION_POINTER(f) ((FunctionPointer)(f))
++typedef int (*FunctionPointer)(int a, int b); 
++
++// CHECK: @__const.test.sfp = private unnamed_addr constant %struct._StructWithFunctionPointer { ptr @__fp_less_iii }, align 4
++
++typedef struct _StructWithFunctionPointer {
++  FunctionPointer fp;
++} StructWithFunctionPointer;
++
++int fp_less(int a) {
++  return a;
++}
++                                                  
++// CHECK-LABEL: @test
++void test() {
++  StructWithFunctionPointer sfp = {
++    FUNCTION_POINTER(fp_less)
++  };
++
++  int a1 = sfp.fp(10, 20);
++}
++
++// CHECK: define internal i32 @__fp_less_iii(i32 %0, i32 %1)
++// CHECK: %2 = call i32 @fp_less(i32 %0)
++// CHECK: ret i32 %2
+-- 
+2.43.0
+
