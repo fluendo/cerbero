@@ -31,6 +31,10 @@ EMSDK_BUNDLE_EXT = '.tar.gz'
 EMSDK_BASE_URL = 'https://github.com/emscripten-core/emsdk/archive/refs/tags/%s' + EMSDK_BUNDLE_EXT
 EMSDK_CHECKSUMS = {'5.0.7' + EMSDK_BUNDLE_EXT: '266df4b9644dde18303af05dce7d04854273b0bb527246cb7fb6a09591774ccf'}
 
+LLVM_WASM32_BASE_URL = 'https://gstreamer.freedesktop.org/data/cerbero/toolchain/wasm32/'
+LLVM_WASM32_FILENAME = 'llvm-wasm32.tar.xz'
+LLVM_WASM32_CHECKSUM = '17311dc6581bac208268bd2eceb6633ee481af552836277dbb47e5d35b19760b'
+
 class EmscriptenToolchainBootstrapper(BootstrapperBase):
     """
     Bootstrapper for Emscripten builds.
@@ -44,6 +48,9 @@ class EmscriptenToolchainBootstrapper(BootstrapperBase):
         urls = (url, bundle_name, EMSDK_CHECKSUMS[os.path.basename(url)])
         self.fetch_urls.append(urls)
         self.extract_steps.append((url, True, self.config.home_dir))
+        # LLVM wasm32 toolchain
+        self.llvm_url = LLVM_WASM32_BASE_URL + LLVM_WASM32_FILENAME
+        self.fetch_urls.append((self.llvm_url, None, LLVM_WASM32_CHECKSUM))
 
     async def start(self, jobs=0):
         sdk_path_after_extract = os.path.join(self.config.home_dir, 'emsdk-' + EMSDK_VERSION)
@@ -57,6 +64,9 @@ class EmscriptenToolchainBootstrapper(BootstrapperBase):
         await shell.async_call_output(
             ['./emsdk', 'activate', EMSDK_VERSION], cmd_dir=self.config.toolchain_prefix, cpu_bound=False
         )
+        m.message(f'Install LLVM...')
+        llvm_prefix = os.path.join(self.config.toolchain_prefix, '..', 'llvm')
+        await self.sources[self.llvm_url].extract_tarball(llvm_prefix)
 
 
 def register_all():
