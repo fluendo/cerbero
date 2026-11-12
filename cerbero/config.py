@@ -71,6 +71,20 @@ RUST_TRIPLE_MAPPING = {
     (Platform.WEB, Architecture.WASM32): 'wasm32-unknown-emscripten',
 }
 
+# Rust toolchain used to build Rust code for the WEB platform.
+#
+# The prebuilt wasm32-unknown-emscripten standard library shipped with stable
+# Rust is built without atomics and with panic=unwind. gst.wasm is built with
+# pthreads/shared memory, so std must be rebuilt with `-Z build-std`, which is
+# only available on nightly. We pin a specific nightly date (the nightly
+# equivalent of a stable version) so builds are reproducible. Update it
+# together with the emsdk and re-run the wasm link/registration tests.
+#
+# Consumed by cerbero/bootstrap/rust.py (install) and
+# cerbero/build/build.py (Cargo/CargoC configuration).
+WASM_RUST_NIGHTLY = 'nightly-2026-11-11'
+WASM_RUST_TARGET = 'wasm32-unknown-emscripten'
+
 
 def set_nofile_ulimit():
     """

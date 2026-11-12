@@ -27,7 +27,7 @@ import collections
 import asyncio
 from hashlib import sha256
 
-from cerbero.config import Distro, DistroVersion, Platform, DEFAULT_MIRRORS
+from cerbero.config import Distro, DistroVersion, Platform, DEFAULT_MIRRORS, WASM_RUST_NIGHTLY
 from cerbero.utils import git, svn, shell, N_
 from cerbero.errors import FatalError, CommandError, InvalidRecipeError
 from cerbero.build.build import BuildType
@@ -132,14 +132,51 @@ class Source(object):
             shutil.copy(self.relative_path(self.cargo_lock), os.path.join(self.src_dir, 'Cargo.lock'))
         if not self.have_cargo_lock_file():
             await self.retry_run(self.cargo_update, offline, logfile)
+
+        # -Z build-std resolves the standard library dependencies from the
+        # rust-src Cargo.lock, which can pin versions different from the
+        # project lock (for example cfg-if 1.0.4 vs 1.0.5). Vendor both
+        # workspaces so the frozen, offline build can resolve std.
+        sync_args = []
+        if self.config.target_platform == Platform.WEB and self.config.variants.rust:
+            rust_src_manifest = os.path.join(
+                self.config.rustup_home,
+                'toolchains',
+                f'{WASM_RUST_NIGHTLY}-{self.config.rust_build_triple}',
+                'lib',
+                'rustlib',
+                'src',
+                'rust',
+                'library',
+                'Cargo.toml',
+            )
+            if os.path.exists(rust_src_manifest):
+                m.log('Vendoring rust-src for -Z build-std', logfile=logfile)
+                sync_args = ['--sync', rust_src_manifest]
+
+        # Remove the generated vendor configuration from a previous run so
+        # cargo vendor does not try to read from the vendor directory it is
+        # about to replace. Preserve a configuration shipped by the project.
+        dot_cargo_config = os.path.join(self.src_dir, '.cargo', 'config.toml')
+        if os.path.exists(dot_cargo_config):
+            with open(dot_cargo_config, 'r', encoding='utf-8') as f:
+                if 'vendored-sources' in f.read():
+                    os.unlink(dot_cargo_config)
+
         m.log('Running cargo vendor to vendor sources', logfile=logfile)
-        vendor_args = [self.cargo_vendor_cache_dir]
+        vendor_args = sync_args + [self.cargo_vendor_cache_dir]
         if offline:
             vendor_args += ['--frozen', '--offline']
+        # The rust-src manifest uses nightly-only Cargo features, so vendor
+        # with the pinned nightly toolchain when build-std is enabled.
+        vendor_env = self.env
+        if self.config.target_platform == Platform.WEB and self.config.variants.rust:
+            vendor_env = vendor_env.copy()
+            vendor_env['RUSTUP_TOOLCHAIN'] = WASM_RUST_NIGHTLY
         ct = await shell.async_call_output(
             [self.cargo, 'vendor'] + vendor_args,
             cmd_dir=self.src_dir,
-            env=self.env,
+            env=vendor_env,
             cpu_bound=False,
             logfile=logfile,
         )

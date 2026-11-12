@@ -36,6 +36,7 @@ from cerbero.bootstrap import BootstrapperBase
 from cerbero.utils import shell
 from cerbero.utils import messages as m
 from cerbero.enums import Platform, Architecture
+from cerbero.config import WASM_RUST_NIGHTLY, WASM_RUST_TARGET
 
 
 class RustBootstrapper(BootstrapperBase):
@@ -51,6 +52,11 @@ class RustBootstrapper(BootstrapperBase):
     RUSTUP_NAME_TPL = 'rustup-init-{version}-{triple}{exe_suffix}'
     CHANNEL_URL_TPL = '{server}/dist/channel-rust-{version}.toml'
     COMPONENTS = ('cargo', 'rustc', 'rust-std', 'llvm-tools-preview')
+    # Dated nightly channel, used for wasm32 Rust builds. The toolchain is
+    # pinned in cerbero/config.py; the channel URL follows the dated nightly
+    # layout (dist/<date>/channel-rust-nightly.toml).
+    WASM_CHANNEL_URL_TPL = '{server}/dist/{date}/channel-rust-nightly.toml'
+    WASM_CHANNEL_CHECKSUM = 'b60367cec32f5024aeae6e6a07cfeb5ef4d587b2aab481e25ff493e553304c80'
     # Update from https://pypi.org/project/tomli/#files
     TOMLI_URL = 'https://files.pythonhosted.org/packages/c0/3f/d7af728f075fb08564c5949a9c95e44352e23dee646869fa104a3b2060a3/tomli-2.0.1.tar.gz'
     DOWNLOAD_CHECKSUMS = {
@@ -76,6 +82,8 @@ class RustBootstrapper(BootstrapperBase):
     rustup = None
     # Downloaded rust channel
     channel = None
+    # Downloaded nightly channel for wasm32 builds (WEB + Rust only)
+    wasm_channel = None
 
     def __init__(self, config, offline):
         super().__init__(config, offline, 'rust')
@@ -112,6 +120,10 @@ class RustBootstrapper(BootstrapperBase):
         if not self.config.find_toml_module(system_only=True):
             self.extract_steps += [(self.TOMLI_URL, True, self.config.rust_prefix)]
 
+    def wasm_rust_enabled(self):
+        """Whether the wasm32 Rust toolchain is needed for this configuration"""
+        return self.config.target_platform == Platform.WEB and self.config.variants.rust
+
     def get_fetch_urls(self):
         """Get Rustup and Rust channel URLs"""
         urls = []
@@ -146,6 +158,15 @@ class RustBootstrapper(BootstrapperBase):
             # Need the tomli python module to be able to parse the channel TOML file
             checksum = self.DOWNLOAD_CHECKSUMS[os.path.basename(self.TOMLI_URL)]
             urls.append((self.TOMLI_URL, None, checksum))
+        if self.wasm_rust_enabled():
+            # Dated nightly channel for the wasm32 Rust toolchain.
+            date = WASM_RUST_NIGHTLY.removeprefix('nightly-')
+            url = self.WASM_CHANNEL_URL_TPL.format(server=self.SERVER, date=date)
+            path = urlparse(url).path[1:]
+            self.wasm_channel = os.path.join(self.config.local_sources, path)
+            urls.append((url, path, self.WASM_CHANNEL_CHECKSUM))
+            for each in ('.sha256', '.asc'):
+                urls.append((url + each, path + each, False))
         return urls
 
     async def get_more_fetch_urls(self):
@@ -204,6 +225,21 @@ class RustBootstrapper(BootstrapperBase):
                 entry = channel_data['pkg']['rust-mingw']['target'][triple]
                 urls += list(get_entry_urls(entry))
 
+        if self.wasm_rust_enabled():
+            # Mirror the nightly toolchain components requested by
+            # `rustup toolchain install`: host rustc/cargo/std, rust-src, and
+            # std for wasm32-unknown-emscripten. rustup resolves all of these
+            # from RUSTUP_DIST_SERVER, which points at local_sources.
+            with open(self.wasm_channel, 'r', encoding='utf-8') as f:
+                wasm_channel_data = tomllib.loads(f.read())
+            for pkg in ('rust', 'cargo', 'rustc', 'rust-std'):
+                entry = wasm_channel_data['pkg'][pkg]['target'][self.build_triple]
+                urls += list(get_entry_urls(entry))
+            entry = wasm_channel_data['pkg']['rust-src']['target']['*']
+            urls += list(get_entry_urls(entry))
+            entry = wasm_channel_data['pkg']['rust-std']['target'][WASM_RUST_TARGET]
+            urls += list(get_entry_urls(entry))
+
         return (urls, self.install_toolchain_for_cargoc_fetch)
 
     async def install_toolchain_for_cargoc_fetch(self):
@@ -252,6 +288,7 @@ class RustBootstrapper(BootstrapperBase):
         self.load_manifest()
         await self.install_toolchain()
         await self.install_targets()
+        await self.install_wasm_nightly()
         self.save_manifest()
         self.installed = True
 
@@ -333,6 +370,43 @@ class RustBootstrapper(BootstrapperBase):
 
         installed_targets.update(self.target_triples)
         self.manifest['targets'] = installed_targets
+
+    async def install_wasm_nightly(self):
+        """
+        Install the pinned nightly toolchain used to build Rust code for wasm32.
+
+        The prebuilt wasm32-unknown-emscripten std shipped with stable Rust is
+        compiled without atomics and with panic=unwind. gst.wasm is built with
+        pthreads/shared memory, so cerbero/build/build.py configures Cargo with
+        `-Z build-std=std,panic_abort`, which requires a nightly toolchain and
+        the rust-src component. The date is pinned in cerbero/config.py so the
+        toolchain is reproducible; update it together with the emsdk and re-run
+        the wasm link/registration tests.
+        """
+        if not self.wasm_rust_enabled():
+            return
+
+        cargo_bin = Path(self.config.cargo_home) / 'bin'
+        rustup = cargo_bin / f'rustup{self.config._get_exe_suffix()}'
+        rustup_args = [
+            str(rustup),
+            'toolchain',
+            'install',
+            WASM_RUST_NIGHTLY,
+            '--profile',
+            'minimal',
+            '--component',
+            'rust-src',
+            '--target',
+            WASM_RUST_TARGET,
+            # The local RUSTUP_UPDATE_ROOT mirror does not contain
+            # release-stable.toml; avoid a failing self-update check.
+            '--no-self-update',
+        ]
+        # Components are served from the local RUSTUP_DIST_SERVER mirror
+        # populated by get_fetch_urls()/get_more_fetch_urls().
+        await shell.async_call_output(rustup_args, cpu_bound=False, env=self.get_rustup_env())
+        m.message(f'Rust nightly toolchain {WASM_RUST_NIGHTLY} installed at {self.config.rust_prefix}')
 
     async def start(self, jobs=0):
         await self.install_rustup()

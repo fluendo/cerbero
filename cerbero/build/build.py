@@ -25,6 +25,7 @@ from pathlib import Path
 from itertools import chain
 
 from cerbero.enums import Platform, Subsystem, Architecture, Distro, DistroVersion, LibraryType
+from cerbero.config import WASM_RUST_NIGHTLY
 from cerbero.errors import FatalError, InvalidRecipeError
 from cerbero.utils import shell, default_cargo_build_jobs
 from cerbero.utils import messages as m
@@ -1399,6 +1400,13 @@ class Cargo(Build, ModifyEnvBase):
         with open(Path(dot_cargo, 'config.toml').as_posix(), 'a') as f:
             f.write(s)
 
+    def append_config_toml_once(self, marker, s):
+        """Append a Cargo config fragment only if it is not already present"""
+        config = Path(self.src_dir, '.cargo', 'config.toml')
+        if config.exists() and marker in config.read_text(encoding='utf-8'):
+            return
+        self.append_config_toml(s)
+
     def get_llvm_tool(self, tool: str) -> Path:
         """
         Gets one of the LLVM tools matching the current Rust toolchain.
@@ -1445,6 +1453,33 @@ class Cargo(Build, ModifyEnvBase):
             # Do not perform LTO -- breaks melding (future MR) and line numbers
             self.append_config_toml('lto = false\n')
             self.append_config_toml('codegen-units = 1\n')
+            if self.config.target_platform == Platform.WEB:
+                # gst.wasm links with shared memory. The prebuilt stable
+                # wasm32-unknown-emscripten std is neither atomics-enabled nor
+                # panic=abort, so we rebuild std below; matching panic=abort
+                # avoids "core requires panic strategy unwind".
+                self.append_config_toml_once('panic = "abort"', 'panic = "abort"\n')
+
+        if self.config.target_platform == Platform.WEB:
+            # Build std from source with atomics. This is necessary because
+            # gst.wasm uses pthreads; without it wasm-ld fails with
+            # "--shared-memory is disallowed by <obj> because it was not
+            # compiled with 'atomics' or 'bulk-memory' features".
+            #
+            # -Z build-std is nightly-only, so the recipe must run with the
+            # pinned nightly toolchain (RUSTUP_TOOLCHAIN). The components
+            # (rust-src, wasm32 std) are installed by the Rust bootstrapper.
+            self.append_config_toml_once(
+                '[unstable]', '\n[unstable]\nbuild-std = ["std", "panic_abort"]\n'
+            )
+            self.set_env('RUSTUP_TOOLCHAIN', WASM_RUST_NIGHTLY)
+            # cargo-c ignores config.toml rustflags, so pass the target flags
+            # through the environment. Use the target-specific variable to
+            # keep host build scripts unaffected.
+            self.set_env(
+                'CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_RUSTFLAGS',
+                '-C target-feature=+atomics,+bulk-memory,+mutable-globals',
+            )
 
         if self.config.target_platform == Platform.ANDROID:
             # Use the compiler's forwarding
